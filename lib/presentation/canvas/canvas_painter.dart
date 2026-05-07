@@ -5,17 +5,20 @@ import 'package:flutter/material.dart';
 import '../../core/geometry/canvas_transform.dart';
 import '../../domain/entities/canvas_node.dart';
 import '../../domain/entities/edge.dart';
+import '../../domain/entities/folder_region.dart';
 
 class CanvasPainter extends CustomPainter {
   const CanvasPainter({
     required this.nodes,
     required this.edges,
+    this.folderRegions = const <FolderRegion>[],
     required this.transform,
     this.selectedNodeId,
   });
 
   final List<CanvasNode> nodes;
   final List<Edge> edges;
+  final List<FolderRegion> folderRegions;
   final Matrix4 transform;
   final String? selectedNodeId;
 
@@ -51,6 +54,7 @@ class CanvasPainter extends CustomPainter {
     canvas.save();
     canvas.transform(transform.storage);
     _drawGrid(canvas, viewportWorldRect);
+    _drawFolderRegions(canvas, viewportWorldRect);
     _drawEdges(canvas, nodeMap, visibleNodeIds);
     for (final node in culledNodes) {
       _drawNode(canvas, node, isSelected: node.id == selectedNodeId);
@@ -74,6 +78,41 @@ class CanvasPainter extends CustomPainter {
 
     for (var y = startY; y <= endY; y += gridSize) {
       canvas.drawLine(Offset(startX, y), Offset(endX, y), paint);
+    }
+  }
+
+  void _drawFolderRegions(Canvas canvas, Rect viewportWorldRect) {
+    for (final region in folderRegions) {
+      final bounds = region.visibleBounds;
+      if (!bounds.overlaps(viewportWorldRect)) {
+        continue;
+      }
+      final paint = Paint()
+        ..color = region.color.withValues(alpha: 0.35)
+        ..style = PaintingStyle.fill;
+      final border = Paint()
+        ..color = region.color.withValues(alpha: 0.9)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3;
+      final roundedRect = RRect.fromRectAndRadius(
+        bounds,
+        const Radius.circular(28),
+      );
+      canvas.drawRRect(roundedRect, paint);
+      canvas.drawRRect(roundedRect, border);
+
+      final labelPainter = TextPainter(
+        text: TextSpan(
+          text: region.relativePath,
+          style: const TextStyle(
+            color: Color(0xff334155),
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: bounds.width - 96);
+      labelPainter.paint(canvas, bounds.topLeft + const Offset(24, 18));
     }
   }
 
@@ -220,6 +259,7 @@ class CanvasPainter extends CustomPainter {
   bool shouldRepaint(covariant CanvasPainter oldDelegate) {
     return oldDelegate.nodes != nodes ||
         oldDelegate.edges != edges ||
+        oldDelegate.folderRegions != folderRegions ||
         oldDelegate.transform != transform ||
         oldDelegate.selectedNodeId != selectedNodeId;
   }

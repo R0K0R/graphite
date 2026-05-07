@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/geometry/canvas_transform.dart';
+import '../../domain/entities/canvas_node.dart';
+import '../../domain/entities/folder_region.dart';
+import '../editor/embedded_editor_node.dart';
+import '../project/project_controller.dart';
 import 'canvas_controller.dart';
 import 'canvas_painter.dart';
 
@@ -21,7 +25,17 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget> {
   @override
   Widget build(BuildContext context) {
     final canvasState = ref.watch(canvasControllerProvider);
+    final projectState = ref.watch(projectControllerProvider);
+    final project = projectState.project;
+    final folderRegions = _folderRegionsVisibleOutsideCollapsedParents(
+      project?.folderRegions ?? const <FolderRegion>[],
+    );
+    final nodes = _nodesVisibleOutsideCollapsedFolders(
+      project?.nodes ?? const <CanvasNode>[],
+      project?.folderRegions ?? const <FolderRegion>[],
+    );
     final controller = ref.read(canvasControllerProvider.notifier);
+    final projectController = ref.read(projectControllerProvider.notifier);
 
     return Listener(
       onPointerSignal: (event) {
@@ -41,7 +55,7 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget> {
             canvasState.transform,
             details.localFocalPoint,
           );
-          _draggingNodeId = controller.hitTestNode(worldPosition);
+          _draggingNodeId = controller.hitTestNode(nodes, worldPosition);
           _lastDragWorldPosition = worldPosition;
           controller.selectNode(_draggingNodeId);
         },
@@ -64,9 +78,9 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget> {
               latestState.transform,
               details.localFocalPoint,
             );
-            controller.dragNode(
+            projectController.moveNode(
               nodeId: _draggingNodeId!,
-              worldDelta: worldPosition - _lastDragWorldPosition!,
+              delta: worldPosition - _lastDragWorldPosition!,
             );
             _lastDragWorldPosition = worldPosition;
           } else {
@@ -78,14 +92,170 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget> {
           _lastDragWorldPosition = null;
           _lastScale = 1;
         },
-        child: CustomPaint(
-          painter: CanvasPainter(
-            nodes: canvasState.nodes,
-            edges: canvasState.edges,
-            transform: canvasState.transform,
-            selectedNodeId: canvasState.selectedNodeId,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final viewport =
+                Offset.zero & Size(constraints.maxWidth, constraints.maxHeight);
+            final viewportWorldRect = CanvasTransform.screenRectToWorld(
+              canvasState.transform,
+              viewport,
+            ).inflate(320);
+            final visibleNodes = CanvasPainter.visibleNodes(
+              nodes: nodes,
+              viewportWorldRect: viewportWorldRect,
+            );
+
+            return Stack(
+              children: <Widget>[
+                CustomPaint(
+                  painter: CanvasPainter(
+                    nodes: nodes,
+                    edges: project?.edges ?? const [],
+                    folderRegions: folderRegions,
+                    transform: canvasState.transform,
+                    selectedNodeId: canvasState.selectedNodeId,
+                  ),
+                  child: const SizedBox.expand(),
+                ),
+                for (final node in visibleNodes)
+                  _PositionedEditorNode(
+                    node: node,
+                    transform: canvasState.transform,
+                    isSelected: node.id == canvasState.selectedNodeId,
+                  ),
+                for (final folder in folderRegions)
+                  if (folder.visibleBounds.overlaps(viewportWorldRect))
+                    _PositionedFolderControls(
+                      folder: folder,
+                      transform: canvasState.transform,
+                    ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  List<FolderRegion> _folderRegionsVisibleOutsideCollapsedParents(
+    List<FolderRegion> folders,
+  ) {
+    final collapsedFolders = folders
+        .where((folder) => folder.isCollapsed)
+        .toList(growable: false);
+    if (collapsedFolders.isEmpty) {
+      return folders;
+    }
+    return folders
+        .where((folder) {
+          return !collapsedFolders.any(
+            (collapsed) =>
+                collapsed.relativePath != folder.relativePath &&
+                collapsed.containsRelativePath(folder.relativePath),
+          );
+        })
+        .toList(growable: false);
+  }
+
+  List<CanvasNode> _nodesVisibleOutsideCollapsedFolders(
+    List<CanvasNode> nodes,
+    List<FolderRegion> folders,
+  ) {
+    final collapsedFolders = folders
+        .where((folder) => folder.isCollapsed)
+        .toList(growable: false);
+    if (collapsedFolders.isEmpty) {
+      return nodes;
+    }
+    return nodes
+        .where((node) {
+          final relativePath =
+              node.metadata['relativePath'] as String? ?? node.id;
+          return !collapsedFolders.any(
+            (folder) => folder.containsRelativePath(relativePath),
+          );
+        })
+        .toList(growable: false);
+  }
+}
+
+class _PositionedEditorNode extends StatelessWidget {
+  const _PositionedEditorNode({
+    required this.node,
+    required this.transform,
+    required this.isSelected,
+  });
+
+  final CanvasNode node;
+  final Matrix4 transform;
+  final bool isSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = transform.getMaxScaleOnAxis();
+    final screenTopLeft = CanvasTransform.worldToScreen(
+      transform,
+      node.position,
+    );
+
+    return Positioned(
+      left: screenTopLeft.dx,
+      top: screenTopLeft.dy,
+      width: node.size.width * scale,
+      height: node.size.height * scale,
+      child: Transform.scale(
+        alignment: Alignment.topLeft,
+        scale: scale,
+        child: SizedBox(
+          width: node.size.width,
+          height: node.size.height,
+          child: EmbeddedEditorNode(
+            key: ValueKey<String>(node.id),
+            node: node,
+            isSelected: isSelected,
           ),
-          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+  }
+}
+
+class _PositionedFolderControls extends ConsumerWidget {
+  const _PositionedFolderControls({
+    required this.folder,
+    required this.transform,
+  });
+
+  final FolderRegion folder;
+  final Matrix4 transform;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scale = transform.getMaxScaleOnAxis();
+    final bounds = folder.visibleBounds;
+    final topRight = CanvasTransform.worldToScreen(transform, bounds.topRight);
+
+    return Positioned(
+      left: topRight.dx - 56,
+      top: topRight.dy + 14 * scale,
+      width: 36,
+      height: 36,
+      child: Material(
+        color: Colors.white,
+        elevation: 3,
+        shape: const CircleBorder(),
+        child: IconButton(
+          tooltip: folder.isCollapsed ? 'Expand folder' : 'Fold folder',
+          iconSize: 18,
+          padding: EdgeInsets.zero,
+          icon: Icon(
+            folder.isCollapsed ? Icons.unfold_more : Icons.unfold_less,
+          ),
+          onPressed: () {
+            ref
+                .read(projectControllerProvider.notifier)
+                .toggleFolderCollapsed(folder.relativePath);
+          },
         ),
       ),
     );
