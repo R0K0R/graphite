@@ -40,11 +40,14 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget> {
     return Listener(
       onPointerSignal: (event) {
         if (event is PointerScrollEvent) {
-          final scaleDelta = event.scrollDelta.dy > 0 ? 0.9 : 1.1;
-          controller.zoom(
-            scaleDelta: scaleDelta,
-            focalPoint: event.localPosition,
-          );
+          GestureBinding.instance.pointerSignalResolver.register(event, (event) {
+            final scrollEvent = event as PointerScrollEvent;
+            final scaleDelta = scrollEvent.scrollDelta.dy > 0 ? 0.9 : 1.1;
+            controller.zoom(
+              scaleDelta: scaleDelta,
+              focalPoint: scrollEvent.localPosition,
+            );
+          });
         }
       },
       child: GestureDetector(
@@ -117,18 +120,22 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget> {
                   ),
                   child: const SizedBox.expand(),
                 ),
-                for (final node in visibleNodes)
-                  _PositionedEditorNode(
-                    node: node,
-                    transform: canvasState.transform,
-                    isSelected: node.id == canvasState.selectedNodeId,
+                Transform(
+                  transform: canvasState.transform,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: <Widget>[
+                      for (final node in visibleNodes)
+                        _PositionedEditorNode(
+                          node: node,
+                          isSelected: node.id == canvasState.selectedNodeId,
+                        ),
+                      for (final folder in folderRegions)
+                        if (folder.visibleBounds.overlaps(viewportWorldRect))
+                          _PositionedFolderControls(folder: folder),
+                    ],
                   ),
-                for (final folder in folderRegions)
-                  if (folder.visibleBounds.overlaps(viewportWorldRect))
-                    _PositionedFolderControls(
-                      folder: folder,
-                      transform: canvasState.transform,
-                    ),
+                ),
               ],
             );
           },
@@ -182,38 +189,31 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget> {
 class _PositionedEditorNode extends StatelessWidget {
   const _PositionedEditorNode({
     required this.node,
-    required this.transform,
     required this.isSelected,
   });
 
   final CanvasNode node;
-  final Matrix4 transform;
   final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
-    final scale = transform.getMaxScaleOnAxis();
-    final screenTopLeft = CanvasTransform.worldToScreen(
-      transform,
-      node.position,
-    );
-
     return Positioned(
-      left: screenTopLeft.dx,
-      top: screenTopLeft.dy,
-      width: node.size.width * scale,
-      height: node.size.height * scale,
-      child: Transform.scale(
-        alignment: Alignment.topLeft,
-        scale: scale,
-        child: SizedBox(
-          width: node.size.width,
-          height: node.size.height,
-          child: EmbeddedEditorNode(
-            key: ValueKey<String>(node.id),
-            node: node,
-            isSelected: isSelected,
-          ),
+      left: node.position.dx,
+      top: node.position.dy,
+      width: node.size.width,
+      height: node.size.height,
+      child: Listener(
+        onPointerSignal: (event) {
+          if (event is PointerScrollEvent) {
+            // Stop scroll event from bubbling up to CanvasWidget zoom logic
+            // This allows the inner TextField to scroll without zooming the canvas
+            GestureBinding.instance.pointerSignalResolver.register(event, (event) {});
+          }
+        },
+        child: EmbeddedEditorNode(
+          key: ValueKey<String>(node.id),
+          node: node,
+          isSelected: isSelected,
         ),
       ),
     );
@@ -223,28 +223,30 @@ class _PositionedEditorNode extends StatelessWidget {
 class _PositionedFolderControls extends ConsumerWidget {
   const _PositionedFolderControls({
     required this.folder,
-    required this.transform,
   });
 
   final FolderRegion folder;
-  final Matrix4 transform;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scale = transform.getMaxScaleOnAxis();
     final bounds = folder.visibleBounds;
-    final topRight = CanvasTransform.worldToScreen(transform, bounds.topRight);
 
     return Positioned(
-      left: topRight.dx - 56,
-      top: topRight.dy + 14 * scale,
+      left: bounds.right - 56,
+      top: bounds.top + 14,
       width: 36,
       height: 36,
-      child: Material(
-        color: Colors.white,
-        elevation: 3,
-        shape: const CircleBorder(),
-        child: IconButton(
+      child: Listener(
+        onPointerSignal: (event) {
+          if (event is PointerScrollEvent) {
+            GestureBinding.instance.pointerSignalResolver.register(event, (event) {});
+          }
+        },
+        child: Material(
+          color: Colors.white,
+          elevation: 3,
+          shape: const CircleBorder(),
+          child: IconButton(
           tooltip: folder.isCollapsed ? 'Expand folder' : 'Fold folder',
           iconSize: 18,
           padding: EdgeInsets.zero,
@@ -255,7 +257,8 @@ class _PositionedFolderControls extends ConsumerWidget {
             ref
                 .read(projectControllerProvider.notifier)
                 .toggleFolderCollapsed(folder.relativePath);
-          },
+            },
+          ),
         ),
       ),
     );

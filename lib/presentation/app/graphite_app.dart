@@ -1,8 +1,12 @@
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/geometry/canvas_transform.dart';
+import '../../domain/entities/graphite_project.dart';
+import '../canvas/canvas_controller.dart';
 import '../canvas/canvas_widget.dart';
 import '../project/project_controller.dart';
 
@@ -34,6 +38,7 @@ class GraphiteHomePage extends ConsumerStatefulWidget {
 
 class _GraphiteHomePageState extends ConsumerState<GraphiteHomePage> {
   late final TextEditingController _rootController;
+  bool _isSidebarOpen = false;
 
   @override
   void initState() {
@@ -54,6 +59,10 @@ class _GraphiteHomePageState extends ConsumerState<GraphiteHomePage> {
         children: <Widget>[
           const CanvasWidget(),
           _CanvasHud(rootController: _rootController),
+          _FileTreeSidebar(
+            isOpen: _isSidebarOpen,
+            onToggle: () => setState(() => _isSidebarOpen = !_isSidebarOpen),
+          ),
         ],
       ),
     );
@@ -203,5 +212,369 @@ class _CanvasHud extends ConsumerWidget {
           relativePath: relativePath.trim(),
           position: Offset(80 + index * 48.0, 80 + index * 48.0),
         );
+  }
+}
+
+class _FileTreeSidebar extends ConsumerStatefulWidget {
+  const _FileTreeSidebar({
+    required this.isOpen,
+    required this.onToggle,
+  });
+
+  final bool isOpen;
+  final VoidCallback onToggle;
+
+  @override
+  ConsumerState<_FileTreeSidebar> createState() => _FileTreeSidebarState();
+}
+
+class _FileTreeSidebarState extends ConsumerState<_FileTreeSidebar> {
+  final Set<String> _manuallyToggledFolders = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final projectState = ref.watch(projectControllerProvider);
+    final canvasState = ref.watch(canvasControllerProvider);
+    final project = projectState.project;
+    if (project == null) return const SizedBox.shrink();
+
+    // Determine active path based on selection AND visibility
+    final activePathSet = <String>{};
+
+    // 1. Selection
+    final selectedNodeId = canvasState.selectedNodeId;
+    if (selectedNodeId != null) {
+      _addPathWithAncestors(activePathSet, selectedNodeId);
+    }
+
+    // 2. Visibility
+    final viewportSize = MediaQuery.of(context).size;
+    final viewportWorldRect = CanvasTransform.screenRectToWorld(
+      canvasState.transform,
+      Offset.zero & viewportSize,
+    );
+
+    for (final node in project.nodes) {
+      if (node.bounds.overlaps(viewportWorldRect)) {
+        _addPathWithAncestors(activePathSet, node.id);
+      }
+    }
+
+    for (final folder in project.folderRegions) {
+      if (folder.bounds.overlaps(viewportWorldRect)) {
+        _addPathWithAncestors(activePathSet, folder.relativePath);
+      }
+    }
+
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      left: widget.isOpen ? 24 : -250,
+      top: 260, // Positioned below the HUD
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 280,
+            height: 400,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x1f000000),
+                  blurRadius: 16,
+                  offset: Offset(0, 8),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Listener(
+              onPointerSignal: (event) {
+                if (event is PointerScrollEvent) {
+                  GestureBinding.instance.pointerSignalResolver
+                      .register(event, (event) {});
+                }
+              },
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: _FileTreeList(
+                  project: project,
+                  activePathSet: activePathSet,
+                  manuallyToggledFolders: _manuallyToggledFolders,
+                  onToggleFolder: (path) {
+                    setState(() {
+                      if (_manuallyToggledFolders.contains(path)) {
+                        _manuallyToggledFolders.remove(path);
+                      } else {
+                        _manuallyToggledFolders.add(path);
+                      }
+                    });
+                  },
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          _SidebarToggleButton(
+            isOpen: widget.isOpen,
+            onTap: widget.onToggle,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addPathWithAncestors(Set<String> set, String path) {
+    set.add(path);
+    final parts = path.split('/');
+    for (int i = 1; i < parts.length; i++) {
+      set.add(parts.sublist(0, i).join('/'));
+    }
+  }
+}
+
+class _SidebarToggleButton extends StatelessWidget {
+  const _SidebarToggleButton({
+    required this.isOpen,
+    required this.onTap,
+  });
+
+  final bool isOpen;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      elevation: 4,
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: Icon(
+            isOpen ? Icons.chevron_left : Icons.chevron_right,
+            color: const Color(0xff2563eb),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FileTreeList extends ConsumerWidget {
+  const _FileTreeList({
+    required this.project,
+    required this.activePathSet,
+    required this.manuallyToggledFolders,
+    required this.onToggleFolder,
+  });
+
+  final GraphiteProject project;
+  final Set<String> activePathSet;
+  final Set<String> manuallyToggledFolders;
+  final ValueChanged<String> onToggleFolder;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final viewportSize = MediaQuery.of(context).size;
+
+    // A folder is expanded ONLY if it's manually toggled.
+    // By default all are closed. Manual toggle -> expand.
+    // Active path (selection/visibility) highlights are purely visual now.
+    final expandedFolders = Set<String>.from(manuallyToggledFolders);
+
+    final items = _buildFilteredTreeItems(expandedFolders);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        for (final item in items)
+          _FileTreeItem(
+            label: item.label,
+            isFolder: item.isFolder,
+            depth: item.depth,
+            isExpanded: expandedFolders.contains(item.path),
+            isActive: activePathSet.contains(item.path),
+            onTap: () {
+              ref.read(canvasControllerProvider.notifier).lookAt(
+                    item.worldRect,
+                    viewportSize,
+                  );
+            },
+            onToggle: item.isFolder ? () => onToggleFolder(item.path) : null,
+          ),
+      ],
+    );
+  }
+
+  List<_TreeEntry> _buildFilteredTreeItems(Set<String> expandedFolders) {
+    final entries = <_TreeEntry>[];
+    final folderMap = {for (final f in project.folderRegions) f.relativePath: f};
+    final fileMap = {
+      for (final n in project.nodes)
+        if (n.metadata['relativePath'] is String)
+          n.metadata['relativePath']! as String: n
+    };
+
+    final allPaths = <String>{...folderMap.keys, ...fileMap.keys}.toList()..sort();
+
+    for (final path in allPaths) {
+      final parts = path.split('/');
+      final depth = parts.length - 1;
+      final isFolder = folderMap.containsKey(path);
+
+      // Filtering logic:
+      // Always show root items (depth == 0)
+      // Show sub-items only if ALL ancestor folders are expanded
+      bool shouldShow = depth == 0;
+      if (!shouldShow) {
+        bool allAncestorsExpanded = true;
+        for (int i = 1; i < parts.length; i++) {
+          final ancestorPath = parts.sublist(0, i).join('/');
+          if (!expandedFolders.contains(ancestorPath)) {
+            allAncestorsExpanded = false;
+            break;
+          }
+        }
+        if (allAncestorsExpanded) {
+          shouldShow = true;
+        }
+      }
+
+      if (shouldShow) {
+        entries.add(_TreeEntry(
+          path: path,
+          label: parts.last,
+          isFolder: isFolder,
+          depth: depth,
+          worldRect: isFolder ? folderMap[path]!.bounds : fileMap[path]!.bounds,
+        ));
+      }
+    }
+
+    return entries;
+  }
+}
+
+class _TreeEntry {
+  _TreeEntry({
+    required this.path,
+    required this.label,
+    required this.isFolder,
+    required this.depth,
+    required this.worldRect,
+  });
+
+  final String path;
+  final String label;
+  final bool isFolder;
+  final int depth;
+  final Rect worldRect;
+}
+
+class _FileTreeItem extends StatefulWidget {
+  const _FileTreeItem({
+    required this.label,
+    required this.isFolder,
+    required this.depth,
+    required this.isExpanded,
+    required this.isActive,
+    required this.onTap,
+    this.onToggle,
+  });
+
+  final String label;
+  final bool isFolder;
+  final int depth;
+  final bool isExpanded;
+  final bool isActive;
+  final VoidCallback onTap;
+  final VoidCallback? onToggle;
+
+  @override
+  State<_FileTreeItem> createState() => _FileTreeItemState();
+}
+
+class _FileTreeItemState extends State<_FileTreeItem> {
+  bool _isChevronHovered = false;
+  bool _isNameHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final activeColor = const Color(0xff1e3a8a); // Navy
+    final defaultColor = const Color(0xff64748b);
+    final labelColor = widget.isActive ? activeColor : const Color(0xff475569);
+
+    return Padding(
+      padding: EdgeInsets.only(left: widget.depth * 12.0, bottom: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          MouseRegion(
+            onEnter: (_) => setState(() => _isNameHovered = true),
+            onExit: (_) => setState(() => _isNameHovered = false),
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: widget.onTap,
+              behavior: HitTestBehavior.opaque,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 20,
+                    child: Center(
+                      child: Text(
+                        widget.isFolder ? '-' : '·',
+                        style: TextStyle(
+                          fontSize: widget.isFolder ? 18 : 24,
+                          fontWeight: FontWeight.bold,
+                          color: widget.isActive ? activeColor : defaultColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    widget.label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: labelColor,
+                      fontWeight:
+                          widget.isActive ? FontWeight.w700 : FontWeight.w500,
+                      decoration: _isNameHovered ? TextDecoration.underline : null,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (widget.isFolder) ...[
+            const SizedBox(width: 4),
+            MouseRegion(
+              onEnter: (_) => setState(() => _isChevronHovered = true),
+              onExit: (_) => setState(() => _isChevronHovered = false),
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: widget.onToggle,
+                child: Opacity(
+                  opacity: _isChevronHovered ? 1.0 : 0.3,
+                  child: Icon(
+                    widget.isExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    size: 16,
+                    color: widget.isActive ? activeColor : defaultColor,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }

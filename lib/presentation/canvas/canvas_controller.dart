@@ -66,4 +66,21 @@ class CanvasController extends Notifier<CanvasState> {
       clearSelection: nodeId == null,
     );
   }
+
+  void lookAt(Rect worldRect, Size viewportSize) {
+    // Center the target rect in the viewport
+    final scale = state.transform.getMaxScaleOnAxis();
+    final targetCenter = worldRect.center;
+    final screenCenter = viewportSize.center(Offset.zero);
+
+    // We want: transform * targetCenter = screenCenter
+    // transform = Translate(screenCenter) * Scale(scale) * Translate(-targetCenter)
+
+    final newTransform = Matrix4.identity()
+      ..translate(screenCenter.dx, screenCenter.dy)
+      ..scale(scale, scale, 1.0)
+      ..translate(-targetCenter.dx, -targetCenter.dy);
+
+    state = state.copyWith(transform: newTransform);
+  }
 }
