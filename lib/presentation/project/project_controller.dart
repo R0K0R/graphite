@@ -9,9 +9,14 @@ import '../../domain/entities/canvas_node.dart';
 import '../../domain/entities/folder_region.dart';
 import '../../domain/entities/graphite_project.dart';
 import '../../domain/repositories/project_repository.dart';
+import '../../domain/usecases/organize_project_layout.dart';
 
 final projectRepositoryProvider = Provider<ProjectRepository>((ref) {
   return ProjectRepositoryImpl(datasource: const LocalProjectDatasource());
+});
+
+final layoutOrganizerProvider = Provider<OrganizeProjectLayout>((ref) {
+  return OrganizeProjectLayout();
 });
 
 final projectControllerProvider =
@@ -40,12 +45,14 @@ class ProjectState {
 
 class ProjectController extends Notifier<ProjectState> {
   late final ProjectRepository _repository;
+  late final OrganizeProjectLayout _layoutOrganizer;
   Timer? _syncTimer;
   Timer? _layoutSaveTimer;
 
   @override
   ProjectState build() {
     _repository = ref.read(projectRepositoryProvider);
+    _layoutOrganizer = ref.read(layoutOrganizerProvider);
     ref.onDispose(() {
       _syncTimer?.cancel();
       _layoutSaveTimer?.cancel();
@@ -126,7 +133,17 @@ class ProjectController extends Notifier<ProjectState> {
       for (final node in project.nodes)
         if (node.id == nodeId) node.translated(delta) else node,
     ];
-    final updated = project.copyWith(nodes: nodes);
+
+    final recomputedFolders = _layoutOrganizer.recomputeFolderBounds(
+      files: project.files,
+      nodes: nodes,
+      previousFolders: project.folderRegions,
+    );
+
+    final updated = project.copyWith(
+      nodes: nodes,
+      folderRegions: recomputedFolders,
+    );
     state = state.copyWith(project: updated, clearError: true);
     _scheduleLayoutSave(updated);
   }

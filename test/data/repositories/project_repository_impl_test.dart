@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:graphite/data/repositories/project_repository_impl.dart';
+import 'package:graphite/domain/usecases/organize_project_layout.dart';
 
 void main() {
   late Directory root;
@@ -9,7 +10,9 @@ void main() {
 
   setUp(() async {
     root = await Directory.systemTemp.createTemp('graphite_project_test_');
-    repository = ProjectRepositoryImpl();
+    repository = ProjectRepositoryImpl(
+      layoutOrganizer: OrganizeProjectLayout(),
+    );
   });
 
   tearDown(() async {
@@ -76,9 +79,29 @@ void main() {
     expect(regions, hasLength(3));
     for (var i = 0; i < regions.length; i += 1) {
       for (var j = i + 1; j < regions.length; j += 1) {
-        expect(regions[i].bounds.overlaps(regions[j].bounds), isFalse);
+        expect(regions[i].bounds.overlaps(regions[j].bounds), isFalse,
+            reason:
+                '${regions[i].relativePath} overlaps ${regions[j].relativePath}');
       }
     }
+  });
+
+  test('files are contained within their parent folder bounds', () async {
+    await Directory('${root.path}/lib').create();
+    await File('${root.path}/lib/main.dart').writeAsString('void main() {}\n');
+    await File('${root.path}/lib/app.dart').writeAsString('void main() {}\n');
+
+    final project = await repository.openProject(root.path);
+
+    final libFolder =
+        project.folderRegions.firstWhere((f) => f.relativePath == 'lib');
+    final mainNode =
+        project.nodes.firstWhere((n) => n.id == 'lib/main.dart');
+    final appNode =
+        project.nodes.firstWhere((n) => n.id == 'lib/app.dart');
+
+    expect(libFolder.bounds.contains(mainNode.bounds.topLeft), isTrue);
+    expect(libFolder.bounds.contains(appNode.bounds.topLeft), isTrue);
   });
 
   test('preserves collapsed folder state from metadata', () async {
@@ -87,7 +110,14 @@ void main() {
     await File('${root.path}/.graphite.json').writeAsString('''
 {
   "schemaVersion": 1,
-  "nodes": {},
+  "nodes": {
+    "lib/main.dart": {
+      "x": 100,
+      "y": 100,
+      "width": 520,
+      "height": 360
+    }
+  },
   "folders": {
     "lib": {
       "x": 0,
@@ -113,7 +143,14 @@ void main() {
     await File('${root.path}/.graphite.json').writeAsString('''
 {
   "schemaVersion": 1,
-  "nodes": {},
+  "nodes": {
+    "lib/main.dart": {
+      "x": 100,
+      "y": 100,
+      "width": 520,
+      "height": 360
+    }
+  },
   "folders": {
     "lib": {
       "x": 0,
@@ -131,5 +168,33 @@ void main() {
     final project = await repository.openProject(root.path);
 
     expect(project.folderRegions.single.isCollapsed, isFalse);
+  });
+
+  test('preserves persisted node positions', () async {
+    await Directory('${root.path}/lib').create();
+    await File('${root.path}/lib/main.dart').writeAsString('void main() {}\n');
+    await File('${root.path}/.graphite.json').writeAsString('''
+{
+  "schemaVersion": 1,
+  "nodes": {
+    "lib/main.dart": {
+      "x": 1000,
+      "y": 2000,
+      "width": 600,
+      "height": 400
+    }
+  },
+  "folders": {},
+  "edges": []
+}
+''');
+
+    final project = await repository.openProject(root.path);
+
+    final mainNode = project.nodes.firstWhere((n) => n.id == 'lib/main.dart');
+    expect(mainNode.position.dx, 1000);
+    expect(mainNode.position.dy, 2000);
+    expect(mainNode.size.width, 600);
+    expect(mainNode.size.height, 400);
   });
 }

@@ -11,14 +11,19 @@ import '../../domain/entities/folder_region.dart';
 import '../../domain/entities/graphite_project.dart';
 import '../../domain/entities/project_file.dart';
 import '../../domain/repositories/project_repository.dart';
+import '../../domain/usecases/organize_project_layout.dart';
 import '../datasources/local_project_datasource.dart';
 import '../models/graphite_metadata_model.dart';
 
 class ProjectRepositoryImpl implements ProjectRepository {
-  ProjectRepositoryImpl({LocalProjectDatasource? datasource})
-    : _datasource = datasource ?? const LocalProjectDatasource();
+  ProjectRepositoryImpl({
+    LocalProjectDatasource? datasource,
+    OrganizeProjectLayout? layoutOrganizer,
+  })  : _datasource = datasource ?? const LocalProjectDatasource(),
+        _layoutOrganizer = layoutOrganizer ?? OrganizeProjectLayout();
 
   final LocalProjectDatasource _datasource;
+  final OrganizeProjectLayout _layoutOrganizer;
 
   static const _defaultNodeSize = Size(520, 360);
   static const _folderColors = <Color>[
@@ -121,16 +126,21 @@ class ProjectRepositoryImpl implements ProjectRepository {
     required List<ProjectFile> files,
     required GraphiteMetadataModel metadata,
   }) {
-    final nodes = <CanvasNode>[];
-    for (var index = 0; index < files.length; index += 1) {
-      final file = files[index];
-      final layout =
-          metadata.nodes[file.relativePath] ?? _defaultNodeLayout(index);
-      nodes.add(_nodeForFile(file, layout));
-    }
+    final layoutInput = LayoutInput(
+      files: files,
+      metadataNodes: metadata.nodes,
+      metadataFolders: metadata.folders,
+    );
 
-    final folders = _buildFolderRegions(files, metadata);
-    final nodeIds = nodes.map((node) => node.id).toSet();
+    final layoutResult = _layoutOrganizer.organizeInitialLayout(layoutInput);
+
+    final recomputedFolders = _layoutOrganizer.recomputeFolderBounds(
+      files: files,
+      nodes: layoutResult.nodes,
+      previousFolders: layoutResult.folders,
+    );
+
+    final nodeIds = layoutResult.nodes.map((node) => node.id).toSet();
     final edges = metadata.edges
         .where(
           (edge) =>
@@ -143,91 +153,12 @@ class ProjectRepositoryImpl implements ProjectRepository {
       rootPath: rootPath,
       schemaVersion: metadata.schemaVersion,
       files: files,
-      nodes: nodes,
-      folderRegions: folders,
+      nodes: layoutResult.nodes,
+      folderRegions: recomputedFolders,
       edges: edges,
     );
   }
 
-  CanvasNode _nodeForFile(ProjectFile file, NodeLayoutModel layout) {
-    return CanvasNode(
-      id: file.relativePath,
-      title: file.displayName,
-      content: file.relativePath,
-      type: CanvasNodeType.code,
-      position: layout.position,
-      size: layout.size,
-      metadata: <String, Object?>{
-        'kind': 'file',
-        'relativePath': file.relativePath,
-        'extension': file.extension,
-      },
-    );
-  }
-
-  List<FolderRegion> _buildFolderRegions(
-    List<ProjectFile> files,
-    GraphiteMetadataModel metadata,
-  ) {
-    final folderPaths = <String>{};
-    for (final file in files) {
-      var parent = p.posix.dirname(file.relativePath);
-      while (parent != '.') {
-        folderPaths.add(parent);
-        parent = p.posix.dirname(parent);
-      }
-    }
-
-    final sorted = folderPaths.toList()..sort();
-    return <FolderRegion>[
-      for (var index = 0; index < sorted.length; index += 1)
-        _folderRegionFor(sorted[index], metadata, index),
-    ];
-  }
-
-  FolderRegion _folderRegionFor(
-    String relativePath,
-    GraphiteMetadataModel metadata,
-    int index,
-  ) {
-    final layout = metadata.folders[relativePath];
-    if (layout != null) {
-      return FolderRegion(
-        relativePath: relativePath,
-        bounds: layout.bounds,
-        color: layout.color,
-        isCollapsed: layout.isCollapsed,
-      );
-    }
-
-    const columns = 3;
-    const width = 680.0;
-    const height = 420.0;
-    const gapX = 96.0;
-    const gapY = 96.0;
-    final column = index % columns;
-    final row = index ~/ columns;
-    return FolderRegion(
-      relativePath: relativePath,
-      bounds: Rect.fromLTWH(
-        -160 + column * (width + gapX),
-        -160 + row * (height + gapY),
-        width,
-        height,
-      ),
-      color: _folderColors[index % _folderColors.length],
-    );
-  }
-
-  NodeLayoutModel _defaultNodeLayout(int index) {
-    const columns = 4;
-    final column = index % columns;
-    final row = index ~/ columns;
-    return NodeLayoutModel(
-      position: Offset(column * 620.0, row * 460.0),
-      size: _defaultNodeSize,
-    );
-  }
 
   GraphiteMetadataModel _metadataFromProject(GraphiteProject project) {
     return GraphiteMetadataModel(
