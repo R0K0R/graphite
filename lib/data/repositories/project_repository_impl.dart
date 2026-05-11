@@ -1,7 +1,5 @@
 import 'dart:ui';
 
-import 'package:path/path.dart' as p;
-
 import '../../core/files/project_path.dart';
 import '../../core/files/text_file_detector.dart';
 import '../../core/errors/app_exception.dart';
@@ -11,6 +9,7 @@ import '../../domain/entities/folder_region.dart';
 import '../../domain/entities/graphite_project.dart';
 import '../../domain/entities/project_file.dart';
 import '../../domain/repositories/project_repository.dart';
+import '../../domain/usecases/organize_project_layout.dart';
 import '../datasources/local_project_datasource.dart';
 import '../models/graphite_metadata_model.dart';
 
@@ -21,7 +20,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
   final LocalProjectDatasource _datasource;
 
   static const _defaultNodeSize = Size(520, 360);
-  static const _folderColors = <Color>[
+  static const folderColors = <Color>[
     Color(0xffdbeafe),
     Color(0xffdcfce7),
     Color(0xfffef3c7),
@@ -121,16 +120,25 @@ class ProjectRepositoryImpl implements ProjectRepository {
     required List<ProjectFile> files,
     required GraphiteMetadataModel metadata,
   }) {
-    final nodes = <CanvasNode>[];
-    for (var index = 0; index < files.length; index += 1) {
-      final file = files[index];
-      final layout =
-          metadata.nodes[file.relativePath] ?? _defaultNodeLayout(index);
-      nodes.add(_nodeForFile(file, layout));
-    }
+    final existingNodesByPath = <String, CanvasNode>{
+      for (final file in files)
+        if (metadata.nodes[file.relativePath] != null)
+          file.relativePath: _nodeForFileLayout(
+            file,
+            metadata.nodes[file.relativePath]!,
+          ),
+    };
+    final previousFolders = _folderRegionsFromMetadata(files, metadata);
+    final layout = ProjectLayoutOrganizer.organize(
+      files: files,
+      existingNodesByPath: existingNodesByPath,
+      previousFolders: previousFolders,
+      defaultNodeSize: _defaultNodeSize,
+      folderColors: folderColors,
+      createNode: _nodeForFile,
+    );
 
-    final folders = _buildFolderRegions(files, metadata);
-    final nodeIds = nodes.map((node) => node.id).toSet();
+    final nodeIds = layout.nodes.map((node) => node.id).toSet();
     final edges = metadata.edges
         .where(
           (edge) =>
@@ -143,20 +151,20 @@ class ProjectRepositoryImpl implements ProjectRepository {
       rootPath: rootPath,
       schemaVersion: metadata.schemaVersion,
       files: files,
-      nodes: nodes,
-      folderRegions: folders,
+      nodes: layout.nodes,
+      folderRegions: layout.folderRegions,
       edges: edges,
     );
   }
 
-  CanvasNode _nodeForFile(ProjectFile file, NodeLayoutModel layout) {
+  CanvasNode _nodeForFile(ProjectFile file, Offset position, Size size) {
     return CanvasNode(
       id: file.relativePath,
       title: file.displayName,
       content: file.relativePath,
       type: CanvasNodeType.code,
-      position: layout.position,
-      size: layout.size,
+      position: position,
+      size: size,
       metadata: <String, Object?>{
         'kind': 'file',
         'relativePath': file.relativePath,
@@ -165,27 +173,36 @@ class ProjectRepositoryImpl implements ProjectRepository {
     );
   }
 
-  List<FolderRegion> _buildFolderRegions(
+  CanvasNode _nodeForFileLayout(ProjectFile file, NodeLayoutModel layout) {
+    return _nodeForFile(file, layout.position, layout.size);
+  }
+
+  List<FolderRegion> _folderRegionsFromMetadata(
     List<ProjectFile> files,
     GraphiteMetadataModel metadata,
   ) {
     final folderPaths = <String>{};
     for (final file in files) {
-      var parent = p.posix.dirname(file.relativePath);
-      while (parent != '.') {
+      final parts = file.relativePath.split('/');
+      if (parts.length <= 1) {
+        continue;
+      }
+      var parent = parts.first;
+      folderPaths.add(parent);
+      for (var index = 1; index < parts.length - 1; index += 1) {
+        parent = '$parent/${parts[index]}';
         folderPaths.add(parent);
-        parent = p.posix.dirname(parent);
       }
     }
 
     final sorted = folderPaths.toList()..sort();
     return <FolderRegion>[
       for (var index = 0; index < sorted.length; index += 1)
-        _folderRegionFor(sorted[index], metadata, index),
+        _folderRegionVisualFor(sorted[index], metadata, index),
     ];
   }
 
-  FolderRegion _folderRegionFor(
+  FolderRegion _folderRegionVisualFor(
     String relativePath,
     GraphiteMetadataModel metadata,
     int index,
@@ -200,32 +217,10 @@ class ProjectRepositoryImpl implements ProjectRepository {
       );
     }
 
-    const columns = 3;
-    const width = 680.0;
-    const height = 420.0;
-    const gapX = 96.0;
-    const gapY = 96.0;
-    final column = index % columns;
-    final row = index ~/ columns;
     return FolderRegion(
       relativePath: relativePath,
-      bounds: Rect.fromLTWH(
-        -160 + column * (width + gapX),
-        -160 + row * (height + gapY),
-        width,
-        height,
-      ),
-      color: _folderColors[index % _folderColors.length],
-    );
-  }
-
-  NodeLayoutModel _defaultNodeLayout(int index) {
-    const columns = 4;
-    final column = index % columns;
-    final row = index ~/ columns;
-    return NodeLayoutModel(
-      position: Offset(column * 620.0, row * 460.0),
-      size: _defaultNodeSize,
+      bounds: Rect.zero,
+      color: folderColors[index % folderColors.length],
     );
   }
 

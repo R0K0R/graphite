@@ -9,6 +9,7 @@ import '../../domain/entities/canvas_node.dart';
 import '../../domain/entities/folder_region.dart';
 import '../../domain/entities/graphite_project.dart';
 import '../../domain/repositories/project_repository.dart';
+import '../../domain/usecases/organize_project_layout.dart';
 
 final projectRepositoryProvider = Provider<ProjectRepository>((ref) {
   return ProjectRepositoryImpl(datasource: const LocalProjectDatasource());
@@ -126,7 +127,13 @@ class ProjectController extends Notifier<ProjectState> {
       for (final node in project.nodes)
         if (node.id == nodeId) node.translated(delta) else node,
     ];
-    final updated = project.copyWith(nodes: nodes);
+    final folders = ProjectLayoutOrganizer.recomputeFolderRegions(
+      files: project.files,
+      nodes: nodes,
+      previousFolders: project.folderRegions,
+      folderColors: ProjectRepositoryImpl.folderColors,
+    );
+    final updated = project.copyWith(nodes: nodes, folderRegions: folders);
     state = state.copyWith(project: updated, clearError: true);
     _scheduleLayoutSave(updated);
   }

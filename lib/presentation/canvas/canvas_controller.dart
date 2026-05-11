@@ -77,9 +77,9 @@ class CanvasController extends Notifier<CanvasState> {
     // transform = Translate(screenCenter) * Scale(scale) * Translate(-targetCenter)
 
     final newTransform = Matrix4.identity()
-      ..translate(screenCenter.dx, screenCenter.dy)
-      ..scale(scale, scale, 1.0)
-      ..translate(-targetCenter.dx, -targetCenter.dy);
+      ..translateByDouble(screenCenter.dx, screenCenter.dy, 0, 1)
+      ..scaleByDouble(scale, scale, 1, 1)
+      ..translateByDouble(-targetCenter.dx, -targetCenter.dy, 0, 1);
 
     state = state.copyWith(transform: newTransform);
   }

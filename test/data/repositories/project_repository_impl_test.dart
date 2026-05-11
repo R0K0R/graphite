@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -48,6 +49,13 @@ void main() {
     expect(File('${root.path}/lib/new_file.dart').existsSync(), isTrue);
     expect(updated.nodes.single.id, 'lib/new_file.dart');
     expect(updated.nodes.single.position, const Offset(10, 20));
+    expect(
+      _containsRect(
+        updated.folderRegions.single.bounds,
+        updated.nodes.single.bounds,
+      ),
+      isTrue,
+    );
   });
 
   test('sync creates nodes for files added outside Graphite', () async {
@@ -132,4 +140,55 @@ void main() {
 
     expect(project.folderRegions.single.isCollapsed, isFalse);
   });
+
+  test(
+    'preserves node positions but derives folder bounds from children',
+    () async {
+      await Directory('${root.path}/lib').create();
+      await File(
+        '${root.path}/lib/main.dart',
+      ).writeAsString('void main() {}\n');
+      await File('${root.path}/.graphite.json').writeAsString('''
+{
+  "schemaVersion": 1,
+  "nodes": {
+    "lib/main.dart": {
+      "x": 3000,
+      "y": 4000,
+      "width": 520,
+      "height": 360
+    }
+  },
+  "folders": {
+    "lib": {
+      "x": 0,
+      "y": 0,
+      "width": 120,
+      "height": 90,
+      "color": "#FCE7F3",
+      "collapsed": false
+    }
+  },
+  "edges": []
+}
+''');
+
+      final project = await repository.openProject(root.path);
+      final node = project.nodes.single;
+      final folder = project.folderRegions.single;
+
+      expect(node.position, const Offset(3000, 4000));
+      expect(_containsRect(folder.bounds, node.bounds), isTrue);
+      expect(folder.bounds.left, isNot(0));
+      expect(folder.color, const Color(0xfffce7f3));
+      expect(folder.isCollapsed, isFalse);
+    },
+  );
+}
+
+bool _containsRect(Rect outer, Rect inner) {
+  return outer.left <= inner.left &&
+      outer.top <= inner.top &&
+      outer.right >= inner.right &&
+      outer.bottom >= inner.bottom;
 }
