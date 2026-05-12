@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,7 @@ import '../../domain/entities/folder_region.dart';
 import '../../domain/entities/graphite_project.dart';
 import '../../domain/repositories/project_repository.dart';
 import '../../domain/usecases/organize_project_layout.dart';
+import '../../domain/usecases/resolve_drag_displacement.dart';
 
 final projectRepositoryProvider = Provider<ProjectRepository>((ref) {
   return ProjectRepositoryImpl(datasource: const LocalProjectDatasource());
@@ -43,6 +45,7 @@ class ProjectController extends Notifier<ProjectState> {
   late final ProjectRepository _repository;
   Timer? _syncTimer;
   Timer? _layoutSaveTimer;
+  _DragSession? _dragSession;
 
   @override
   ProjectState build() {
@@ -50,6 +53,7 @@ class ProjectController extends Notifier<ProjectState> {
     ref.onDispose(() {
       _syncTimer?.cancel();
       _layoutSaveTimer?.cancel();
+      _dragSession = null;
     });
     return const ProjectState();
   }
@@ -127,12 +131,87 @@ class ProjectController extends Notifier<ProjectState> {
       for (final node in project.nodes)
         if (node.id == nodeId) node.translated(delta) else node,
     ];
-    final folders = ProjectLayoutOrganizer.recomputeFolderRegions(
-      files: project.files,
-      nodes: nodes,
-      previousFolders: project.folderRegions,
-      folderColors: ProjectRepositoryImpl.folderColors,
+    final folders = _recomputeFolders(project: project, nodes: nodes);
+    final updated = project.copyWith(nodes: nodes, folderRegions: folders);
+    state = state.copyWith(project: updated, clearError: true);
+    _scheduleLayoutSave(updated);
+  }
+
+  void beginNodeDrag(String nodeId) {
+    final project = state.project;
+    if (project == null) {
+      return;
+    }
+    _dragSession = _DragSession(
+      nodeId: nodeId,
+      baselineNodes: project.nodes,
+      baselineFolders: project.folderRegions,
     );
+  }
+
+  void dragNode({required String nodeId, required Offset delta}) {
+    final project = state.project;
+    if (project == null) {
+      return;
+    }
+    final session = _dragSession;
+    if (session == null || session.nodeId != nodeId) {
+      moveNode(nodeId: nodeId, delta: delta);
+      return;
+    }
+
+    session.cumulativeDelta += delta;
+    final activeDelta = session.cumulativeDelta;
+    final knockedNodes = DragDisplacementResolver.resolveTransient(
+      baselineNodes: session.baselineNodes,
+      activeNodeId: nodeId,
+      activeDelta: activeDelta,
+    );
+    final nodes = _applyFolderKnockback(
+      nodes: knockedNodes,
+      session: session,
+      activeDelta: activeDelta,
+    );
+    final folders = _recomputeFolders(project: project, nodes: nodes);
+    state = state.copyWith(
+      project: project.copyWith(nodes: nodes, folderRegions: folders),
+      clearError: true,
+    );
+  }
+
+  void endNodeDrag(String nodeId) {
+    final project = state.project;
+    final session = _dragSession;
+    if (project == null || session == null || session.nodeId != nodeId) {
+      _dragSession = null;
+      return;
+    }
+
+    final nodes = DragDisplacementResolver.settleFinal(
+      baselineNodes: session.baselineNodes,
+      activeNodeId: nodeId,
+      activeDelta: session.cumulativeDelta,
+    );
+    final folders = _recomputeFolders(project: project, nodes: nodes);
+    final updated = project.copyWith(nodes: nodes, folderRegions: folders);
+    _dragSession = null;
+    state = state.copyWith(project: updated, clearError: true);
+    _scheduleLayoutSave(updated);
+  }
+
+  void toggleNodeCollapsed(String nodeId) {
+    final project = state.project;
+    if (project == null) {
+      return;
+    }
+    final nodes = <CanvasNode>[
+      for (final node in project.nodes)
+        if (node.id == nodeId)
+          node.copyWith(isCollapsed: !node.isCollapsed)
+        else
+          node,
+    ];
+    final folders = _recomputeFolders(project: project, nodes: nodes);
     final updated = project.copyWith(nodes: nodes, folderRegions: folders);
     state = state.copyWith(project: updated, clearError: true);
     _scheduleLayoutSave(updated);
@@ -167,5 +246,139 @@ class ProjectController extends Notifier<ProjectState> {
     _layoutSaveTimer = Timer(const Duration(milliseconds: 500), () {
       unawaited(_repository.saveProjectLayout(project));
     });
+  }
+
+  List<FolderRegion> _recomputeFolders({
+    required GraphiteProject project,
+    required List<CanvasNode> nodes,
+  }) {
+    return ProjectLayoutOrganizer.recomputeFolderRegions(
+      files: project.files,
+      nodes: nodes,
+      previousFolders: project.folderRegions,
+      folderColors: ProjectRepositoryImpl.folderColors,
+    );
+  }
+
+  List<CanvasNode> _applyFolderKnockback({
+    required List<CanvasNode> nodes,
+    required _DragSession session,
+    required Offset activeDelta,
+  }) {
+    if (activeDelta.distance == 0) {
+      return nodes;
+    }
+    final activeBaseline = session.nodeById(session.nodeId);
+    final activeCurrent = activeBaseline?.translated(activeDelta);
+    if (activeBaseline == null || activeCurrent == null) {
+      return nodes;
+    }
+
+    final dragDirection = activeDelta / activeDelta.distance;
+    final offsetsByNodeId = <String, Offset>{};
+    for (final folder in session.baselineFolders) {
+      if (folder.containsRelativePath(session.nodeId)) {
+        continue;
+      }
+      final offset = _folderKnockbackOffset(
+        folder: folder,
+        activeBaseline: activeBaseline,
+        activeCurrent: activeCurrent,
+        dragDirection: dragDirection,
+        activeDistance: activeDelta.distance,
+      );
+      if (offset == Offset.zero) {
+        continue;
+      }
+      for (final node in nodes) {
+        final relativePath =
+            node.metadata['relativePath'] as String? ?? node.id;
+        if (folder.containsRelativePath(relativePath)) {
+          offsetsByNodeId[node.id] =
+              (offsetsByNodeId[node.id] ?? Offset.zero) + offset;
+        }
+      }
+    }
+
+    if (offsetsByNodeId.isEmpty) {
+      return nodes;
+    }
+    return <CanvasNode>[
+      for (final node in nodes)
+        if (offsetsByNodeId[node.id] == null)
+          node
+        else
+          node.translated(offsetsByNodeId[node.id]!),
+    ];
+  }
+
+  Offset _folderKnockbackOffset({
+    required FolderRegion folder,
+    required CanvasNode activeBaseline,
+    required CanvasNode activeCurrent,
+    required Offset dragDirection,
+    required double activeDistance,
+  }) {
+    final baselineToFolder =
+        folder.visualBounds.center - activeBaseline.visualBounds.center;
+    final folderProgress =
+        baselineToFolder.dx * dragDirection.dx +
+        baselineToFolder.dy * dragDirection.dy;
+    final folderRadius =
+        math.max(folder.visualBounds.width, folder.visualBounds.height) / 2;
+    if (activeDistance > folderProgress + folderRadius) {
+      return Offset.zero;
+    }
+
+    final activeCenter = activeCurrent.visualBounds.center;
+    final folderCenter = folder.visualBounds.center;
+    final away = folderCenter - activeCenter;
+    final distance = away.distance;
+    final targetDistance =
+        _radius(activeCurrent.visualBounds) +
+        _radius(folder.visualBounds) +
+        DragDisplacementResolver.comfortRadius;
+    if (distance >= targetDistance &&
+        !activeCurrent.visualBounds
+            .inflate(DragDisplacementResolver.comfortRadius)
+            .overlaps(folder.visualBounds)) {
+      return Offset.zero;
+    }
+
+    final direction = distance == 0
+        ? Offset(-dragDirection.dy, dragDirection.dx)
+        : away / distance;
+    final strength = (targetDistance - distance).clamp(
+      0.0,
+      DragDisplacementResolver.maxKnockback,
+    );
+    return direction * strength;
+  }
+
+  double _radius(Rect rect) {
+    return math.sqrt(rect.width * rect.width + rect.height * rect.height) / 2;
+  }
+}
+
+class _DragSession {
+  _DragSession({
+    required this.nodeId,
+    required List<CanvasNode> baselineNodes,
+    required List<FolderRegion> baselineFolders,
+  }) : baselineNodes = List<CanvasNode>.unmodifiable(baselineNodes),
+       baselineFolders = List<FolderRegion>.unmodifiable(baselineFolders);
+
+  final String nodeId;
+  final List<CanvasNode> baselineNodes;
+  final List<FolderRegion> baselineFolders;
+  Offset cumulativeDelta = Offset.zero;
+
+  CanvasNode? nodeById(String id) {
+    for (final node in baselineNodes) {
+      if (node.id == id) {
+        return node;
+      }
+    }
+    return null;
   }
 }

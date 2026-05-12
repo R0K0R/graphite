@@ -5,221 +5,256 @@
       "x": -151.5234375,
       "y": 224.3828125,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "core/files/project_path.dart": {
-      "x": 80.0,
-      "y": 832.0,
+      "x": 1390.03515625,
+      "y": 542.9921875,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "core/files/text_file_detector.dart": {
-      "x": 822.0,
-      "y": 824.2265625,
+      "x": 616.8507067536073,
+      "y": 1042.7269922472165,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "core/geometry/canvas_transform.dart": {
-      "x": 460.1484375,
-      "y": 1391.1015625,
+      "x": 347.55927870874336,
+      "y": 1641.4055306291884,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "data/datasources/local_project_datasource.dart": {
-      "x": 1376.0,
-      "y": 256.0,
+      "x": 1357.9699694983165,
+      "y": -112.679749779762,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "data/models/flowchart_graph_model.dart": {
-      "x": 1376.0,
-      "y": 832.0,
+      "x": 1398.6635297668481,
+      "y": 962.2885239153715,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "data/models/graphite_metadata_model.dart": {
       "x": 1944.0,
       "y": 832.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "data/repositories/llm_flowchart_repository_impl.dart": {
       "x": 1376.0,
       "y": 1408.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "data/repositories/project_repository_impl.dart": {
-      "x": 1944.0,
-      "y": 1408.0,
+      "x": 2091.5072094349243,
+      "y": 2519.0894882634216,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "domain/entities/canvas_node.dart": {
       "x": 80.0,
       "y": 2152.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "domain/entities/canvas_snapshot.dart": {
       "x": 648.0,
       "y": 2152.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "domain/entities/edge.dart": {
       "x": 1216.0,
       "y": 2152.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "domain/entities/flowchart_graph.dart": {
       "x": 80.0,
       "y": 2560.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "domain/entities/folder_region.dart": {
       "x": 648.0,
       "y": 2560.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "domain/entities/graphite_project.dart": {
       "x": 1216.0,
       "y": 2560.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "domain/entities/ink_stroke.dart": {
       "x": 80.0,
       "y": 2968.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "domain/entities/project_file.dart": {
       "x": 648.0,
       "y": 2968.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "domain/repositories/llm_flowchart_repository.dart": {
       "x": 80.0,
       "y": 3544.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "domain/repositories/project_repository.dart": {
       "x": 648.0,
       "y": 3544.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "domain/usecases/calculate_spatial_diff.dart": {
       "x": 80.0,
       "y": 4120.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "domain/usecases/create_canvas_snapshot.dart": {
       "x": 648.0,
       "y": 4120.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "domain/usecases/create_file_node.dart": {
       "x": 1216.0,
       "y": 4120.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "domain/usecases/generate_flowchart_from_code.dart": {
       "x": 80.0,
       "y": 4528.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "domain/usecases/open_project_root.dart": {
       "x": 648.0,
       "y": 4528.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "domain/usecases/organize_project_layout.dart": {
       "x": 1216.0,
       "y": 4528.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
+    },
+    "domain/usecases/resolve_drag_displacement.dart": {
+      "x": -6173.540128893509,
+      "y": 4550.867283330839,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
     },
     "domain/usecases/sync_project_files.dart": {
       "x": 80.0,
       "y": 4936.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "main.dart": {
-      "x": 1864.0,
-      "y": 1896.0,
+      "x": 1941.0585937500002,
+      "y": 1880.1066406250002,
       "width": 520.0,
-      "height": 360.0
-    },
-    "new_file.dart": {
-      "x": 0.0,
-      "y": 5424.0,
-      "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "presentation/app/graphite_app.dart": {
       "x": 648.0,
       "y": 5680.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "presentation/canvas/canvas_controller.dart": {
       "x": 648.0,
       "y": 6256.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "presentation/canvas/canvas_painter.dart": {
       "x": 1216.0,
       "y": 6256.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "presentation/canvas/canvas_widget.dart": {
       "x": 1784.0,
       "y": 6256.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "presentation/editor/code_language.dart": {
       "x": 648.0,
       "y": 6832.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "presentation/editor/embedded_editor_node.dart": {
       "x": 1216.0,
       "y": 6832.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "presentation/project/project_controller.dart": {
       "x": 648.0,
       "y": 7408.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     }
   },
   "folders": {
     "core": {
       "x": -231.5234375,
       "y": -31.6171875,
-      "width": 1653.5234375,
-      "height": 1862.71875,
+      "width": 2221.55859375,
+      "height": 2113.0227181291884,
       "color": "#DBEAFE",
-      "collapsed": false
+      "collapsed": true
     },
     "core/errors": {
       "x": -191.5234375,
@@ -230,57 +265,57 @@
       "collapsed": false
     },
     "core/files": {
-      "x": 40.0,
-      "y": 696.2265625,
-      "width": 1342.0,
-      "height": 535.7734375,
+      "x": 576.8507067536073,
+      "y": 414.9921875,
+      "width": 1373.1844494963927,
+      "height": 1027.7348047472165,
       "color": "#FEF3C7",
       "collapsed": false
     },
     "core/geometry": {
-      "x": 420.1484375,
-      "y": 1263.1015625,
+      "x": 307.55927870874336,
+      "y": 1513.4055306291884,
       "width": 680.0,
       "height": 528.0,
       "color": "#FCE7F3",
       "collapsed": false
     },
     "data": {
-      "x": 1296.0,
-      "y": 0.0,
-      "width": 1248.0,
-      "height": 1848.0,
+      "x": 1277.9699694983165,
+      "y": -368.679749779762,
+      "width": 1413.5372399366079,
+      "height": 3327.7692380431836,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "data/datasources": {
-      "x": 1336.0,
-      "y": 128.0,
+      "x": 1317.9699694983165,
+      "y": -240.679749779762,
       "width": 680.0,
       "height": 528.0,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "data/models": {
-      "x": 1336.0,
+      "x": 1358.6635297668481,
       "y": 704.0,
-      "width": 1168.0,
-      "height": 528.0,
+      "width": 1145.3364702331519,
+      "height": 658.2885239153716,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "data/repositories": {
       "x": 1336.0,
       "y": 1280.0,
-      "width": 1168.0,
-      "height": 528.0,
+      "width": 1315.5072094349243,
+      "height": 1639.0894882634216,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "domain": {
-      "x": 0.0,
+      "x": -6253.540128893509,
       "y": 1896.0,
-      "width": 1816.0,
+      "width": 8069.540128893509,
       "height": 3480.0,
       "color": "#FEF3C7",
       "collapsed": true
@@ -302,9 +337,9 @@
       "collapsed": true
     },
     "domain/usecases": {
-      "x": 40.0,
+      "x": -6213.540128893509,
       "y": 3992.0,
-      "width": 1736.0,
+      "width": 7989.540128893509,
       "height": 1344.0,
       "color": "#E0F2FE",
       "collapsed": true

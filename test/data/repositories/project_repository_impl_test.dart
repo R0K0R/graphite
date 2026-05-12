@@ -141,6 +141,31 @@ void main() {
     expect(project.folderRegions.single.isCollapsed, isFalse);
   });
 
+  test('preserves collapsed file node state from metadata', () async {
+    await File('${root.path}/README.md').writeAsString('# Example\n');
+    await File('${root.path}/.graphite.json').writeAsString('''
+{
+  "schemaVersion": 1,
+  "nodes": {
+    "README.md": {
+      "x": 100,
+      "y": 200,
+      "width": 520,
+      "height": 360,
+      "collapsed": true
+    }
+  },
+  "folders": {},
+  "edges": []
+}
+''');
+
+    final project = await repository.openProject(root.path);
+
+    expect(project.nodes.single.isCollapsed, isTrue);
+    expect(project.nodes.single.visualBounds.size, const Size(160, 56));
+  });
+
   test(
     'preserves node positions but derives folder bounds from children',
     () async {

@@ -216,10 +216,7 @@ class _CanvasHud extends ConsumerWidget {
 }
 
 class _FileTreeSidebar extends ConsumerStatefulWidget {
-  const _FileTreeSidebar({
-    required this.isOpen,
-    required this.onToggle,
-  });
+  const _FileTreeSidebar({required this.isOpen, required this.onToggle});
 
   final bool isOpen;
   final VoidCallback onToggle;
@@ -255,13 +252,13 @@ class _FileTreeSidebarState extends ConsumerState<_FileTreeSidebar> {
     );
 
     for (final node in project.nodes) {
-      if (node.bounds.overlaps(viewportWorldRect)) {
+      if (node.visualBounds.overlaps(viewportWorldRect)) {
         _addPathWithAncestors(activePathSet, node.id);
       }
     }
 
     for (final folder in project.folderRegions) {
-      if (folder.bounds.overlaps(viewportWorldRect)) {
+      if (folder.visualBounds.overlaps(viewportWorldRect)) {
         _addPathWithAncestors(activePathSet, folder.relativePath);
       }
     }
@@ -292,8 +289,10 @@ class _FileTreeSidebarState extends ConsumerState<_FileTreeSidebar> {
             child: Listener(
               onPointerSignal: (event) {
                 if (event is PointerScrollEvent) {
-                  GestureBinding.instance.pointerSignalResolver
-                      .register(event, (event) {});
+                  GestureBinding.instance.pointerSignalResolver.register(
+                    event,
+                    (event) {},
+                  );
                 }
               },
               child: SingleChildScrollView(
@@ -316,10 +315,7 @@ class _FileTreeSidebarState extends ConsumerState<_FileTreeSidebar> {
             ),
           ),
           const SizedBox(width: 8),
-          _SidebarToggleButton(
-            isOpen: widget.isOpen,
-            onTap: widget.onToggle,
-          ),
+          _SidebarToggleButton(isOpen: widget.isOpen, onTap: widget.onToggle),
         ],
       ),
     );
@@ -335,10 +331,7 @@ class _FileTreeSidebarState extends ConsumerState<_FileTreeSidebar> {
 }
 
 class _SidebarToggleButton extends StatelessWidget {
-  const _SidebarToggleButton({
-    required this.isOpen,
-    required this.onTap,
-  });
+  const _SidebarToggleButton({required this.isOpen, required this.onTap});
 
   final bool isOpen;
   final VoidCallback onTap;
@@ -400,10 +393,9 @@ class _FileTreeList extends ConsumerWidget {
             isExpanded: expandedFolders.contains(item.path),
             isActive: activePathSet.contains(item.path),
             onTap: () {
-              ref.read(canvasControllerProvider.notifier).lookAt(
-                    item.worldRect,
-                    viewportSize,
-                  );
+              ref
+                  .read(canvasControllerProvider.notifier)
+                  .lookAt(item.worldRect, viewportSize);
             },
             onToggle: item.isFolder ? () => onToggleFolder(item.path) : null,
           ),
@@ -413,14 +405,17 @@ class _FileTreeList extends ConsumerWidget {
 
   List<_TreeEntry> _buildFilteredTreeItems(Set<String> expandedFolders) {
     final entries = <_TreeEntry>[];
-    final folderMap = {for (final f in project.folderRegions) f.relativePath: f};
+    final folderMap = {
+      for (final f in project.folderRegions) f.relativePath: f,
+    };
     final fileMap = {
       for (final n in project.nodes)
         if (n.metadata['relativePath'] is String)
-          n.metadata['relativePath']! as String: n
+          n.metadata['relativePath']! as String: n,
     };
 
-    final allPaths = <String>{...folderMap.keys, ...fileMap.keys}.toList()..sort();
+    final allPaths = <String>{...folderMap.keys, ...fileMap.keys}.toList()
+      ..sort();
 
     for (final path in allPaths) {
       final parts = path.split('/');
@@ -446,13 +441,17 @@ class _FileTreeList extends ConsumerWidget {
       }
 
       if (shouldShow) {
-        entries.add(_TreeEntry(
-          path: path,
-          label: parts.last,
-          isFolder: isFolder,
-          depth: depth,
-          worldRect: isFolder ? folderMap[path]!.bounds : fileMap[path]!.bounds,
-        ));
+        entries.add(
+          _TreeEntry(
+            path: path,
+            label: parts.last,
+            isFolder: isFolder,
+            depth: depth,
+            worldRect: isFolder
+                ? folderMap[path]!.visualBounds
+                : fileMap[path]!.visualBounds,
+          ),
+        );
       }
     }
 
@@ -543,9 +542,12 @@ class _FileTreeItemState extends State<_FileTreeItem> {
                     style: TextStyle(
                       fontSize: 12,
                       color: labelColor,
-                      fontWeight:
-                          widget.isActive ? FontWeight.w700 : FontWeight.w500,
-                      decoration: _isNameHovered ? TextDecoration.underline : null,
+                      fontWeight: widget.isActive
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      decoration: _isNameHovered
+                          ? TextDecoration.underline
+                          : null,
                     ),
                   ),
                 ],

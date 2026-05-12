@@ -40,7 +40,9 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget> {
     return Listener(
       onPointerSignal: (event) {
         if (event is PointerScrollEvent) {
-          GestureBinding.instance.pointerSignalResolver.register(event, (event) {
+          GestureBinding.instance.pointerSignalResolver.register(event, (
+            event,
+          ) {
             final scrollEvent = event as PointerScrollEvent;
             final scaleDelta = scrollEvent.scrollDelta.dy > 0 ? 0.9 : 1.1;
             controller.zoom(
@@ -61,6 +63,9 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget> {
           _draggingNodeId = controller.hitTestNode(nodes, worldPosition);
           _lastDragWorldPosition = worldPosition;
           controller.selectNode(_draggingNodeId);
+          if (_draggingNodeId != null) {
+            projectController.beginNodeDrag(_draggingNodeId!);
+          }
         },
         onScaleUpdate: (details) {
           final isZooming = details.scale != 1;
@@ -81,7 +86,7 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget> {
               latestState.transform,
               details.localFocalPoint,
             );
-            projectController.moveNode(
+            projectController.dragNode(
               nodeId: _draggingNodeId!,
               delta: worldPosition - _lastDragWorldPosition!,
             );
@@ -91,6 +96,9 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget> {
           }
         },
         onScaleEnd: (_) {
+          if (_draggingNodeId != null) {
+            projectController.endNodeDrag(_draggingNodeId!);
+          }
           _draggingNodeId = null;
           _lastDragWorldPosition = null;
           _lastScale = 1;
@@ -186,17 +194,33 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget> {
   }
 }
 
-class _PositionedEditorNode extends StatelessWidget {
-  const _PositionedEditorNode({
-    required this.node,
-    required this.isSelected,
-  });
+class _PositionedEditorNode extends ConsumerWidget {
+  const _PositionedEditorNode({required this.node, required this.isSelected});
 
   final CanvasNode node;
   final bool isSelected;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (node.isCollapsed) {
+      final bounds = node.visualBounds;
+      return Positioned(
+        left: bounds.left,
+        top: bounds.top,
+        width: bounds.width,
+        height: bounds.height,
+        child: _CollapsedFileNode(
+          node: node,
+          isSelected: isSelected,
+          onExpand: () {
+            ref
+                .read(projectControllerProvider.notifier)
+                .toggleNodeCollapsed(node.id);
+          },
+        ),
+      );
+    }
+
     return Positioned(
       left: node.position.dx,
       top: node.position.dy,
@@ -207,13 +231,85 @@ class _PositionedEditorNode extends StatelessWidget {
           if (event is PointerScrollEvent) {
             // Stop scroll event from bubbling up to CanvasWidget zoom logic
             // This allows the inner TextField to scroll without zooming the canvas
-            GestureBinding.instance.pointerSignalResolver.register(event, (event) {});
+            GestureBinding.instance.pointerSignalResolver.register(
+              event,
+              (event) {},
+            );
           }
         },
         child: EmbeddedEditorNode(
           key: ValueKey<String>(node.id),
           node: node,
           isSelected: isSelected,
+          onToggleCollapsed: () {
+            ref
+                .read(projectControllerProvider.notifier)
+                .toggleNodeCollapsed(node.id);
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _CollapsedFileNode extends StatelessWidget {
+  const _CollapsedFileNode({
+    required this.node,
+    required this.isSelected,
+    required this.onExpand,
+  });
+
+  final CanvasNode node;
+  final bool isSelected;
+  final VoidCallback onExpand;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.white,
+      elevation: 4,
+      borderRadius: BorderRadius.circular(28),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(28),
+        onDoubleTap: onExpand,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: isSelected ? colorScheme.primary : const Color(0xff94a3b8),
+              width: isSelected ? 3 : 1.5,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: <Widget>[
+              const Icon(Icons.description_outlined, size: 16),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  node.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Expand file',
+                iconSize: 16,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 28,
+                  height: 28,
+                ),
+                icon: const Icon(Icons.unfold_more),
+                onPressed: onExpand,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -221,9 +317,7 @@ class _PositionedEditorNode extends StatelessWidget {
 }
 
 class _PositionedFolderControls extends ConsumerWidget {
-  const _PositionedFolderControls({
-    required this.folder,
-  });
+  const _PositionedFolderControls({required this.folder});
 
   final FolderRegion folder;
 
@@ -232,14 +326,17 @@ class _PositionedFolderControls extends ConsumerWidget {
     final bounds = folder.visibleBounds;
 
     return Positioned(
-      left: bounds.right - 56,
-      top: bounds.top + 14,
+      left: folder.isCollapsed ? bounds.right - 38 : bounds.right - 56,
+      top: folder.isCollapsed ? bounds.top - 4 : bounds.top + 14,
       width: 36,
       height: 36,
       child: Listener(
         onPointerSignal: (event) {
           if (event is PointerScrollEvent) {
-            GestureBinding.instance.pointerSignalResolver.register(event, (event) {});
+            GestureBinding.instance.pointerSignalResolver.register(
+              event,
+              (event) {},
+            );
           }
         },
         child: Material(
@@ -247,16 +344,16 @@ class _PositionedFolderControls extends ConsumerWidget {
           elevation: 3,
           shape: const CircleBorder(),
           child: IconButton(
-          tooltip: folder.isCollapsed ? 'Expand folder' : 'Fold folder',
-          iconSize: 18,
-          padding: EdgeInsets.zero,
-          icon: Icon(
-            folder.isCollapsed ? Icons.unfold_more : Icons.unfold_less,
-          ),
-          onPressed: () {
-            ref
-                .read(projectControllerProvider.notifier)
-                .toggleFolderCollapsed(folder.relativePath);
+            tooltip: folder.isCollapsed ? 'Expand folder' : 'Fold folder',
+            iconSize: 18,
+            padding: EdgeInsets.zero,
+            icon: Icon(
+              folder.isCollapsed ? Icons.unfold_more : Icons.unfold_less,
+            ),
+            onPressed: () {
+              ref
+                  .read(projectControllerProvider.notifier)
+                  .toggleFolderCollapsed(folder.relativePath);
             },
           ),
         ),

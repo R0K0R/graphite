@@ -54,10 +54,20 @@ void main() {
         isTrue,
       );
       _expectNoOverlaps([
-        nodeByPath['README.md']!.bounds,
+        nodeByPath['README.md']!.visualBounds,
         folderByPath['lib']!.bounds,
         folderByPath['test']!.bounds,
       ]);
+      final topLevelCenters = <Offset>[
+        nodeByPath['README.md']!.visualBounds.center,
+        folderByPath['lib']!.bounds.center,
+        folderByPath['test']!.bounds.center,
+      ];
+      expect(topLevelCenters.map((center) => center.dx).toSet(), hasLength(3));
+      expect(
+        topLevelCenters.map((center) => center.dy).toSet().length,
+        greaterThan(1),
+      );
 
       for (final folder in layout.folderRegions) {
         _expectNoOverlaps(
@@ -162,7 +172,7 @@ List<Rect> _directChildRects(
   final rects = <Rect>[];
   for (final entry in nodeByPath.entries) {
     if (p.posix.dirname(entry.key) == folderPath) {
-      rects.add(entry.value.bounds);
+      rects.add(entry.value.visualBounds);
     }
   }
   for (final entry in folderByPath.entries) {

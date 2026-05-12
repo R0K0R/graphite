@@ -27,7 +27,7 @@ class CanvasPainter extends CustomPainter {
     required Rect viewportWorldRect,
   }) {
     return nodes
-        .where((node) => node.bounds.overlaps(viewportWorldRect))
+        .where((node) => node.visualBounds.overlaps(viewportWorldRect))
         .toList(growable: false);
   }
 
@@ -94,25 +94,46 @@ class CanvasPainter extends CustomPainter {
         ..color = region.color.withValues(alpha: 0.9)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3;
-      final roundedRect = RRect.fromRectAndRadius(
-        bounds,
-        const Radius.circular(28),
-      );
-      canvas.drawRRect(roundedRect, paint);
-      canvas.drawRRect(roundedRect, border);
+      if (region.isCollapsed) {
+        canvas.drawShadow(Path()..addOval(bounds), Colors.black, 5, true);
+        canvas.drawOval(bounds, paint);
+        canvas.drawOval(bounds, border);
+      } else {
+        final roundedRect = RRect.fromRectAndRadius(
+          bounds,
+          const Radius.circular(28),
+        );
+        canvas.drawRRect(roundedRect, paint);
+        canvas.drawRRect(roundedRect, border);
+      }
 
-      final labelPainter = TextPainter(
-        text: TextSpan(
-          text: region.relativePath,
-          style: const TextStyle(
-            color: Color(0xff334155),
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout(maxWidth: bounds.width - 96);
-      labelPainter.paint(canvas, bounds.topLeft + const Offset(24, 18));
+      final labelPainter =
+          TextPainter(
+            text: TextSpan(
+              text: region.isCollapsed
+                  ? _basename(region.relativePath)
+                  : region.relativePath,
+              style: const TextStyle(
+                color: Color(0xff334155),
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            textDirection: TextDirection.ltr,
+            maxLines: region.isCollapsed ? 1 : null,
+            ellipsis: region.isCollapsed ? '...' : null,
+          )..layout(
+            maxWidth: region.isCollapsed
+                ? bounds.width - 16
+                : bounds.width - 96,
+          );
+      final labelOffset = region.isCollapsed
+          ? Offset(
+              bounds.left + (bounds.width - labelPainter.width) / 2,
+              bounds.top + (bounds.height - labelPainter.height) / 2,
+            )
+          : bounds.topLeft + const Offset(24, 18);
+      labelPainter.paint(canvas, labelOffset);
     }
   }
 
@@ -207,7 +228,11 @@ class CanvasPainter extends CustomPainter {
   }
 
   void _drawNode(Canvas canvas, CanvasNode node, {required bool isSelected}) {
-    final rect = node.bounds;
+    final rect = node.visualBounds;
+    if (node.isCollapsed) {
+      _drawCollapsedNode(canvas, node, rect, isSelected: isSelected);
+      return;
+    }
     final roundedRect = RRect.fromRectAndRadius(
       rect,
       const Radius.circular(18),
@@ -253,6 +278,54 @@ class CanvasPainter extends CustomPainter {
 
     titlePainter.paint(canvas, rect.topLeft + const Offset(16, 16));
     contentPainter.paint(canvas, rect.topLeft + const Offset(16, 48));
+  }
+
+  void _drawCollapsedNode(
+    Canvas canvas,
+    CanvasNode node,
+    Rect rect, {
+    required bool isSelected,
+  }) {
+    final roundedRect = RRect.fromRectAndRadius(
+      rect,
+      const Radius.circular(28),
+    );
+    final fillPaint = Paint()
+      ..color = isSelected ? const Color(0xffdbeafe) : const Color(0xffffffff);
+    final strokePaint = Paint()
+      ..color = isSelected ? const Color(0xff2563eb) : const Color(0xff94a3b8)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = isSelected ? 3 : 1.5;
+
+    canvas.drawShadow(Path()..addRRect(roundedRect), Colors.black, 4, true);
+    canvas.drawRRect(roundedRect, fillPaint);
+    canvas.drawRRect(roundedRect, strokePaint);
+
+    final titlePainter = TextPainter(
+      text: TextSpan(
+        text: node.title,
+        style: const TextStyle(
+          color: Color(0xff0f172a),
+          fontSize: 13,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      maxLines: 1,
+      ellipsis: '...',
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: rect.width - 28);
+    titlePainter.paint(
+      canvas,
+      Offset(
+        rect.left + (rect.width - titlePainter.width) / 2,
+        rect.top + (rect.height - titlePainter.height) / 2,
+      ),
+    );
+  }
+
+  String _basename(String path) {
+    final parts = path.split('/');
+    return parts.isEmpty ? path : parts.last;
   }
 
   @override

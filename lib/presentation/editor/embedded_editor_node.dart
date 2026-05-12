@@ -11,11 +11,13 @@ class EmbeddedEditorNode extends ConsumerStatefulWidget {
   const EmbeddedEditorNode({
     required this.node,
     required this.isSelected,
+    required this.onToggleCollapsed,
     super.key,
   });
 
   final CanvasNode node;
   final bool isSelected;
+  final VoidCallback onToggleCollapsed;
 
   @override
   ConsumerState<EmbeddedEditorNode> createState() => _EmbeddedEditorNodeState();
@@ -83,6 +85,7 @@ class _EmbeddedEditorNodeState extends ConsumerState<EmbeddedEditorNode> {
               _EditorHeader(
                 path: _relativePath,
                 language: CodeLanguage.fromPath(_relativePath),
+                onToggleCollapsed: widget.onToggleCollapsed,
               ),
               Expanded(child: _buildEditor()),
             ],
@@ -158,10 +161,15 @@ class _EmbeddedEditorNodeState extends ConsumerState<EmbeddedEditorNode> {
 }
 
 class _EditorHeader extends StatelessWidget {
-  const _EditorHeader({required this.path, required this.language});
+  const _EditorHeader({
+    required this.path,
+    required this.language,
+    required this.onToggleCollapsed,
+  });
 
   final String path;
   final String language;
+  final VoidCallback onToggleCollapsed;
 
   @override
   Widget build(BuildContext context) {
@@ -183,6 +191,15 @@ class _EditorHeader extends StatelessWidget {
           Text(
             language,
             style: const TextStyle(color: Color(0xff64748b), fontSize: 12),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            tooltip: 'Collapse file',
+            iconSize: 18,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+            icon: const Icon(Icons.unfold_less),
+            onPressed: onToggleCollapsed,
           ),
         ],
       ),

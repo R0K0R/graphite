@@ -8,7 +8,7 @@ class FolderRegion {
     this.isCollapsed = true,
   });
 
-  static const collapsedHeight = 72.0;
+  static const collapsedDiameter = 96.0;
 
   final String relativePath;
   final Rect bounds;
@@ -19,11 +19,17 @@ class FolderRegion {
     if (!isCollapsed) {
       return bounds;
     }
-    final height = bounds.height < collapsedHeight
-        ? bounds.height
-        : collapsedHeight;
-    return Rect.fromLTWH(bounds.left, bounds.top, bounds.width, height);
+    return Rect.fromLTWH(
+      bounds.left,
+      bounds.top,
+      collapsedDiameter,
+      collapsedDiameter,
+    );
   }
+
+  Rect get visualBounds => visibleBounds;
+
+  Offset get visualCenter => visualBounds.center;
 
   bool containsRelativePath(String path) {
     return path == relativePath || path.startsWith('$relativePath/');

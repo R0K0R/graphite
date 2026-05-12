@@ -124,17 +124,23 @@ class GraphiteMetadataModel {
 }
 
 class NodeLayoutModel {
-  const NodeLayoutModel({required this.position, required this.size});
+  const NodeLayoutModel({
+    required this.position,
+    required this.size,
+    this.isCollapsed = false,
+  });
 
   factory NodeLayoutModel.fromJson(Map<String, Object?> json) {
     return NodeLayoutModel(
       position: Offset(_number(json['x'], 0), _number(json['y'], 0)),
       size: Size(_number(json['width'], 520), _number(json['height'], 360)),
+      isCollapsed: (json['collapsed'] as bool?) ?? false,
     );
   }
 
   final Offset position;
   final Size size;
+  final bool isCollapsed;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -142,6 +148,7 @@ class NodeLayoutModel {
       'y': position.dy,
       'width': size.width,
       'height': size.height,
+      'collapsed': isCollapsed,
     };
   }
 }

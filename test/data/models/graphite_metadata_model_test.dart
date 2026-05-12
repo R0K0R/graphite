@@ -11,6 +11,7 @@ void main() {
           'y': 80,
           'width': 520,
           'height': 360,
+          'collapsed': true,
         },
       },
       'folders': <String, Object?>{
@@ -34,6 +35,7 @@ void main() {
     });
 
     expect(metadata.nodes['lib/main.dart']?.position.dx, 120);
+    expect(metadata.nodes['lib/main.dart']?.isCollapsed, isTrue);
     expect(metadata.folders['lib']?.bounds.width, 1400);
     expect(metadata.folders['lib']?.isCollapsed, isTrue);
     expect(metadata.edges.single.sourceNodeId, 'lib/main.dart');
@@ -41,7 +43,26 @@ void main() {
     final encoded = metadata.toJson();
     expect(encoded['schemaVersion'], 1);
     expect((encoded['nodes'] as Map).containsKey('lib/main.dart'), isTrue);
+    expect(
+      ((encoded['nodes'] as Map)['lib/main.dart'] as Map)['collapsed'],
+      isTrue,
+    );
     expect(((encoded['folders'] as Map)['lib'] as Map)['collapsed'], isTrue);
+  });
+
+  test('defaults nodes to expanded when metadata omits collapsed', () {
+    final metadata = GraphiteMetadataModel.fromJson(<String, Object?>{
+      'nodes': <String, Object?>{
+        'lib/main.dart': <String, Object?>{
+          'x': 120,
+          'y': 80,
+          'width': 520,
+          'height': 360,
+        },
+      },
+    });
+
+    expect(metadata.nodes['lib/main.dart']?.isCollapsed, isFalse);
   });
 
   test('defaults folders to collapsed when metadata omits collapsed', () {

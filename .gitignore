@@ -45,3 +45,4 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 /CANVAS_IDE_MVP_PLAN.md
+lib/.graphite.json

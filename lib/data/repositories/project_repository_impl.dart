@@ -174,7 +174,11 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   CanvasNode _nodeForFileLayout(ProjectFile file, NodeLayoutModel layout) {
-    return _nodeForFile(file, layout.position, layout.size);
+    return _nodeForFile(
+      file,
+      layout.position,
+      layout.size,
+    ).copyWith(isCollapsed: layout.isCollapsed);
   }
 
   List<FolderRegion> _folderRegionsFromMetadata(
@@ -229,7 +233,11 @@ class ProjectRepositoryImpl implements ProjectRepository {
       schemaVersion: project.schemaVersion,
       nodes: <String, NodeLayoutModel>{
         for (final node in project.nodes)
-          node.id: NodeLayoutModel(position: node.position, size: node.size),
+          node.id: NodeLayoutModel(
+            position: node.position,
+            size: node.size,
+            isCollapsed: node.isCollapsed,
+          ),
       },
       folders: <String, FolderRegionLayoutModel>{
         for (final folder in project.folderRegions)

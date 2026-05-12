@@ -11,7 +11,10 @@ class CanvasNode {
     this.content = '',
     this.type = CanvasNodeType.note,
     this.metadata = const <String, Object?>{},
+    this.isCollapsed = false,
   });
+
+  static const collapsedSize = Size(160, 56);
 
   final String id;
   final String title;
@@ -20,12 +23,26 @@ class CanvasNode {
   final Offset position;
   final Size size;
   final Map<String, Object?> metadata;
+  final bool isCollapsed;
 
   Rect get bounds => position & size;
 
-  Offset get center => bounds.center;
+  Rect get visualBounds {
+    if (!isCollapsed) {
+      return bounds;
+    }
+    return Rect.fromCenter(
+      center: bounds.center,
+      width: collapsedSize.width,
+      height: collapsedSize.height,
+    );
+  }
 
-  bool containsWorldPoint(Offset worldPoint) => bounds.contains(worldPoint);
+  Offset get center => visualBounds.center;
+
+  bool containsWorldPoint(Offset worldPoint) {
+    return visualBounds.contains(worldPoint);
+  }
 
   CanvasNode translated(Offset delta) {
     return copyWith(position: position + delta);
@@ -39,6 +56,7 @@ class CanvasNode {
     Offset? position,
     Size? size,
     Map<String, Object?>? metadata,
+    bool? isCollapsed,
   }) {
     return CanvasNode(
       id: id ?? this.id,
@@ -48,6 +66,7 @@ class CanvasNode {
       position: position ?? this.position,
       size: size ?? this.size,
       metadata: metadata ?? this.metadata,
+      isCollapsed: isCollapsed ?? this.isCollapsed,
     );
   }
 
@@ -61,6 +80,7 @@ class CanvasNode {
       'y': position.dy,
       'width': size.width,
       'height': size.height,
+      'collapsed': isCollapsed,
       'metadata': metadata,
     };
   }
@@ -82,6 +102,7 @@ class CanvasNode {
         (json['width'] as num).toDouble(),
         (json['height'] as num).toDouble(),
       ),
+      isCollapsed: (json['collapsed'] as bool?) ?? false,
       metadata: metadata is Map<String, Object?>
           ? metadata
           : const <String, Object?>{},
@@ -96,9 +117,12 @@ class CanvasNode {
         other.content == content &&
         other.type == type &&
         other.position == position &&
-        other.size == size;
+        other.size == size &&
+        other.isCollapsed == isCollapsed;
   }
 
   @override
-  int get hashCode => Object.hash(id, title, content, type, position, size);
+  int get hashCode {
+    return Object.hash(id, title, content, type, position, size, isCollapsed);
+  }
 }

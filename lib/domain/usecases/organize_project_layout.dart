@@ -27,8 +27,8 @@ class ProjectLayoutOrganizer {
   static const double folderHeaderHeight = 88;
   static const double itemGapX = 48;
   static const double itemGapY = 48;
-  static const double rootTargetRowWidth = 2600;
-  static const double folderTargetRowWidth = 1800;
+  static const double radialGap = 140;
+  static const double minimumRingRadius = 360;
   static const double minFolderWidth = 680;
   static const double minFolderHeight = 520;
 
@@ -135,10 +135,7 @@ class ProjectLayoutOrganizer {
       defaultNodeSize: defaultNodeSize,
       existingNodesByPath: existingNodesByPath,
     );
-    final contentSize = _measurePackedRows(
-      items,
-      targetRowWidth: folderTargetRowWidth,
-    );
+    final contentSize = _measureRadialLayout(items).size;
     return Size(
       math.max(minFolderWidth, contentSize.width + folderPadding * 2),
       math.max(
@@ -161,15 +158,17 @@ class ProjectLayoutOrganizer {
       defaultNodeSize: defaultNodeSize,
       existingNodesByPath: existingNodesByPath,
     );
-    final contentOrigin = origin.translate(
-      isRoot ? 0 : folderPadding,
-      isRoot ? 0 : folderPadding + folderHeaderHeight,
-    );
-    final placements = _packRows(
-      items,
-      origin: contentOrigin,
-      targetRowWidth: isRoot ? rootTargetRowWidth : folderTargetRowWidth,
-    );
+    final center = isRoot
+        ? origin
+        : _contentCenterForFolder(
+            origin,
+            _measureDirectory(
+              dir,
+              defaultNodeSize: defaultNodeSize,
+              existingNodesByPath: existingNodesByPath,
+            ),
+          );
+    final placements = _radialPlacements(items, center: center);
 
     for (final placement in placements) {
       final item = placement.item;
@@ -221,53 +220,74 @@ class ProjectLayoutOrganizer {
     return items..sort((a, b) => a.key.compareTo(b.key));
   }
 
-  static Size _measurePackedRows(
-    List<_LayoutItem> items, {
-    required double targetRowWidth,
-  }) {
+  static Rect _measureRadialLayout(List<_LayoutItem> items) {
     if (items.isEmpty) {
-      return Size.zero;
+      return Rect.zero;
     }
 
-    final placements = _packRows(
-      items,
-      origin: Offset.zero,
-      targetRowWidth: targetRowWidth,
-    );
-    final bounds = _unionRects([
+    final placements = _radialPlacements(items, center: Offset.zero);
+    return _unionRects([
       for (final placement in placements)
         placement.origin & placement.item.size,
     ]);
-    return bounds.size;
   }
 
-  static List<_Placement> _packRows(
+  static List<_Placement> _radialPlacements(
     List<_LayoutItem> items, {
-    required Offset origin,
-    required double targetRowWidth,
+    required Offset center,
   }) {
-    final placements = <_Placement>[];
-    var cursor = origin;
-    var rowTop = origin.dy;
-    var rowHeight = 0.0;
-
-    for (final item in items) {
-      final wouldExceedRow =
-          cursor.dx > origin.dx &&
-          cursor.dx + item.size.width > origin.dx + targetRowWidth;
-
-      if (wouldExceedRow) {
-        cursor = Offset(origin.dx, rowTop + rowHeight + itemGapY);
-        rowTop = cursor.dy;
-        rowHeight = 0;
-      }
-
-      placements.add(_Placement(item: item, origin: cursor));
-      cursor = Offset(cursor.dx + item.size.width + itemGapX, cursor.dy);
-      rowHeight = math.max(rowHeight, item.size.height);
+    if (items.isEmpty) {
+      return const <_Placement>[];
+    }
+    if (items.length == 1) {
+      final item = items.single;
+      return <_Placement>[
+        _Placement(
+          item: item,
+          origin: center - Offset(item.size.width / 2, item.size.height / 2),
+        ),
+      ];
     }
 
+    final placements = <_Placement>[];
+    final maxRadius = items
+        .map((item) => _itemRadius(item.size))
+        .reduce(math.max);
+    final ringStep = maxRadius * 2 + radialGap;
+    var ringRadius = math.max(minimumRingRadius, maxRadius + radialGap);
+    var index = 0;
+
+    while (index < items.length) {
+      final capacity = math.max(
+        1,
+        (math.pi * 2 * ringRadius / (maxRadius * 2 + itemGapX)).floor(),
+      );
+      final end = math.min(items.length, index + capacity);
+      final ringItems = items.sublist(index, end);
+      final angleStep = (math.pi * 2) / ringItems.length;
+      for (var ringIndex = 0; ringIndex < ringItems.length; ringIndex += 1) {
+        final item = ringItems[ringIndex];
+        final angle = -math.pi / 2 + ringIndex * angleStep;
+        final itemCenter = center.translate(
+          math.cos(angle) * ringRadius,
+          math.sin(angle) * ringRadius,
+        );
+        placements.add(
+          _Placement(
+            item: item,
+            origin:
+                itemCenter - Offset(item.size.width / 2, item.size.height / 2),
+          ),
+        );
+      }
+      index = end;
+      ringRadius += ringStep;
+    }
     return placements;
+  }
+
+  static double _itemRadius(Size size) {
+    return math.sqrt(size.width * size.width + size.height * size.height) / 2;
   }
 
   static Rect _computeDirectoryBounds(
@@ -290,7 +310,7 @@ class ProjectLayoutOrganizer {
         ),
       for (final file in dir.directFiles)
         if (nodeByPath[file.relativePath] != null)
-          nodeByPath[file.relativePath]!.bounds,
+          nodeByPath[file.relativePath]!.visualBounds,
     ];
 
     final contentBounds = childRects.isEmpty
@@ -325,6 +345,17 @@ class ProjectLayoutOrganizer {
       rawBounds.top,
       math.max(minFolderWidth, rawBounds.width),
       math.max(minFolderHeight, rawBounds.height),
+    );
+  }
+
+  static Offset _contentCenterForFolder(Offset folderOrigin, Size folderSize) {
+    final contentHeight = math.max(
+      0,
+      folderSize.height - folderHeaderHeight - folderPadding * 2,
+    );
+    return Offset(
+      folderOrigin.dx + folderSize.width / 2,
+      folderOrigin.dy + folderPadding + folderHeaderHeight + contentHeight / 2,
     );
   }
 
