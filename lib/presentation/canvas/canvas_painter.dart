@@ -6,6 +6,14 @@ import '../../core/geometry/canvas_transform.dart';
 import '../../domain/entities/canvas_node.dart';
 import '../../domain/entities/edge.dart';
 import '../../domain/entities/folder_region.dart';
+import '../theme/graphite_canvas_style.dart';
+
+/// Stadium (pill) rounding for [bounds] with semicircular short ends.
+
+RRect capsuleFromRect(Rect bounds) {
+  final double r = math.min(bounds.width, bounds.height) / 2;
+  return RRect.fromRectAndRadius(bounds, Radius.circular(r));
+}
 
 class CanvasPainter extends CustomPainter {
   const CanvasPainter({
@@ -14,6 +22,10 @@ class CanvasPainter extends CustomPainter {
     this.folderRegions = const <FolderRegion>[],
     required this.transform,
     this.selectedNodeId,
+    required this.canvasBackground,
+    required this.canvasStyle,
+    required this.isDark,
+    this.presentationNudge = const <String, Offset>{},
   });
 
   final List<CanvasNode> nodes;
@@ -21,6 +33,12 @@ class CanvasPainter extends CustomPainter {
   final List<FolderRegion> folderRegions;
   final Matrix4 transform;
   final String? selectedNodeId;
+  final Color canvasBackground;
+  final GraphiteCanvasStyle canvasStyle;
+  final bool isDark;
+
+  /// Temporary visual offsets keyed by node id (cosmetic bounce).
+  final Map<String, Offset> presentationNudge;
 
   static List<CanvasNode> visibleNodes({
     required List<CanvasNode> nodes,
@@ -29,6 +47,10 @@ class CanvasPainter extends CustomPainter {
     return nodes
         .where((node) => node.visualBounds.overlaps(viewportWorldRect))
         .toList(growable: false);
+  }
+
+  Rect _nodeDrawRect(CanvasNode node) {
+    return node.visualBounds.shift(presentationNudge[node.id] ?? Offset.zero);
   }
 
   @override
@@ -48,7 +70,7 @@ class CanvasPainter extends CustomPainter {
 
     canvas.drawRect(
       Offset.zero & size,
-      Paint()..color = const Color(0xfff8fafc),
+      Paint()..color = canvasBackground,
     );
 
     canvas.save();
@@ -63,14 +85,17 @@ class CanvasPainter extends CustomPainter {
   }
 
   void _drawGrid(Canvas canvas, Rect viewportWorldRect) {
-    final paint = Paint()
-      ..color = const Color(0xffe2e8f0)
+    final Paint paint = Paint()
+      ..color = canvasStyle.gridMinor
       ..strokeWidth = 1;
     const gridSize = 80.0;
-    final startX = (viewportWorldRect.left / gridSize).floor() * gridSize;
-    final endX = (viewportWorldRect.right / gridSize).ceil() * gridSize;
-    final startY = (viewportWorldRect.top / gridSize).floor() * gridSize;
-    final endY = (viewportWorldRect.bottom / gridSize).ceil() * gridSize;
+    final double startX = (viewportWorldRect.left / gridSize).floor() * gridSize;
+    final double endX =
+        (viewportWorldRect.right / gridSize).ceil() * gridSize;
+    final double startY =
+        (viewportWorldRect.top / gridSize).floor() * gridSize;
+    final double endY =
+        (viewportWorldRect.bottom / gridSize).ceil() * gridSize;
 
     for (var x = startX; x <= endX; x += gridSize) {
       canvas.drawLine(Offset(x, startY), Offset(x, endY), paint);
@@ -79,11 +104,21 @@ class CanvasPainter extends CustomPainter {
     for (var y = startY; y <= endY; y += gridSize) {
       canvas.drawLine(Offset(startX, y), Offset(endX, y), paint);
     }
+
+    final Paint major = Paint()
+      ..color = canvasStyle.gridMajor
+      ..strokeWidth = 2;
+    for (var x = startX; x <= endX; x += gridSize * 5) {
+      canvas.drawLine(Offset(x, startY), Offset(x, endY), major);
+    }
+    for (var y = startY; y <= endY; y += gridSize * 5) {
+      canvas.drawLine(Offset(startX, y), Offset(endX, y), major);
+    }
   }
 
   void _drawFolderRegions(Canvas canvas, Rect viewportWorldRect) {
     for (final region in folderRegions) {
-      final bounds = region.visibleBounds;
+      final Rect bounds = region.visibleBounds;
       if (!bounds.overlaps(viewportWorldRect)) {
         continue;
       }
@@ -94,39 +129,47 @@ class CanvasPainter extends CustomPainter {
         ..color = region.color.withValues(alpha: 0.9)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3;
+
+      final Path capsulePath =
+          Path()..addRRect(capsuleFromRect(bounds));
+
       if (region.isCollapsed) {
-        canvas.drawShadow(Path()..addOval(bounds), Colors.black, 5, true);
-        canvas.drawOval(bounds, paint);
-        canvas.drawOval(bounds, border);
+        canvas.drawShadow(
+          capsulePath,
+          canvasStyle.folderShadow.withValues(alpha: 0.5),
+          5,
+          true,
+        );
+        canvas.drawPath(capsulePath, paint);
+        canvas.drawPath(capsulePath, border);
       } else {
-        final roundedRect = RRect.fromRectAndRadius(
+        final RRect rr = RRect.fromRectAndRadius(
           bounds,
           const Radius.circular(28),
         );
-        canvas.drawRRect(roundedRect, paint);
-        canvas.drawRRect(roundedRect, border);
+        canvas.drawRRect(rr, paint);
+        canvas.drawRRect(rr, border);
       }
 
-      final labelPainter =
-          TextPainter(
-            text: TextSpan(
-              text: region.isCollapsed
-                  ? _basename(region.relativePath)
-                  : region.relativePath,
-              style: const TextStyle(
-                color: Color(0xff334155),
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            textDirection: TextDirection.ltr,
-            maxLines: region.isCollapsed ? 1 : null,
-            ellipsis: region.isCollapsed ? '...' : null,
-          )..layout(
-            maxWidth: region.isCollapsed
-                ? bounds.width - 16
-                : bounds.width - 96,
-          );
+      final labelPainter = TextPainter(
+        text: TextSpan(
+          text: region.isCollapsed
+              ? _basename(region.relativePath)
+              : region.relativePath,
+          style: TextStyle(
+            color: canvasStyle.folderLabel,
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+        maxLines: region.isCollapsed ? 1 : null,
+        ellipsis: region.isCollapsed ? '...' : null,
+      )..layout(
+          maxWidth: region.isCollapsed
+              ? bounds.width - 16
+              : bounds.width - 96,
+        );
       final labelOffset = region.isCollapsed
           ? Offset(
               bounds.left + (bounds.width - labelPainter.width) / 2,
@@ -143,7 +186,7 @@ class CanvasPainter extends CustomPainter {
     Set<String> visibleNodeIds,
   ) {
     final paint = Paint()
-      ..color = const Color(0xff64748b)
+      ..color = canvasStyle.edgeColor
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
@@ -158,24 +201,31 @@ class CanvasPainter extends CustomPainter {
         continue;
       }
 
+      final Offset sCenter = source.visualBounds.shift(
+              presentationNudge[source.id] ?? Offset.zero,
+            ).center;
+      final Offset tCenter = target.visualBounds.shift(
+              presentationNudge[target.id] ?? Offset.zero,
+            ).center;
+
       final path = Path()
-        ..moveTo(source.center.dx, source.center.dy)
+        ..moveTo(sCenter.dx, sCenter.dy)
         ..cubicTo(
-          source.center.dx + 80,
-          source.center.dy,
-          target.center.dx - 80,
-          target.center.dy,
-          target.center.dx,
-          target.center.dy,
+          sCenter.dx + 80,
+          sCenter.dy,
+          tCenter.dx - 80,
+          tCenter.dy,
+          tCenter.dx,
+          tCenter.dy,
         );
       canvas.drawPath(path, paint);
 
       if (edge.directed) {
-        _drawArrowHead(canvas, source.center, target.center, paint);
+        _drawArrowHead(canvas, sCenter, tCenter, paint);
       }
 
       if (edge.label.isNotEmpty) {
-        _drawEdgeLabel(canvas, edge, (source.center + target.center) / 2);
+        _drawEdgeLabel(canvas, edge, (sCenter + tCenter) / 2);
       }
     }
   }
@@ -186,7 +236,8 @@ class CanvasPainter extends CustomPainter {
     Offset target,
     Paint paint,
   ) {
-    final angle = math.atan2(target.dy - source.dy, target.dx - source.dx);
+    final double angle =
+        math.atan2(target.dy - source.dy, target.dx - source.dx);
     const arrowLength = 12.0;
     const arrowSpread = math.pi / 7;
     final first = target.translate(
@@ -203,11 +254,14 @@ class CanvasPainter extends CustomPainter {
   }
 
   void _drawEdgeLabel(Canvas canvas, Edge edge, Offset center) {
+    final Color fg = canvasStyle.folderLabel;
+    final Color bg = canvasBackground.withValues(alpha: isDark ? 0.94 : 0.98);
+
     final textPainter = TextPainter(
       text: TextSpan(
         text: edge.label,
-        style: const TextStyle(
-          color: Color(0xff475569),
+        style: TextStyle(
+          color: fg,
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
@@ -222,25 +276,30 @@ class CanvasPainter extends CustomPainter {
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(labelRect, const Radius.circular(10)),
-      Paint()..color = const Color(0xfff8fafc),
+      Paint()..color = bg,
     );
     textPainter.paint(canvas, labelRect.topLeft + const Offset(8, 4));
   }
 
   void _drawNode(Canvas canvas, CanvasNode node, {required bool isSelected}) {
-    final rect = node.visualBounds;
+    final Rect rect = _nodeDrawRect(node);
     if (node.isCollapsed) {
       _drawCollapsedNode(canvas, node, rect, isSelected: isSelected);
       return;
     }
-    final roundedRect = RRect.fromRectAndRadius(
-      rect,
-      const Radius.circular(18),
-    );
-    final fillPaint = Paint()
-      ..color = isSelected ? const Color(0xffdbeafe) : const Color(0xffffffff);
+
+    final Color fillSel =
+        isDark ? const Color(0xff1e3a5f) : const Color(0xffdbeafe);
+    final Color fill =
+        isSelected ? fillSel : (isDark ? const Color(0xff1e293b) : Colors.white);
+    final Color stroke =
+        isSelected ? const Color(0xff2563eb) : (isDark ? const Color(0xff475569) : const Color(0xffcbd5e1));
+
+    final roundedRect =
+        RRect.fromRectAndRadius(rect, const Radius.circular(18));
+    final fillPaint = Paint()..color = fill;
     final strokePaint = Paint()
-      ..color = isSelected ? const Color(0xff2563eb) : const Color(0xffcbd5e1)
+      ..color = stroke
       ..style = PaintingStyle.stroke
       ..strokeWidth = isSelected ? 3 : 1.5;
 
@@ -248,11 +307,13 @@ class CanvasPainter extends CustomPainter {
     canvas.drawRRect(roundedRect, fillPaint);
     canvas.drawRRect(roundedRect, strokePaint);
 
+    final Color titleFg = isDark ? const Color(0xfff1f5f9) : const Color(0xff0f172a);
+
     final titlePainter = TextPainter(
       text: TextSpan(
         text: node.title,
-        style: const TextStyle(
-          color: Color(0xff0f172a),
+        style: TextStyle(
+          color: titleFg,
           fontSize: 18,
           fontWeight: FontWeight.w700,
         ),
@@ -262,11 +323,14 @@ class CanvasPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: rect.width - 32);
 
+    final Color bodyFg =
+        isDark ? const Color(0xff94a3b8) : const Color(0xff475569);
+
     final contentPainter = TextPainter(
       text: TextSpan(
         text: node.content,
-        style: const TextStyle(
-          color: Color(0xff475569),
+        style: TextStyle(
+          color: bodyFg,
           fontSize: 13,
           height: 1.35,
         ),
@@ -286,26 +350,31 @@ class CanvasPainter extends CustomPainter {
     Rect rect, {
     required bool isSelected,
   }) {
-    final roundedRect = RRect.fromRectAndRadius(
-      rect,
-      const Radius.circular(28),
-    );
-    final fillPaint = Paint()
-      ..color = isSelected ? const Color(0xffdbeafe) : const Color(0xffffffff);
+    final RRect capsule = capsuleFromRect(rect);
+    final Color fillSel =
+        isDark ? const Color(0xff1e3a5f) : const Color(0xffdbeafe);
+    final Color fill =
+        isSelected ? fillSel : (isDark ? const Color(0xff1e293b) : Colors.white);
+    final Color stroke = isSelected
+        ? const Color(0xff2563eb)
+        : (isDark ? const Color(0xff64748b) : const Color(0xff94a3b8));
+    final fillPaint = Paint()..color = fill;
     final strokePaint = Paint()
-      ..color = isSelected ? const Color(0xff2563eb) : const Color(0xff94a3b8)
+      ..color = stroke
       ..style = PaintingStyle.stroke
       ..strokeWidth = isSelected ? 3 : 1.5;
 
-    canvas.drawShadow(Path()..addRRect(roundedRect), Colors.black, 4, true);
-    canvas.drawRRect(roundedRect, fillPaint);
-    canvas.drawRRect(roundedRect, strokePaint);
+    canvas.drawShadow(Path()..addRRect(capsule), Colors.black, 4, true);
+    canvas.drawRRect(capsule, fillPaint);
+    canvas.drawRRect(capsule, strokePaint);
+
+    final Color titleFg = isDark ? const Color(0xfff1f5f9) : const Color(0xff0f172a);
 
     final titlePainter = TextPainter(
       text: TextSpan(
         text: node.title,
-        style: const TextStyle(
-          color: Color(0xff0f172a),
+        style: TextStyle(
+          color: titleFg,
           fontSize: 13,
           fontWeight: FontWeight.w800,
         ),
@@ -334,6 +403,10 @@ class CanvasPainter extends CustomPainter {
         oldDelegate.edges != edges ||
         oldDelegate.folderRegions != folderRegions ||
         oldDelegate.transform != transform ||
-        oldDelegate.selectedNodeId != selectedNodeId;
+        oldDelegate.selectedNodeId != selectedNodeId ||
+        oldDelegate.canvasBackground != canvasBackground ||
+        oldDelegate.canvasStyle != canvasStyle ||
+        oldDelegate.isDark != isDark ||
+        oldDelegate.presentationNudge != presentationNudge;
   }
 }

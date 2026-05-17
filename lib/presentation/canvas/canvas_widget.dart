@@ -10,6 +10,9 @@ import '../project/project_controller.dart';
 import 'canvas_controller.dart';
 import 'canvas_painter.dart';
 
+import '../settings/graphite_settings_provider.dart';
+import '../theme/graphite_canvas_style.dart';
+
 class CanvasWidget extends ConsumerStatefulWidget {
   const CanvasWidget({super.key});
 
@@ -17,10 +20,87 @@ class CanvasWidget extends ConsumerStatefulWidget {
   ConsumerState<CanvasWidget> createState() => _CanvasWidgetState();
 }
 
-class _CanvasWidgetState extends ConsumerState<CanvasWidget> {
+class _CanvasWidgetState extends ConsumerState<CanvasWidget>
+    with SingleTickerProviderStateMixin {
   String? _draggingNodeId;
   Offset? _lastDragWorldPosition;
   double _lastScale = 1;
+
+  Map<String, Offset> _presentationNudge = const <String, Offset>{};
+  AnimationController? _repelAnim;
+
+  @override
+  void dispose() {
+    _repelAnim?.dispose();
+    super.dispose();
+  }
+
+  void _maybePlayRepelBounce({
+    required String draggedId,
+    required Map<String, Offset> centersBeforeDragEnd,
+  }) {
+    final bool enable =
+        ref.read(graphiteSettingsNotifierProvider).enableRepelBounce;
+    if (!enable) {
+      return;
+    }
+    final proj = ref.read(projectControllerProvider).project;
+    if (proj == null || !mounted) {
+      return;
+    }
+    final Map<String, Offset> startOffsets = <String, Offset>{};
+    for (final n in proj.nodes) {
+      final Offset? prev = centersBeforeDragEnd[n.id];
+      if (prev == null) {
+        continue;
+      }
+      if (n.id == draggedId) {
+        continue;
+      }
+      final Offset delta = n.visualBounds.center - prev;
+      if (delta.distance <= 3) {
+        continue;
+      }
+      startOffsets[n.id] = -delta;
+    }
+    if (startOffsets.isEmpty) {
+      return;
+    }
+
+    _repelAnim?.dispose();
+    final AnimationController controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 240),
+    );
+    _repelAnim = controller;
+    final Animation<double> curve = CurvedAnimation(
+      parent: controller,
+      curve: Curves.elasticOut,
+    );
+    curve.addListener(() {
+      if (!mounted) {
+        return;
+      }
+      final double u = curve.value.clamp(0.0, 1.0);
+      final double k = (1 - u).clamp(0.0, 1.0);
+      setState(() {
+        _presentationNudge = <String, Offset>{
+          for (final e in startOffsets.entries) e.key: e.value * k,
+        };
+      });
+    });
+
+    curve.addStatusListener((AnimationStatus status) {
+      if (status == AnimationStatus.completed && mounted) {
+        setState(() {
+          _presentationNudge = const <String, Offset>{};
+          _repelAnim?.dispose();
+          _repelAnim = null;
+        });
+      }
+    });
+    controller.forward();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,8 +176,29 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget> {
           }
         },
         onScaleEnd: (_) {
-          if (_draggingNodeId != null) {
-            projectController.endNodeDrag(_draggingNodeId!);
+          final String? dragId = _draggingNodeId;
+          Map<String, Offset>? centersBefore;
+          if (dragId != null) {
+            final pj =
+                ref.read(projectControllerProvider).project;
+            if (pj != null &&
+                ref
+                    .read(graphiteSettingsNotifierProvider)
+                    .enableRepelBounce) {
+              centersBefore = <String, Offset>{
+                for (final n in pj.nodes)
+                  n.id: n.visualBounds.center,
+              };
+            }
+            projectController.endNodeDrag(dragId);
+            if (centersBefore != null && mounted) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _maybePlayRepelBounce(
+                  draggedId: dragId,
+                  centersBeforeDragEnd: centersBefore!,
+                );
+              });
+            }
           }
           _draggingNodeId = null;
           _lastDragWorldPosition = null;
@@ -105,6 +206,13 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget> {
         },
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final ThemeData theme = Theme.of(context);
+            final GraphiteCanvasStyle canvasStyle =
+                theme.extension<GraphiteCanvasStyle>() ??
+                (theme.brightness == Brightness.dark
+                    ? GraphiteCanvasStyle.dark
+                    : GraphiteCanvasStyle.light);
+            final bool isDark = theme.brightness == Brightness.dark;
             final viewport =
                 Offset.zero & Size(constraints.maxWidth, constraints.maxHeight);
             final viewportWorldRect = CanvasTransform.screenRectToWorld(
@@ -125,6 +233,10 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget> {
                     folderRegions: folderRegions,
                     transform: canvasState.transform,
                     selectedNodeId: canvasState.selectedNodeId,
+                    canvasBackground: theme.colorScheme.surface,
+                    canvasStyle: canvasStyle,
+                    isDark: isDark,
+                    presentationNudge: _presentationNudge,
                   ),
                   child: const SizedBox.expand(),
                 ),
@@ -137,6 +249,8 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget> {
                         _PositionedEditorNode(
                           node: node,
                           isSelected: node.id == canvasState.selectedNodeId,
+                          presentationNudge:
+                              _presentationNudge[node.id] ?? Offset.zero,
                         ),
                       for (final folder in folderRegions)
                         if (folder.visibleBounds.overlaps(viewportWorldRect))
@@ -195,18 +309,23 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget> {
 }
 
 class _PositionedEditorNode extends ConsumerWidget {
-  const _PositionedEditorNode({required this.node, required this.isSelected});
+  const _PositionedEditorNode({
+    required this.node,
+    required this.isSelected,
+    required this.presentationNudge,
+  });
 
   final CanvasNode node;
   final bool isSelected;
+  final Offset presentationNudge;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (node.isCollapsed) {
       final bounds = node.visualBounds;
       return Positioned(
-        left: bounds.left,
-        top: bounds.top,
+        left: bounds.left + presentationNudge.dx,
+        top: bounds.top + presentationNudge.dy,
         width: bounds.width,
         height: bounds.height,
         child: _CollapsedFileNode(
@@ -222,8 +341,8 @@ class _PositionedEditorNode extends ConsumerWidget {
     }
 
     return Positioned(
-      left: node.position.dx,
-      top: node.position.dy,
+      left: node.position.dx + presentationNudge.dx,
+      top: node.position.dy + presentationNudge.dy,
       width: node.size.width,
       height: node.size.height,
       child: Listener(
@@ -266,16 +385,18 @@ class _CollapsedFileNode extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final Radius cap = Radius.circular(CanvasNode.collapsedSize.height / 2);
+
     return Material(
-      color: Colors.white,
+      color: colorScheme.surface,
       elevation: 4,
-      borderRadius: BorderRadius.circular(28),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(cap)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.all(cap),
         onDoubleTap: onExpand,
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.all(cap),
             border: Border.all(
               color: isSelected ? colorScheme.primary : const Color(0xff94a3b8),
               width: isSelected ? 3 : 1.5,
@@ -330,31 +451,46 @@ class _PositionedFolderControls extends ConsumerWidget {
       top: folder.isCollapsed ? bounds.top - 4 : bounds.top + 14,
       width: 36,
       height: 36,
-      child: Listener(
-        onPointerSignal: (event) {
-          if (event is PointerScrollEvent) {
-            GestureBinding.instance.pointerSignalResolver.register(
-              event,
-              (event) {},
-            );
-          }
+      child: TweenAnimationBuilder<double>(
+        key: ValueKey<String>(
+          '${folder.relativePath}_${folder.isCollapsed}',
+        ),
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.elasticOut,
+        tween: Tween<double>(begin: 0.93, end: 1),
+        builder: (_, double scale, Widget? child) {
+          return Transform.scale(
+            alignment: Alignment.center,
+            scale: scale,
+            child: child,
+          );
         },
-        child: Material(
-          color: Colors.white,
-          elevation: 3,
-          shape: const CircleBorder(),
-          child: IconButton(
-            tooltip: folder.isCollapsed ? 'Expand folder' : 'Fold folder',
-            iconSize: 18,
-            padding: EdgeInsets.zero,
-            icon: Icon(
-              folder.isCollapsed ? Icons.unfold_more : Icons.unfold_less,
+        child: Listener(
+          onPointerSignal: (event) {
+            if (event is PointerScrollEvent) {
+              GestureBinding.instance.pointerSignalResolver.register(
+                event,
+                (event) {},
+              );
+            }
+          },
+          child: Material(
+            color: Theme.of(context).colorScheme.surface,
+            elevation: 3,
+            shape: const CircleBorder(),
+            child: IconButton(
+              tooltip: folder.isCollapsed ? 'Expand folder' : 'Fold folder',
+              iconSize: 18,
+              padding: EdgeInsets.zero,
+              icon: Icon(
+                folder.isCollapsed ? Icons.unfold_more : Icons.unfold_less,
+              ),
+              onPressed: () {
+                ref
+                    .read(projectControllerProvider.notifier)
+                    .toggleFolderCollapsed(folder.relativePath);
+              },
             ),
-            onPressed: () {
-              ref
-                  .read(projectControllerProvider.notifier)
-                  .toggleFolderCollapsed(folder.relativePath);
-            },
           ),
         ),
       ),

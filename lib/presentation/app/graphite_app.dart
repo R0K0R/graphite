@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,22 +10,48 @@ import '../../domain/entities/graphite_project.dart';
 import '../canvas/canvas_controller.dart';
 import '../canvas/canvas_widget.dart';
 import '../project/project_controller.dart';
+import '../settings/graphite_settings_provider.dart';
+import '../settings/graphite_settings.dart';
+import '../settings/settings_sheet.dart';
+import '../theme/graphite_canvas_style.dart';
 
-class GraphiteApp extends StatelessWidget {
+class GraphiteApp extends ConsumerWidget {
   const GraphiteApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return ProviderScope(
-      child: MaterialApp(
-        title: 'Graphite',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff2563eb)),
-          useMaterial3: true,
-        ),
-        home: const GraphiteHomePage(),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final GraphiteSettings settings = ref.watch(graphiteSettingsNotifierProvider);
+
+    final ThemeData lightBase = ThemeData(
+      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff2563eb)),
+      useMaterial3: true,
+      brightness: Brightness.light,
+    );
+
+    final ThemeData darkBase = ThemeData(
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: const Color(0xff60a5fa),
+        brightness: Brightness.dark,
       ),
+      useMaterial3: true,
+      brightness: Brightness.dark,
+    );
+
+    return MaterialApp(
+      title: 'Graphite',
+      debugShowCheckedModeBanner: false,
+      themeMode: settings.themeMode,
+      theme: lightBase.copyWith(
+        extensions: const <ThemeExtension<dynamic>>[
+          GraphiteCanvasStyle.light,
+        ],
+      ),
+      darkTheme: darkBase.copyWith(
+        extensions: const <ThemeExtension<dynamic>>[
+          GraphiteCanvasStyle.dark,
+        ],
+      ),
+      home: const GraphiteHomePage(),
     );
   }
 }
@@ -55,6 +82,7 @@ class _GraphiteHomePageState extends ConsumerState<GraphiteHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Stack(
         children: <Widget>[
           const CanvasWidget(),
@@ -80,6 +108,8 @@ class _CanvasHud extends ConsumerWidget {
     final project = projectState.project;
     final controller = ref.read(projectControllerProvider.notifier);
 
+    final ColorScheme cs = Theme.of(context).colorScheme;
+
     return Positioned(
       left: 24,
       top: 24,
@@ -87,7 +117,7 @@ class _CanvasHud extends ConsumerWidget {
         width: 420,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: cs.surface,
             borderRadius: BorderRadius.circular(16),
             boxShadow: const <BoxShadow>[
               BoxShadow(
@@ -103,20 +133,53 @@ class _CanvasHud extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                const Text(
-                  'Graphite',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                Row(
+                  children: <Widget>[
+                    const Expanded(
+                      child: Text(
+                        'Graphite',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Settings',
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.settings_outlined),
+                      onPressed: () => showGraphiteSettingsSheet(context),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 const Text('Drag nodes, pan the canvas, scroll to zoom.'),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: rootController,
-                  decoration: const InputDecoration(
-                    labelText: 'Project root',
-                    isDense: true,
-                    border: OutlineInputBorder(),
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(
+                      child: TextField(
+                        controller: rootController,
+                        decoration: const InputDecoration(
+                          labelText: 'Project root',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton(
+                      onPressed: () async {
+                        final String? picked =
+                            await FilePicker.platform.getDirectoryPath();
+                        if (picked != null) {
+                          rootController.text = picked;
+                        }
+                      },
+                      child: const Text('Browse'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 10),
                 Wrap(
@@ -148,7 +211,7 @@ class _CanvasHud extends ConsumerWidget {
                   Text(
                     '${project.files.length} files, '
                     '${project.folderRegions.length} folder regions',
-                    style: const TextStyle(color: Color(0xff475569)),
+                    style: TextStyle(color: Theme.of(context).colorScheme.secondary),
                   ),
                 ],
                 if (projectState.error != null) ...<Widget>[
@@ -172,27 +235,69 @@ class _CanvasHud extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
   ) async {
+    final proj = ref.read(projectControllerProvider).project;
+    final List<String> known = proj == null
+        ? const <String>[]
+        : proj.files.map((f) => f.relativePath).toList(growable: false);
     final pathController = TextEditingController(text: 'lib/new_file.dart');
     final relativePath = await showDialog<String>(
       context: context,
-      builder: (context) {
+      builder: (dialogCtx) {
         return AlertDialog(
           title: const Text('Create file node'),
-          content: TextField(
-            controller: pathController,
-            autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'Relative file path',
-              border: OutlineInputBorder(),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                TextField(
+                  controller: pathController,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Relative file path',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                if (known.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 12),
+                  Text(
+                    'Existing paths (tap)',
+                    style: Theme.of(dialogCtx).textTheme.labelMedium,
+                  ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: 180,
+                    child: Scrollbar(
+                      child: ListView.builder(
+                        itemCount: known.length.clamp(0, 60),
+                        itemBuilder: (_, int index) {
+                          final String row = known[index];
+                          return ListTile(
+                            dense: true,
+                            title: Text(
+                              row,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            onTap: () => pathController.text = row,
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           actions: <Widget>[
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(dialogCtx).pop(),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(context).pop(pathController.text),
+              onPressed: () =>
+                  Navigator.of(dialogCtx).pop(pathController.text),
               child: const Text('Create'),
             ),
           ],

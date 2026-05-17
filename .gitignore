@@ -34,6 +34,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Nix flake result symlink
+result
+
 # Symbolication related
 app.*.symbols
 
@@ -44,5 +47,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/build/
 /CANVAS_IDE_MVP_PLAN.md
 lib/.graphite.json

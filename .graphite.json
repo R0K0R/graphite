@@ -2,1106 +2,1256 @@
   "schemaVersion": 1,
   "nodes": {
     "README.md": {
-      "x": -167.8809486002928,
-      "y": -31.76071341676274,
+      "x": 803.8337665195015,
+      "y": 654.1653769275238,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "analysis_options.yaml": {
-      "x": 368.9025619053188,
-      "y": -36.883473817648564,
+      "x": 170.55331841147756,
+      "y": 362.4926052830865,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "android/app/build.gradle.kts": {
       "x": 1240.0,
       "y": 0.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "android/app/src/debug/AndroidManifest.xml": {
       "x": 1860.0,
       "y": 0.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "android/app/src/main/AndroidManifest.xml": {
-      "x": 0.0,
-      "y": 460.0,
+      "x": 87.28647016361853,
+      "y": 899.9331894842027,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java": {
-      "x": 620.0,
-      "y": 460.0,
+      "x": -539.0575463010794,
+      "y": 246.79638279909315,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "android/app/src/main/kotlin/ksa/hs/kr/graphite/MainActivity.kt": {
-      "x": 1240.0,
-      "y": 460.0,
+      "x": 1360.0047811921556,
+      "y": 430.09077235450206,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "android/app/src/main/res/drawable-v21/launch_background.xml": {
       "x": 1860.0,
       "y": 460.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "android/app/src/main/res/drawable/launch_background.xml": {
       "x": 0.0,
       "y": 920.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "android/app/src/main/res/values-night/styles.xml": {
-      "x": 620.0,
-      "y": 920.0,
+      "x": 528.0086426648367,
+      "y": 1215.6614760767673,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "android/app/src/main/res/values/styles.xml": {
-      "x": 1240.0,
-      "y": 920.0,
+      "x": 1275.8041421141959,
+      "y": 942.9352239205206,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "android/app/src/profile/AndroidManifest.xml": {
       "x": 1860.0,
       "y": 920.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "android/build.gradle.kts": {
       "x": 0.0,
       "y": 1380.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "android/settings.gradle.kts": {
       "x": 620.0,
       "y": 1380.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "ios/Flutter/flutter_export_environment.sh": {
       "x": 1240.0,
       "y": 1380.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "ios/Runner/AppDelegate.swift": {
       "x": 1860.0,
       "y": 1380.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json": {
       "x": 0.0,
       "y": 1840.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "ios/Runner/Assets.xcassets/LaunchImage.imageset/Contents.json": {
       "x": 620.0,
       "y": 1840.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "ios/Runner/Assets.xcassets/LaunchImage.imageset/README.md": {
       "x": 1240.0,
       "y": 1840.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "ios/Runner/GeneratedPluginRegistrant.h": {
       "x": 1860.0,
       "y": 1840.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "ios/Runner/Runner-Bridging-Header.h": {
       "x": 0.0,
       "y": 2300.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "ios/Runner/SceneDelegate.swift": {
       "x": 620.0,
       "y": 2300.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "ios/RunnerTests/RunnerTests.swift": {
       "x": 1240.0,
       "y": 2300.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/core/errors/app_exception.dart": {
       "x": 1860.0,
       "y": 2300.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/core/files/project_path.dart": {
       "x": 0.0,
       "y": 2760.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/core/files/text_file_detector.dart": {
       "x": 620.0,
       "y": 2760.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/core/geometry/canvas_transform.dart": {
       "x": 1240.0,
       "y": 2760.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/data/datasources/local_project_datasource.dart": {
       "x": 1860.0,
       "y": 2760.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/data/models/flowchart_graph_model.dart": {
       "x": 0.0,
       "y": 3220.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/data/models/graphite_metadata_model.dart": {
       "x": 620.0,
       "y": 3220.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/data/repositories/llm_flowchart_repository_impl.dart": {
       "x": 1240.0,
       "y": 3220.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/data/repositories/project_repository_impl.dart": {
       "x": 1860.0,
       "y": 3220.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/domain/entities/canvas_node.dart": {
       "x": 0.0,
       "y": 3680.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/domain/entities/canvas_snapshot.dart": {
       "x": 620.0,
       "y": 3680.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/domain/entities/edge.dart": {
       "x": 1240.0,
       "y": 3680.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/domain/entities/flowchart_graph.dart": {
       "x": 1860.0,
       "y": 3680.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/domain/entities/folder_region.dart": {
       "x": 0.0,
       "y": 4140.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/domain/entities/graphite_project.dart": {
       "x": 620.0,
       "y": 4140.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/domain/entities/ink_stroke.dart": {
       "x": 1240.0,
       "y": 4140.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/domain/entities/project_file.dart": {
       "x": 1860.0,
       "y": 4140.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/domain/repositories/llm_flowchart_repository.dart": {
       "x": 0.0,
       "y": 4600.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/domain/repositories/project_repository.dart": {
       "x": 620.0,
       "y": 4600.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/domain/usecases/calculate_spatial_diff.dart": {
       "x": 1240.0,
       "y": 4600.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/domain/usecases/create_canvas_snapshot.dart": {
       "x": 1860.0,
       "y": 4600.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/domain/usecases/create_file_node.dart": {
       "x": 0.0,
       "y": 5060.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/domain/usecases/generate_flowchart_from_code.dart": {
       "x": 620.0,
       "y": 5060.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/domain/usecases/open_project_root.dart": {
       "x": 1240.0,
       "y": 5060.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/domain/usecases/organize_project_layout.dart": {
+      "x": 33381.34719567398,
+      "y": -34960.02004123664,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/domain/usecases/resolve_drag_displacement.dart": {
+      "x": 32152.663897623464,
+      "y": -33731.336743186126,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/domain/usecases/sync_project_files.dart": {
       "x": 1860.0,
       "y": 5060.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/main.dart": {
       "x": 0.0,
       "y": 5520.0,
       "width": 520.0,
-      "height": 360.0
-    },
-    "lib/new_file.dart": {
-      "x": 4496.0,
-      "y": 4496.0,
-      "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/presentation/app/graphite_app.dart": {
       "x": 620.0,
       "y": 5520.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/presentation/canvas/canvas_controller.dart": {
       "x": 1240.0,
       "y": 5520.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/presentation/canvas/canvas_painter.dart": {
       "x": 1860.0,
       "y": 5520.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/presentation/canvas/canvas_widget.dart": {
       "x": 0.0,
       "y": 5980.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/presentation/editor/code_language.dart": {
       "x": 620.0,
       "y": 5980.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/presentation/editor/embedded_editor_node.dart": {
       "x": 1240.0,
       "y": 5980.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/presentation/editor/monaco_webview_supported.dart": {
+      "x": 36784.31702394222,
+      "y": -23662.515917169072,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/presentation/editor/monaco_webview_supported_io.dart": {
+      "x": 36328.08925792538,
+      "y": -24118.74368318591,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/presentation/editor/monaco_webview_supported_stub.dart": {
+      "x": 36784.31702394222,
+      "y": -25347.426981236422,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
     },
     "lib/presentation/project/project_controller.dart": {
       "x": 1860.0,
       "y": 5980.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "linux/CMakeLists.txt": {
       "x": 0.0,
       "y": 6440.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "linux/flutter/CMakeLists.txt": {
       "x": 620.0,
       "y": 6440.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "linux/flutter/generated_plugin_registrant.cc": {
       "x": 1240.0,
       "y": 6440.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "linux/flutter/generated_plugin_registrant.h": {
       "x": 1860.0,
       "y": 6440.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "linux/runner/CMakeLists.txt": {
       "x": 0.0,
       "y": 6900.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "linux/runner/main.cc": {
       "x": 620.0,
       "y": 6900.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "linux/runner/my_application.cc": {
       "x": 1240.0,
       "y": 6900.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "linux/runner/my_application.h": {
       "x": 1860.0,
       "y": 6900.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "macos/Flutter/GeneratedPluginRegistrant.swift": {
       "x": 0.0,
       "y": 7360.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "macos/Runner/AppDelegate.swift": {
       "x": 620.0,
       "y": 7360.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "macos/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json": {
       "x": 1240.0,
       "y": 7360.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "macos/Runner/MainFlutterWindow.swift": {
       "x": 1860.0,
       "y": 7360.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "macos/RunnerTests/RunnerTests.swift": {
       "x": 0.0,
       "y": 7820.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "pubspec.yaml": {
       "x": 620.0,
       "y": 7820.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "test/core/geometry/canvas_transform_test.dart": {
       "x": 1240.0,
       "y": 7820.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "test/data/models/flowchart_graph_model_test.dart": {
       "x": 1860.0,
       "y": 7820.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "test/data/models/graphite_metadata_model_test.dart": {
       "x": 0.0,
       "y": 8280.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "test/data/repositories/project_repository_impl_test.dart": {
       "x": 620.0,
       "y": 8280.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
+    },
+    "test/domain/entities/canvas_visual_geometry_test.dart": {
+      "x": -40217.69226492691,
+      "y": 38157.85693441506,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
     },
     "test/domain/usecases/calculate_spatial_diff_test.dart": {
       "x": 1240.0,
       "y": 8280.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
+    },
+    "test/domain/usecases/organize_project_layout_test.dart": {
+      "x": -39822.5874296445,
+      "y": 40510.54534887868,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "test/domain/usecases/resolve_drag_displacement_test.dart": {
+      "x": -40612.79710020932,
+      "y": 40510.54534887868,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
     },
     "test/presentation/canvas/canvas_painter_test.dart": {
       "x": 1860.0,
       "y": 8280.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "test/widget_test.dart": {
       "x": 0.0,
       "y": 8740.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "web/index.html": {
       "x": 620.0,
       "y": 8740.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "web/manifest.json": {
       "x": 1240.0,
       "y": 8740.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "windows/CMakeLists.txt": {
       "x": 1860.0,
       "y": 8740.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "windows/flutter/CMakeLists.txt": {
       "x": 0.0,
       "y": 9200.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "windows/flutter/generated_plugin_registrant.cc": {
       "x": 620.0,
       "y": 9200.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "windows/flutter/generated_plugin_registrant.h": {
       "x": 1240.0,
       "y": 9200.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "windows/runner/CMakeLists.txt": {
       "x": 1860.0,
       "y": 9200.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "windows/runner/flutter_window.cpp": {
       "x": 0.0,
       "y": 9660.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "windows/runner/flutter_window.h": {
       "x": 620.0,
       "y": 9660.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "windows/runner/main.cpp": {
       "x": 1240.0,
       "y": 9660.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "windows/runner/resource.h": {
       "x": 1860.0,
       "y": 9660.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "windows/runner/utils.cpp": {
       "x": 0.0,
       "y": 10120.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "windows/runner/utils.h": {
       "x": 620.0,
       "y": 10120.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "windows/runner/win32_window.cpp": {
       "x": 1240.0,
       "y": 10120.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     },
     "windows/runner/win32_window.h": {
       "x": 1860.0,
       "y": 10120.0,
       "width": 520.0,
-      "height": 360.0
+      "height": 360.0,
+      "collapsed": false
     }
   },
   "folders": {
     "android": {
-      "x": -160.0,
-      "y": -160.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -859.0575463010794,
+      "y": -777.2036172009068,
+      "width": 3559.057546301079,
+      "height": 2592.865093277674,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "android/app": {
-      "x": 616.0,
-      "y": -160.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -819.0575463010794,
+      "y": -649.2036172009068,
+      "width": 3479.057546301079,
+      "height": 2424.865093277674,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "android/app/src": {
-      "x": 1392.0,
-      "y": -160.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -779.0575463010794,
+      "y": -521.2036172009068,
+      "width": 3399.057546301079,
+      "height": 2256.865093277674,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "android/app/src/debug": {
-      "x": -160.0,
-      "y": 356.0,
+      "x": 1820.0,
+      "y": -128.0,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "android/app/src/main": {
-      "x": 616.0,
-      "y": 356.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -739.0575463010794,
+      "y": -393.2036172009068,
+      "width": 3319.057546301079,
+      "height": 2088.865093277674,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "android/app/src/main/java": {
-      "x": 1392.0,
-      "y": 356.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -699.0575463010794,
+      "y": -265.2036172009068,
+      "width": 920.0,
+      "height": 1032.0,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "android/app/src/main/java/io": {
-      "x": -160.0,
-      "y": 872.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -659.0575463010794,
+      "y": -137.20361720090685,
+      "width": 840.0,
+      "height": 864.0,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "android/app/src/main/java/io/flutter": {
-      "x": 616.0,
-      "y": 872.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -619.0575463010794,
+      "y": -9.203617200906848,
+      "width": 760.0,
+      "height": 696.0,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "android/app/src/main/java/io/flutter/plugins": {
-      "x": 1392.0,
-      "y": 872.0,
+      "x": -579.0575463010794,
+      "y": 118.79638279909315,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "android/app/src/main/kotlin": {
-      "x": -160.0,
-      "y": 1388.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": 1160.0047811921556,
+      "y": -209.90922764549794,
+      "width": 1000.0000000000002,
+      "height": 1200.0,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "android/app/src/main/kotlin/ksa": {
-      "x": 616.0,
-      "y": 1388.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": 1200.0047811921556,
+      "y": -81.90922764549794,
+      "width": 920.0000000000002,
+      "height": 1032.0,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "android/app/src/main/kotlin/ksa/hs": {
-      "x": 1392.0,
-      "y": 1388.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": 1240.0047811921556,
+      "y": 46.090772354502064,
+      "width": 840.0000000000002,
+      "height": 864.0,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "android/app/src/main/kotlin/ksa/hs/kr": {
-      "x": -160.0,
-      "y": 1904.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": 1280.0047811921556,
+      "y": 174.09077235450206,
+      "width": 760.0,
+      "height": 696.0,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "android/app/src/main/kotlin/ksa/hs/kr/graphite": {
-      "x": 616.0,
-      "y": 1904.0,
+      "x": 1320.0047811921556,
+      "y": 302.09077235450206,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "android/app/src/main/res": {
-      "x": 1392.0,
-      "y": 1904.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -80.0,
+      "y": 204.0,
+      "width": 2620.0,
+      "height": 1451.6614760767673,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "android/app/src/main/res/drawable": {
-      "x": -160.0,
-      "y": 2420.0,
+      "x": -40.0,
+      "y": 792.0,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "android/app/src/main/res/drawable-v21": {
-      "x": 616.0,
-      "y": 2420.0,
+      "x": 1820.0,
+      "y": 332.0,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "android/app/src/main/res/values": {
-      "x": 1392.0,
-      "y": 2420.0,
+      "x": 1235.8041421141959,
+      "y": 814.9352239205206,
       "width": 680.0,
-      "height": 420.0,
+      "height": 527.9999999999999,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "android/app/src/main/res/values-night": {
-      "x": -160.0,
-      "y": 2936.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": 488.00864266483666,
+      "y": 1087.6614760767673,
+      "width": 680.0000000000001,
+      "height": 528.0,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "android/app/src/profile": {
-      "x": 616.0,
-      "y": 2936.0,
+      "x": 1820.0,
+      "y": 792.0,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "ios": {
-      "x": 1392.0,
-      "y": 2936.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -160.0,
+      "y": 1124.0,
+      "width": 2620.0,
+      "height": 1616.0,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "ios/Flutter": {
-      "x": -160.0,
-      "y": 3452.0,
+      "x": 1200.0,
+      "y": 1252.0,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "ios/Runner": {
-      "x": 616.0,
-      "y": 3452.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -120.0,
+      "y": 1252.0,
+      "width": 2540.0,
+      "height": 1448.0,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "ios/Runner/Assets.xcassets": {
-      "x": 1392.0,
-      "y": 3452.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -80.0,
+      "y": 1584.0,
+      "width": 1920.0,
+      "height": 696.0,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "ios/Runner/Assets.xcassets/AppIcon.appiconset": {
-      "x": -160.0,
-      "y": 3968.0,
+      "x": -40.0,
+      "y": 1712.0,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "ios/Runner/Assets.xcassets/LaunchImage.imageset": {
-      "x": 616.0,
-      "y": 3968.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": 580.0,
+      "y": 1712.0,
+      "width": 1220.0,
+      "height": 528.0,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "ios/RunnerTests": {
-      "x": 1392.0,
-      "y": 3968.0,
+      "x": 1200.0,
+      "y": 2172.0,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "lib": {
-      "x": -160.0,
-      "y": 4484.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -120.0,
+      "y": -35344.02004123664,
+      "width": 37544.31702394222,
+      "height": 41804.02004123664,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "lib/core": {
-      "x": 616.0,
-      "y": 4484.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -80.0,
+      "y": 2044.0,
+      "width": 2620.0,
+      "height": 1156.0,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "lib/core/errors": {
-      "x": 1392.0,
-      "y": 4484.0,
+      "x": 1820.0,
+      "y": 2172.0,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "lib/core/files": {
-      "x": -160.0,
-      "y": 5000.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -40.0,
+      "y": 2632.0,
+      "width": 1220.0,
+      "height": 528.0,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "lib/core/geometry": {
-      "x": 616.0,
-      "y": 5000.0,
+      "x": 1200.0,
+      "y": 2632.0,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "lib/data": {
-      "x": 1392.0,
-      "y": 5000.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -80.0,
+      "y": 2504.0,
+      "width": 2620.0,
+      "height": 1156.0,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "lib/data/datasources": {
-      "x": -160.0,
-      "y": 5516.0,
+      "x": 1820.0,
+      "y": 2632.0,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "lib/data/models": {
-      "x": 616.0,
-      "y": 5516.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -40.0,
+      "y": 3092.0,
+      "width": 1220.0,
+      "height": 528.0,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "lib/data/repositories": {
-      "x": 1392.0,
-      "y": 5516.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": 1200.0,
+      "y": 3092.0,
+      "width": 1220.0,
+      "height": 528.0,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "lib/domain": {
-      "x": -160.0,
-      "y": 6032.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -80.0,
+      "y": -35216.02004123664,
+      "width": 34061.34719567398,
+      "height": 40716.02004123664,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "lib/domain/entities": {
-      "x": 616.0,
-      "y": 6032.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -40.0,
+      "y": 3552.0,
+      "width": 2460.0,
+      "height": 988.0,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "lib/domain/repositories": {
-      "x": 1392.0,
-      "y": 6032.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -40.0,
+      "y": 4472.0,
+      "width": 1220.0,
+      "height": 528.0,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "lib/domain/usecases": {
-      "x": -160.0,
-      "y": 6548.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -40.0,
+      "y": -35088.02004123664,
+      "width": 33981.34719567398,
+      "height": 40548.02004123664,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "lib/presentation": {
-      "x": 616.0,
-      "y": 6548.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -80.0,
+      "y": -25603.426981236422,
+      "width": 37464.31702394222,
+      "height": 32023.426981236422,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "lib/presentation/app": {
-      "x": 1392.0,
-      "y": 6548.0,
+      "x": 580.0,
+      "y": 5392.0,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "lib/presentation/canvas": {
-      "x": -160.0,
-      "y": 7064.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -40.0,
+      "y": 5392.0,
+      "width": 2460.0,
+      "height": 988.0,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "lib/presentation/editor": {
-      "x": 616.0,
-      "y": 7064.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": 580.0,
+      "y": -25475.426981236422,
+      "width": 36764.31702394222,
+      "height": 31855.426981236422,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "lib/presentation/project": {
-      "x": 1392.0,
-      "y": 7064.0,
+      "x": 1820.0,
+      "y": 5852.0,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "linux": {
-      "x": -160.0,
-      "y": 7580.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -80.0,
+      "y": 6184.0,
+      "width": 2540.0,
+      "height": 1156.0,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "linux/flutter": {
-      "x": 616.0,
-      "y": 7580.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": 580.0,
+      "y": 6312.0,
+      "width": 1840.0,
+      "height": 528.0,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "linux/runner": {
-      "x": 1392.0,
-      "y": 7580.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -40.0,
+      "y": 6772.0,
+      "width": 2460.0,
+      "height": 528.0,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "macos": {
-      "x": -160.0,
-      "y": 8096.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -80.0,
+      "y": 6848.0,
+      "width": 2540.0,
+      "height": 1412.0,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "macos/Flutter": {
-      "x": 616.0,
-      "y": 8096.0,
+      "x": -40.0,
+      "y": 7232.0,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "macos/Runner": {
-      "x": 1392.0,
-      "y": 8096.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": 580.0,
+      "y": 6976.0,
+      "width": 1840.0,
+      "height": 864.0,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "macos/Runner/Assets.xcassets": {
-      "x": -160.0,
-      "y": 8612.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": 1160.0,
+      "y": 7104.0,
+      "width": 760.0,
+      "height": 696.0,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "macos/Runner/Assets.xcassets/AppIcon.appiconset": {
-      "x": 616.0,
-      "y": 8612.0,
+      "x": 1200.0,
+      "y": 7232.0,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "macos/RunnerTests": {
-      "x": 1392.0,
-      "y": 8612.0,
+      "x": -40.0,
+      "y": 7692.0,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "test": {
-      "x": -160.0,
-      "y": 9128.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -40732.79710020932,
+      "y": 7436.0,
+      "width": 43312.79710020932,
+      "height": 33554.54534887868,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "test/core": {
-      "x": 616.0,
-      "y": 9128.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": 1160.0,
+      "y": 7564.0,
+      "width": 760.0,
+      "height": 696.0,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "test/core/geometry": {
-      "x": 1392.0,
-      "y": 9128.0,
+      "x": 1200.0,
+      "y": 7692.0,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "test/data": {
-      "x": -160.0,
-      "y": 9644.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -80.0,
+      "y": 7564.0,
+      "width": 2540.0,
+      "height": 1156.0,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "test/data/models": {
-      "x": 616.0,
-      "y": 9644.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -40.0,
+      "y": 7692.0,
+      "width": 2460.0,
+      "height": 988.0,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "test/data/repositories": {
-      "x": 1392.0,
-      "y": 9644.0,
+      "x": 580.0,
+      "y": 8152.0,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "test/domain": {
-      "x": -160.0,
-      "y": 10160.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -40692.79710020932,
+      "y": 8024.0,
+      "width": 42532.79710020932,
+      "height": 32926.54534887868,
       "color": "#DBEAFE",
       "collapsed": true
     },
-    "test/domain/usecases": {
-      "x": 616.0,
-      "y": 10160.0,
+    "test/domain/entities": {
+      "x": -40257.69226492691,
+      "y": 38029.85693441506,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
+      "color": "#DCFCE7",
+      "collapsed": true
+    },
+    "test/domain/usecases": {
+      "x": -40652.79710020932,
+      "y": 8152.0,
+      "width": 42452.79710020932,
+      "height": 32758.54534887868,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "test/presentation": {
-      "x": 1392.0,
-      "y": 10160.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": 1780.0,
+      "y": 8024.0,
+      "width": 760.0,
+      "height": 696.0,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "test/presentation/canvas": {
-      "x": -160.0,
-      "y": 10676.0,
+      "x": 1820.0,
+      "y": 8152.0,
       "width": 680.0,
-      "height": 420.0,
+      "height": 528.0,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "web": {
-      "x": 616.0,
-      "y": 10676.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": 580.0,
+      "y": 8612.0,
+      "width": 1220.0,
+      "height": 528.0,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "windows": {
-      "x": 1392.0,
-      "y": 10676.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -80.0,
+      "y": 8612.0,
+      "width": 2540.0,
+      "height": 1948.0,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "windows/flutter": {
-      "x": -160.0,
-      "y": 11192.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -40.0,
+      "y": 9072.0,
+      "width": 1840.0,
+      "height": 528.0,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "windows/runner": {
-      "x": 616.0,
-      "y": 11192.0,
-      "width": 680.0,
-      "height": 420.0,
+      "x": -40.0,
+      "y": 9072.0,
+      "width": 2460.0,
+      "height": 1448.0,
       "color": "#DCFCE7",
       "collapsed": true
     }

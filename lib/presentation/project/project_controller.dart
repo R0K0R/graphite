@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,7 +10,9 @@ import '../../domain/entities/folder_region.dart';
 import '../../domain/entities/graphite_project.dart';
 import '../../domain/repositories/project_repository.dart';
 import '../../domain/usecases/organize_project_layout.dart';
-import '../../domain/usecases/resolve_drag_displacement.dart';
+import '../../domain/usecases/resolve_rectangle_layout.dart';
+import '../../domain/usecases/rectangle_layout_config.dart';
+import '../settings/graphite_settings_provider.dart';
 
 final projectRepositoryProvider = Provider<ProjectRepository>((ref) {
   return ProjectRepositoryImpl(datasource: const LocalProjectDatasource());
@@ -162,19 +163,28 @@ class ProjectController extends Notifier<ProjectState> {
 
     session.cumulativeDelta += delta;
     final activeDelta = session.cumulativeDelta;
-    final knockedNodes = DragDisplacementResolver.resolveTransient(
-      baselineNodes: session.baselineNodes,
-      activeNodeId: nodeId,
-      activeDelta: activeDelta,
+    final CanvasNode? baselineFinger = session.nodeById(nodeId);
+    if (baselineFinger == null) {
+      return;
+    }
+    final Rect fingerRect =
+        baselineFinger.visualBounds.shift(activeDelta);
+    final String fingerPath = (baselineFinger.metadata['relativePath'] as String?) ??
+        baselineFinger.id;
+    final RectangleLayoutConfig config =
+        ref.read(rectangleLayoutConfigProvider);
+    final RectangleLayoutSolveResult solved =
+        ResolveRectangleLayout.solveTransient(
+      nodesSeed: project.nodes,
+      fingerId: nodeId,
+      fingerRect: fingerRect,
+      obstacleFolders: session.baselineFolders,
+      fingerRelativePath: fingerPath,
+      config: config,
     );
-    final nodes = _applyFolderKnockback(
-      nodes: knockedNodes,
-      session: session,
-      activeDelta: activeDelta,
-    );
-    final folders = _recomputeFolders(project: project, nodes: nodes);
+    final folders = _recomputeFolders(project: project, nodes: solved.nodes);
     state = state.copyWith(
-      project: project.copyWith(nodes: nodes, folderRegions: folders),
+      project: project.copyWith(nodes: solved.nodes, folderRegions: folders),
       clearError: true,
     );
   }
@@ -187,13 +197,27 @@ class ProjectController extends Notifier<ProjectState> {
       return;
     }
 
-    final nodes = DragDisplacementResolver.settleFinal(
-      baselineNodes: session.baselineNodes,
-      activeNodeId: nodeId,
-      activeDelta: session.cumulativeDelta,
+    final CanvasNode? baselineFinger = session.nodeById(nodeId);
+    if (baselineFinger == null) {
+      _dragSession = null;
+      return;
+    }
+    final Rect fingerRect =
+        baselineFinger.visualBounds.shift(session.cumulativeDelta);
+    final String fingerPath =
+        (baselineFinger.metadata['relativePath'] as String?) ?? baselineFinger.id;
+    final RectangleLayoutConfig config =
+        ref.read(rectangleLayoutConfigProvider);
+    final RectangleLayoutSolveResult solved = ResolveRectangleLayout.solveFinal(
+      nodesSeed: project.nodes,
+      fingerId: nodeId,
+      fingerRect: fingerRect,
+      obstacleFolders: session.baselineFolders,
+      fingerRelativePath: fingerPath,
+      config: config,
     );
-    final folders = _recomputeFolders(project: project, nodes: nodes);
-    final updated = project.copyWith(nodes: nodes, folderRegions: folders);
+    final folders = _recomputeFolders(project: project, nodes: solved.nodes);
+    final updated = project.copyWith(nodes: solved.nodes, folderRegions: folders);
     _dragSession = null;
     state = state.copyWith(project: updated, clearError: true);
     _scheduleLayoutSave(updated);
@@ -258,105 +282,6 @@ class ProjectController extends Notifier<ProjectState> {
       previousFolders: project.folderRegions,
       folderColors: ProjectRepositoryImpl.folderColors,
     );
-  }
-
-  List<CanvasNode> _applyFolderKnockback({
-    required List<CanvasNode> nodes,
-    required _DragSession session,
-    required Offset activeDelta,
-  }) {
-    if (activeDelta.distance == 0) {
-      return nodes;
-    }
-    final activeBaseline = session.nodeById(session.nodeId);
-    final activeCurrent = activeBaseline?.translated(activeDelta);
-    if (activeBaseline == null || activeCurrent == null) {
-      return nodes;
-    }
-
-    final dragDirection = activeDelta / activeDelta.distance;
-    final offsetsByNodeId = <String, Offset>{};
-    for (final folder in session.baselineFolders) {
-      if (folder.containsRelativePath(session.nodeId)) {
-        continue;
-      }
-      final offset = _folderKnockbackOffset(
-        folder: folder,
-        activeBaseline: activeBaseline,
-        activeCurrent: activeCurrent,
-        dragDirection: dragDirection,
-        activeDistance: activeDelta.distance,
-      );
-      if (offset == Offset.zero) {
-        continue;
-      }
-      for (final node in nodes) {
-        final relativePath =
-            node.metadata['relativePath'] as String? ?? node.id;
-        if (folder.containsRelativePath(relativePath)) {
-          offsetsByNodeId[node.id] =
-              (offsetsByNodeId[node.id] ?? Offset.zero) + offset;
-        }
-      }
-    }
-
-    if (offsetsByNodeId.isEmpty) {
-      return nodes;
-    }
-    return <CanvasNode>[
-      for (final node in nodes)
-        if (offsetsByNodeId[node.id] == null)
-          node
-        else
-          node.translated(offsetsByNodeId[node.id]!),
-    ];
-  }
-
-  Offset _folderKnockbackOffset({
-    required FolderRegion folder,
-    required CanvasNode activeBaseline,
-    required CanvasNode activeCurrent,
-    required Offset dragDirection,
-    required double activeDistance,
-  }) {
-    final baselineToFolder =
-        folder.visualBounds.center - activeBaseline.visualBounds.center;
-    final folderProgress =
-        baselineToFolder.dx * dragDirection.dx +
-        baselineToFolder.dy * dragDirection.dy;
-    final folderRadius =
-        math.max(folder.visualBounds.width, folder.visualBounds.height) / 2;
-    if (activeDistance > folderProgress + folderRadius) {
-      return Offset.zero;
-    }
-
-    final activeCenter = activeCurrent.visualBounds.center;
-    final folderCenter = folder.visualBounds.center;
-    final away = folderCenter - activeCenter;
-    final distance = away.distance;
-    final targetDistance =
-        _radius(activeCurrent.visualBounds) +
-        _radius(folder.visualBounds) +
-        DragDisplacementResolver.comfortRadius;
-    if (distance >= targetDistance &&
-        !activeCurrent.visualBounds
-            .inflate(DragDisplacementResolver.comfortRadius)
-            .overlaps(folder.visualBounds)) {
-      return Offset.zero;
-    }
-
-    final direction = distance == 0
-        ? Offset(-dragDirection.dy, dragDirection.dx)
-        : away / distance;
-    final strength = (targetDistance - distance).clamp(
-      0.0,
-      DragDisplacementResolver.maxKnockback,
-    );
-    return direction * strength;
-  }
-
-  double _radius(Rect rect) {
-    return math.sqrt(rect.width * rect.width + rect.height * rect.height) / 2;
   }
 }
 

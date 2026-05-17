@@ -1,11 +1,21 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
+import 'package:webview_flutter/webview_flutter.dart';
 
+import '../../debug/debug_session_log.dart';
 import '../../domain/entities/canvas_node.dart';
+import '../../lsp/graphite_lsp_runtime.dart';
+import '../../lsp/graphite_lsp_host_provider.dart';
+import '../../lsp/lsp_config.dart';
 import '../project/project_controller.dart';
 import 'code_language.dart';
+import 'monaco_webview_supported.dart';
+
 
 class EmbeddedEditorNode extends ConsumerStatefulWidget {
   const EmbeddedEditorNode({
@@ -24,10 +34,13 @@ class EmbeddedEditorNode extends ConsumerStatefulWidget {
 }
 
 class _EmbeddedEditorNodeState extends ConsumerState<EmbeddedEditorNode> {
-  final _textController = TextEditingController();
+  /// Used when `webview_flutter` has no platform plugin (Linux, Windows, web).
+  final TextEditingController _plainTextController = TextEditingController();
+
   Timer? _saveTimer;
   bool _isLoading = true;
   String? _error;
+  WebViewController? _webController;
 
   String get _relativePath {
     return widget.node.metadata['relativePath'] as String? ?? widget.node.id;
@@ -50,13 +63,36 @@ class _EmbeddedEditorNodeState extends ConsumerState<EmbeddedEditorNode> {
   @override
   void dispose() {
     _saveTimer?.cancel();
-    _textController.dispose();
+    _plainTextController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    ref.listen<AsyncValue<GraphiteLspRuntime?>>(
+      graphiteLspHostProvider,
+      (
+        AsyncValue<GraphiteLspRuntime?>? previous,
+        AsyncValue<GraphiteLspRuntime?> next,
+      ) {
+        if (!mounted || !isMonacoWebViewSupported) {
+          return;
+        }
+        void reschedule() {
+          Future<void>.microtask(() async {
+            if (mounted) {
+              await _load();
+            }
+          });
+        }
+        next.maybeWhen(
+          data: (_) => reschedule(),
+          error: (_, _) => reschedule(),
+          orElse: () {},
+        );
+      },
+    );
+    final ThemeData theme = Theme.of(context);
     return Material(
       color: Colors.transparent,
       child: DecoratedBox(
@@ -105,30 +141,39 @@ class _EmbeddedEditorNodeState extends ConsumerState<EmbeddedEditorNode> {
         child: Text(_error!, style: const TextStyle(color: Colors.red)),
       );
     }
-    return TextField(
-      controller: _textController,
-      expands: true,
-      maxLines: null,
-      minLines: null,
-      keyboardType: TextInputType.multiline,
-      textAlignVertical: TextAlignVertical.top,
-      style: const TextStyle(
-        fontFamily: 'monospace',
-        fontSize: 13,
-        height: 1.35,
-      ),
-      decoration: const InputDecoration(
-        border: InputBorder.none,
-        contentPadding: EdgeInsets.all(14),
-      ),
-      onChanged: _queueSave,
-    );
+    if (!isMonacoWebViewSupported) {
+      return TextField(
+        controller: _plainTextController,
+        expands: true,
+        maxLines: null,
+        minLines: null,
+        keyboardType: TextInputType.multiline,
+        textAlignVertical: TextAlignVertical.top,
+        style: const TextStyle(
+          fontFamily: 'monospace',
+          fontSize: 13,
+          height: 1.35,
+        ),
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.all(14),
+        ),
+        onChanged: _queueSave,
+      );
+    }
+
+    final controller = _webController;
+    if (controller == null) {
+      return const Center(child: Text('Editor unavailable'));
+    }
+    return WebViewWidget(controller: controller);
   }
 
   Future<void> _load() async {
     setState(() {
       _isLoading = true;
       _error = null;
+      _webController = null;
     });
     try {
       final content = await ref
@@ -137,8 +182,148 @@ class _EmbeddedEditorNodeState extends ConsumerState<EmbeddedEditorNode> {
       if (!mounted) {
         return;
       }
-      _textController.text = content;
-      setState(() => _isLoading = false);
+
+      // #region agent log
+      debugSessionLog(
+        'H0_PLATFORM',
+        'embedded_editor_node.dart:_load',
+        'after_read_file',
+        <String, Object?>{
+          'monacoWebViewSupported': isMonacoWebViewSupported,
+          'defaultTargetPlatform': defaultTargetPlatform.name,
+          'relativePath': _relativePath,
+        },
+      );
+      // #endregion
+
+      if (!isMonacoWebViewSupported) {
+        _plainTextController.text = content;
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final languageId = CodeLanguage.monacoLanguageId(_relativePath);
+      final project = ref.read(projectControllerProvider).project;
+      if (project == null) {
+        throw StateError('No open project.');
+      }
+
+      final GraphiteLspRuntime? graphiteRuntime =
+          await ref.read(graphiteLspHostProvider.future);
+
+      final GraphiteLspRuntime graphite = graphiteRuntime ??
+          (throw Exception(
+                'Embedded Monaco host unavailable. Confirm the Monaco bundle is '
+                    'included (run npm ci && npm run build in tooling/monaco_lsp) '
+                    'and that localhost serving started.',
+              ));
+
+      final String workspaceFs = p.canonicalize(project.rootPath);
+      final String documentFs =
+          p.canonicalize(p.join(project.rootPath, _relativePath));
+      final LspLaunchSpec? spec =
+          graphite.registry.lookupLanguage(languageId);
+
+      final Map<String, Object?> payload = <String, Object?>{
+        'workspaceFs': workspaceFs,
+        'documentFs': documentFs,
+        'languageId': languageId,
+        'text': content,
+      };
+
+      final bool plain = languageId.toLowerCase() == 'plaintext';
+      if (!plain && spec != null) {
+        payload['enableLsp'] = true;
+        payload['serverId'] = spec.id;
+        if (spec.initializationOptions != null) {
+          payload['initializationOptions'] = spec.initializationOptions;
+        }
+      } else {
+        payload['enableLsp'] = false;
+      }
+
+      final Uri pageUri = graphite.editorPageUri;
+      final String bootJson = jsonEncode(payload);
+      final String bootB64 = base64Encode(utf8.encode(bootJson));
+      final String bootB64Literal = jsonEncode(bootB64);
+
+      // #region agent log
+      debugSessionLog(
+        'H4_FLUTTER',
+        'embedded_editor_node.dart:_load',
+        'monaco_web_load_start',
+        <String, Object?>{
+          'pageUri': pageUri.toString(),
+          'relativePath': _relativePath,
+          'bootB64Chars': bootB64.length,
+          'kIsWeb': kIsWeb,
+        },
+      );
+      // #endregion
+
+      final WebViewController controller = WebViewController();
+      await controller.setJavaScriptMode(JavaScriptMode.unrestricted);
+      await controller.setBackgroundColor(Colors.white);
+      await controller.addJavaScriptChannel(
+        'FlutterBridge',
+        onMessageReceived: (JavaScriptMessage message) {
+          _queueSave(message.message);
+        },
+      );
+
+      await controller.setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (String url) async {
+            if (!mounted) {
+              return;
+            }
+            // #region agent log
+            debugSessionLog(
+              'H4_FLUTTER',
+              'embedded_editor_node.dart:onPageFinished',
+              'page_finished',
+              <String, Object?>{'url': url},
+            );
+            // #endregion
+            try {
+              await controller.runJavaScript(
+                'try {\n'
+                '  window.__GRAPHITE_BOOT_B64 = $bootB64Literal;\n'
+                '} catch (e) {\n'
+                '  console.error("[graphite] boot inject failed", e);\n'
+                '}\n',
+              );
+              // #region agent log
+              debugSessionLog(
+                'H4_FLUTTER',
+                'embedded_editor_node.dart:onPageFinished',
+                'inject_js_ok',
+                <String, Object?>{},
+              );
+              // #endregion
+            } catch (error, trace) {
+              // #region agent log
+              debugSessionLog(
+                'H4_FLUTTER',
+                'embedded_editor_node.dart:onPageFinished',
+                'inject_js_failed',
+                <String, Object?>{
+                  'error': '$error',
+                },
+              );
+              // #endregion
+              debugPrint('[graphite] inject boot failed $error\n$trace');
+            }
+          },
+        ),
+      );
+
+      await controller.loadRequest(pageUri);
+
+      setState(() {
+        _webController = controller;
+        _isLoading = false;
+      });
     } catch (error) {
       if (!mounted) {
         return;
