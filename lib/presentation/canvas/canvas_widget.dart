@@ -117,8 +117,9 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget>
     final controller = ref.read(canvasControllerProvider.notifier);
     final projectController = ref.read(projectControllerProvider.notifier);
 
-    return Listener(
-      onPointerSignal: (event) {
+    return ClipRect(
+      child: Listener(
+        onPointerSignal: (event) {
         if (event is PointerScrollEvent) {
           GestureBinding.instance.pointerSignalResolver.register(event, (
             event,
@@ -263,7 +264,7 @@ class _CanvasWidgetState extends ConsumerState<CanvasWidget>
           },
         ),
       ),
-    );
+    ));
   }
 
   List<FolderRegion> _folderRegionsVisibleOutsideCollapsedParents(

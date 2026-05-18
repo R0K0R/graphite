@@ -2,330 +2,1240 @@
   "schemaVersion": 1,
   "nodes": {
     "README.md": {
-      "x": 803.8337665195015,
-      "y": 654.1653769275238,
+      "x": 1102.651131162046,
+      "y": 1654.5419972859954,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "analysis_options.yaml": {
-      "x": 170.55331841147756,
-      "y": 362.4926052830865,
+      "x": 1490.502831128137,
+      "y": 607.8647349125034,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "android/app/build.gradle.kts": {
-      "x": 1240.0,
-      "y": 0.0,
+      "x": 1619.820275290114,
+      "y": 2605.8738598291734,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "android/app/src/debug/AndroidManifest.xml": {
-      "x": 1860.0,
-      "y": 0.0,
+      "x": 2305.3854423915927,
+      "y": 973.8575626083361,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "android/app/src/main/AndroidManifest.xml": {
-      "x": 87.28647016361853,
-      "y": 899.9331894842027,
+      "x": -540.1133482551891,
+      "y": 539.3171238154758,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java": {
-      "x": -539.0575463010794,
-      "y": 246.79638279909315,
+      "x": -540.1133482551891,
+      "y": 155.3171238154758,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "android/app/src/main/kotlin/ksa/hs/kr/graphite/MainActivity.kt": {
-      "x": 1360.0047811921556,
-      "y": 430.09077235450206,
+      "x": 1881.5290082193308,
+      "y": 3044.1055696944595,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "android/app/src/main/res/drawable-v21/launch_background.xml": {
-      "x": 1860.0,
-      "y": 460.0,
+      "x": 2425.5290082193305,
+      "y": 2845.7522039722116,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "android/app/src/main/res/drawable/launch_background.xml": {
-      "x": 0.0,
-      "y": 920.0,
+      "x": -73.48709241204205,
+      "y": 1222.4258245868282,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "android/app/src/main/res/values-night/styles.xml": {
-      "x": 528.0086426648367,
-      "y": 1215.6614760767673,
+      "x": 558.6511311620462,
+      "y": 1368.9079856260096,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "android/app/src/main/res/values/styles.xml": {
-      "x": 1275.8041421141959,
-      "y": 942.9352239205206,
+      "x": 1075.8202752901138,
+      "y": 2617.4880471275055,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "android/app/src/main/res/xml/network_security_config.xml": {
+      "x": -19957.090972859776,
+      "y": 6881.9401502752025,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "android/app/src/profile/AndroidManifest.xml": {
-      "x": 1860.0,
-      "y": 920.0,
+      "x": 2521.1870530814167,
+      "y": 3229.7522039722116,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "android/build.gradle.kts": {
-      "x": 0.0,
-      "y": 1380.0,
+      "x": -779.7934785926736,
+      "y": 2334.948545527015,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "android/settings.gradle.kts": {
-      "x": 620.0,
-      "y": 1380.0,
+      "x": 277.49200108521995,
+      "y": 3573.9925747312755,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/_.contribution-yLVugOC6.js": {
+      "x": -259.99999999999454,
+      "y": -92956.26299755869,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/_commonjsHelpers-CqkleIqs.js": {
+      "x": 196.22776601684342,
+      "y": -92500.03523154186,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/abap-DLDM7-KI.js": {
+      "x": -259.99999999999454,
+      "y": -92043.80746552502,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/apex-DNDY2TF8.js": {
+      "x": -716.2277660168324,
+      "y": -92500.03523154186,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/azcli-Y6nb8tq_.js": {
+      "x": -259.9999999999945,
+      "y": -93728.71852959237,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/bat-BwHxbl9M.js": {
+      "x": 404.2763426520751,
+      "y": -93533.66939675751,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/bicep-CFznDFnq.js": {
+      "x": 857.6496400644648,
+      "y": -93010.44871977672,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/cameligo-Bf6VGUru.js": {
+      "x": 956.177073691385,
+      "y": -92325.17536669072,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/clojure-Dnu-v4kV.js": {
+      "x": 668.5768795178676,
+      "y": -91695.41878519418,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/coffee-Bd8akH9Z.js": {
+      "x": 86.16008710813708,
+      "y": -91321.1222402649,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/cpp-BbWJElDN.js": {
+      "x": -606.1600871081259,
+      "y": -91321.1222402649,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/csharp-Co3qMtFm.js": {
+      "x": -1188.5768795178565,
+      "y": -91695.41878519418,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/csp-D-4FJmMZ.js": {
+      "x": -1476.177073691374,
+      "y": -92325.17536669072,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/css-DdJfP1eB.js": {
+      "x": -1377.6496400644542,
+      "y": -93010.44871977672,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/cypher-cTPe9QuQ.js": {
+      "x": -924.2763426520639,
+      "y": -93533.66939675751,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/dark_modern-Cwz-zAtv.json": {
+      "x": -259.99999999999443,
+      "y": -94501.17406162605,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/dark_vs-BL-mUvcK.json": {
+      "x": 424.4297894799613,
+      "y": -94380.49062334011,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/dart-BOtBlQCF.js": {
+      "x": 1026.3072452407398,
+      "y": -94032.99651223747,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/dockerfile-BG73LgW2.js": {
+      "x": 1473.037063352385,
+      "y": -93500.60464658395,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/ecl-BEgZUVRK.js": {
+      "x": 1710.7370347206954,
+      "y": -92847.52934264451,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/editor-CsoAGW9b.js": {
+      "x": 1710.7370347206954,
+      "y": -92152.5411204392,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/editor.worker-BwSD0hbq.js": {
+      "x": 1473.0370633523853,
+      "y": -91499.46581649977,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/elixir-BkW5O-1t.js": {
+      "x": 1026.30724524074,
+      "y": -90967.07395084626,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/extensionHost.worker-CY515XEa.js": {
+      "x": 424.4297894799613,
+      "y": -90619.5798397436,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/fake-DXkbmQ09.html": {
+      "x": -259.99999999999443,
+      "y": -90498.89640145766,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/fileCommands-BWjklncq.css": {
+      "x": -944.4297894799502,
+      "y": -90619.5798397436,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/fileCommands._save-DB4kwNim.js": {
+      "x": -1546.307245240729,
+      "y": -90967.07395084624,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/flow9-BeJ5waoc.js": {
+      "x": -1993.037063352374,
+      "y": -91499.46581649977,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/freemarker2-C3P5sNfO.js": {
+      "x": -2230.7370347206843,
+      "y": -92152.5411204392,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/fsharp-PahG7c26.js": {
+      "x": -2230.7370347206847,
+      "y": -92847.52934264451,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/go-acbASCJo.js": {
+      "x": -1993.0370633523742,
+      "y": -93500.60464658395,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/graphql-BxJiqAUM.js": {
+      "x": -1546.3072452407291,
+      "y": -94032.99651223746,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/handlebars-Ck6xD7sd.js": {
+      "x": -944.4297894799515,
+      "y": -94380.49062334011,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/hc_black-BX9MT4w9.json": {
+      "x": -259.9999999999944,
+      "y": -95273.62959365972,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/hc_light-Bzw0ew6e.json": {
+      "x": 429.7648689561747,
+      "y": -95186.49202649052,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/hcl-DtV1sZF8.js": {
+      "x": 1076.1892744180907,
+      "y": -94930.55449879775,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/html-DiHB72Ch.js": {
+      "x": 1638.655993607918,
+      "y": -94521.89850671869,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/iconv-lite-umd-CjcwRjSx.js": {
+      "x": 2081.8231739510684,
+      "y": -93986.20140916729,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/iconv-lite-umd-CnCUmFlC.js": {
+      "x": 2377.8449916517015,
+      "y": -93357.12302493882,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/index-B9OOx-ZG.js": {
+      "x": 2508.121307211598,
+      "y": -92674.1906625028,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/index-BPOe4Pu5.css": {
+      "x": 2464.4663806013546,
+      "y": -91980.31547384066,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/index-BVhqROad.js": {
+      "x": 2249.623211411483,
+      "y": -91319.09618895043,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/index-C3k3nsyy.js": {
+      "x": 1877.0911861000886,
+      "y": -90732.07964729621,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/index-CE3K5A72.js": {
+      "x": 1370.2778618944362,
+      "y": -90256.15025708596,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/index-CEhqlLL9.css": {
+      "x": 761.0281838833888,
+      "y": -89921.21241225244,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/index-CVMLQUNM.css": {
+      "x": 87.6235499999608,
+      "y": -89748.31148940176,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/index-CXdcmMlK.js": {
+      "x": -607.6235499999508,
+      "y": -89748.31148940176,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/index-ClOVJCIe.js": {
+      "x": -1281.0281838833798,
+      "y": -89921.21241225244,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/index-Cr35dGkw.js": {
+      "x": -1890.277861894426,
+      "y": -90256.15025708596,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/index-Cuyrel_d.js": {
+      "x": -2397.091186100078,
+      "y": -90732.07964729621,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/index-D2vY9p5m.js": {
+      "x": -2769.623211411473,
+      "y": -91319.09618895044,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/index-DcLbqHcr.html": {
+      "x": -2984.466380601344,
+      "y": -91980.31547384066,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/index-DoXiLhIy.js": {
+      "x": -3028.121307211587,
+      "y": -92674.1906625028,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/index-DtGxNg8a.css": {
+      "x": -2897.8449916516906,
+      "y": -93357.12302493882,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/index-cRZaK3oM.js": {
+      "x": -2601.8231739510566,
+      "y": -93986.20140916729,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/ini-Kd9XrMLS.js": {
+      "x": -2158.6559936079057,
+      "y": -94521.89850671869,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/java-CXBNlu9o.js": {
+      "x": -1596.1892744180798,
+      "y": -94930.55449879775,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/javascript-Dewa0Yis.js": {
+      "x": -949.764868956163,
+      "y": -95186.49202649052,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/julia-cl7-CwDS.js": {
+      "x": -259.9999999999943,
+      "y": -96046.0851256934,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/kotlin-s7OhZKlX.js": {
+      "x": 431.8000157352875,
+      "y": -95977.94877130112,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/layout.contribution.darwin-CNuKAPkw.js": {
+      "x": 1097.014544831781,
+      "y": -95776.15815001228,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/layout.contribution.linux-CkqTuM6V.js": {
+      "x": 1710.0797659929135,
+      "y": -95448.46796223753,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/layout.contribution.win-D72LutgT.js": {
+      "x": 2247.4359265803996,
+      "y": -95007.47115812225,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/less-9HpZscsL.js": {
+      "x": 2688.4327306956693,
+      "y": -94470.11499753477,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/lexon-OrD6JF1K.js": {
+      "x": 3016.1229184704293,
+      "y": -93857.04977637363,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/light_modern-2Q9DJYhB.json": {
+      "x": 3217.913539759271,
+      "y": -93191.83524727714,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/light_vs-DwwM7VRG.json": {
+      "x": 3286.049894151547,
+      "y": -92500.03523154186,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/liquid-DRCCUf6J.js": {
+      "x": 3217.913539759271,
+      "y": -91808.23521580658,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/lua-Cyyb5UIc.js": {
+      "x": 3016.1229184704293,
+      "y": -91143.02068671008,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/m3-B8OfTtLu.js": {
+      "x": 2688.4327306956698,
+      "y": -90529.95546554895,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/main-EPZgSV-u.js": {
+      "x": 2247.4359265803996,
+      "y": -89992.59930496146,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/main2-J2IGoHEu.js": {
+      "x": 1710.0797659929126,
+      "y": -89551.60250084619,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/markdown-BFxVWTOG.js": {
+      "x": 1097.014544831781,
+      "y": -89223.91231307143,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/mdx-DdfNZWtz.js": {
+      "x": 431.8000157352882,
+      "y": -89022.1216917826,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/mips-CiqrrVzr.js": {
+      "x": -259.9999999999943,
+      "y": -88953.98533739032,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/msdax-DmeGPVcC.js": {
+      "x": -951.8000157352768,
+      "y": -89022.1216917826,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/mysql-C_tMU-Nz.js": {
+      "x": -1617.0145448317696,
+      "y": -89223.91231307143,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/objective-c-BDtDVThU.js": {
+      "x": -2230.0797659929012,
+      "y": -89551.60250084619,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/pascal-vHIfCaH5.js": {
+      "x": -2767.4359265803882,
+      "y": -89992.59930496146,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/pascaligo-DtZ0uQbO.js": {
+      "x": -3208.432730695659,
+      "y": -90529.95546554895,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/perl-Ub6l9XKa.js": {
+      "x": -3536.122918470418,
+      "y": -91143.02068671008,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/pgsql-BlNEE0v7.js": {
+      "x": -3737.91353975926,
+      "y": -91808.23521580658,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/php-BBUBE1dy.js": {
+      "x": -3806.049894151536,
+      "y": -92500.03523154186,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/pla-DSh2-awV.js": {
+      "x": -3737.91353975926,
+      "y": -93191.83524727714,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/postiats-CocnycG-.js": {
+      "x": -3536.1229184704184,
+      "y": -93857.04977637363,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/powerquery-tScXyioY.js": {
+      "x": -3208.4327306956593,
+      "y": -94470.11499753477,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/powershell-COWaemsV.js": {
+      "x": -2767.435926580389,
+      "y": -95007.47115812225,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/protobuf-Brw8urJB.js": {
+      "x": -2230.079765992902,
+      "y": -95448.46796223753,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/pug-8SOpv6rk.js": {
+      "x": -1617.0145448317717,
+      "y": -95776.15815001228,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/python-Dr1M2F4S.js": {
+      "x": -951.8000157352777,
+      "y": -95977.94877130112,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/qsharp-Bw9ernYp.js": {
+      "x": -259.99999999999426,
+      "y": -96818.54065772708,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/r-j7ic8hl3.js": {
+      "x": 489.9005975018191,
+      "y": -96752.93285667435,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/razor-BRDiEulr.js": {
+      "x": 1217.015844816552,
+      "y": -96558.102913352,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/redis-Bu5POkcn.js": {
+      "x": 1899.2527130926137,
+      "y": -96239.9706369992,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/redshift-Bs9aos_-.js": {
+      "x": 2515.8817803159513,
+      "y": -95808.2023158502,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/restructuredtext-CqXO7rUv.js": {
+      "x": 3048.1670843083452,
+      "y": -95275.9170118578,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/ruby-zBfavPgS.js": {
+      "x": 3479.9354054573473,
+      "y": -94659.28794463446,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/rust-BzKRNQWT.js": {
+      "x": 3798.0676818101583,
+      "y": -93977.0510763584,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/sb-BBc9UKZt.js": {
+      "x": 3992.8976251324975,
+      "y": -93249.93582904366,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/scala-D9hQfWCl.js": {
+      "x": 4058.505426185223,
+      "y": -92500.03523154186,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/scheme-BPhDTwHR.js": {
+      "x": 3992.8976251324975,
+      "y": -91750.13463404005,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/scss-CBJaRo0y.js": {
+      "x": 3798.0676818101583,
+      "y": -91023.01938672531,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/service-worker-VQd3YMwb.js": {
+      "x": 3479.9354054573478,
+      "y": -90340.78251844925,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/shell-DiJ1NA_G.js": {
+      "x": 3048.1670843083452,
+      "y": -89724.15345122591,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/solidity-Db0IVjzk.js": {
+      "x": 2515.881780315952,
+      "y": -89191.86814723352,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/sophia-CnS9iZB_.js": {
+      "x": 1899.2527130926137,
+      "y": -88760.09982608451,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/sparql-CJmd_6j2.js": {
+      "x": 1217.015844816552,
+      "y": -88441.96754973171,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/sql-ClhHkBeG.js": {
+      "x": 489.90059750182013,
+      "y": -88247.13760640936,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/st-CHwy0fLd.js": {
+      "x": -259.99999999999426,
+      "y": -88181.52980535664,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/swift-Bqt4WxQ4.js": {
+      "x": -1009.9005975018068,
+      "y": -88247.13760640936,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/systemverilog-Bs9z6M-B.js": {
+      "x": -1737.0158448165407,
+      "y": -88441.96754973171,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/tcl-Dm6ycUr_.js": {
+      "x": -2419.2527130926023,
+      "y": -88760.09982608451,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/tokenClassificationRegistry-CAmlv47N.js": {
+      "x": -3035.8817803159404,
+      "y": -89191.86814723352,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/tsMode-lbzsZKpa.js": {
+      "x": -3568.167084308334,
+      "y": -89724.15345122591,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/twig-Csy3S7wG.js": {
+      "x": -3999.935405457336,
+      "y": -90340.78251844924,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/typescript-2MYk9kr1.js": {
+      "x": -4318.067681810147,
+      "y": -91023.01938672531,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/typespec-Btyra-wh.js": {
+      "x": -4512.897625132487,
+      "y": -91750.13463404005,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/vb-Db0cS2oM.js": {
+      "x": -4578.505426185212,
+      "y": -92500.03523154186,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/views-B9UOMOWh.css": {
+      "x": -4512.897625132487,
+      "y": -93249.93582904366,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/views-DBDaAmB4.js": {
+      "x": -4318.067681810148,
+      "y": -93977.0510763584,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/webWorkerExtensionHostIframe-HMCkMutH.html": {
+      "x": -3999.9354054573364,
+      "y": -94659.28794463446,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/wgsl-DumH7NcR.js": {
+      "x": -3568.1670843083343,
+      "y": -95275.9170118578,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/workbenchThemeService.service-Ddv0pz7m.js": {
+      "x": -3035.881780315941,
+      "y": -95808.2023158502,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/worker-oZFc746i.js": {
+      "x": -2419.252713092605,
+      "y": -96239.9706369992,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/xml-BRXplH7i.js": {
+      "x": -1737.0158448165434,
+      "y": -96558.102913352,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/assets/yaml-C5aJk0a7.js": {
+      "x": -1009.9005975018079,
+      "y": -96752.93285667435,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "assets/monaco_lsp/index.html": {
+      "x": -259.99999999999415,
+      "y": -79251.74129807735,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "ios/Flutter/flutter_export_environment.sh": {
-      "x": 1240.0,
-      "y": 1380.0,
+      "x": 942.4502461358852,
+      "y": 3349.2088910756165,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "ios/Runner/AppDelegate.swift": {
-      "x": 1860.0,
-      "y": 1380.0,
+      "x": 1852.502332000643,
+      "y": 3410.875328554973,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json": {
-      "x": 0.0,
-      "y": 1840.0,
+      "x": -504.0,
+      "y": 4483.5071728451285,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "ios/Runner/Assets.xcassets/LaunchImage.imageset/Contents.json": {
-      "x": 620.0,
-      "y": 1840.0,
+      "x": 360.98754693021397,
+      "y": 3767.98275929543,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "ios/Runner/Assets.xcassets/LaunchImage.imageset/README.md": {
-      "x": 1240.0,
-      "y": 1840.0,
+      "x": 1123.4431728407897,
+      "y": 5236.944914334421,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "ios/Runner/GeneratedPluginRegistrant.h": {
-      "x": 1860.0,
-      "y": 1840.0,
+      "x": 1695.6666666629417,
+      "y": 3794.875328554973,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "ios/Runner/Runner-Bridging-Header.h": {
-      "x": 0.0,
-      "y": 2300.0,
+      "x": -587.25,
+      "y": 3365.537556935405,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "ios/Runner/SceneDelegate.swift": {
-      "x": 620.0,
-      "y": 2300.0,
+      "x": 398.450246135885,
+      "y": 4117.836765834149,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "ios/RunnerTests/RunnerTests.swift": {
-      "x": 1240.0,
-      "y": 2300.0,
+      "x": 1020.6855468680151,
+      "y": 4032.4156600833526,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/core/errors/app_exception.dart": {
-      "x": 1860.0,
-      "y": 2300.0,
+      "x": 1772.0,
+      "y": 4867.338334411943,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/core/files/project_path.dart": {
-      "x": 0.0,
-      "y": 2760.0,
+      "x": -201.75,
+      "y": 3821.992574731275,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/core/files/text_file_detector.dart": {
-      "x": 620.0,
-      "y": 2760.0,
+      "x": 476.6855468680151,
+      "y": 4480.551508178213,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/core/geometry/canvas_transform.dart": {
-      "x": 1240.0,
-      "y": 2760.0,
+      "x": 1151.6666666629415,
+      "y": 4552.415660083352,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/data/datasources/local_project_datasource.dart": {
       "x": 1860.0,
-      "y": 2760.0,
+      "y": 5069.8467390818205,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/data/models/flowchart_graph_model.dart": {
-      "x": 0.0,
-      "y": 3220.0,
+      "x": -150.0,
+      "y": 5054.566692483444,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/data/models/graphite_metadata_model.dart": {
-      "x": 620.0,
-      "y": 3220.0,
+      "x": 538.8865797589535,
+      "y": 4851.388819634951,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/data/repositories/llm_flowchart_repository_impl.dart": {
       "x": 1240.0,
-      "y": 3220.0,
+      "y": 5431.53438980053,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/data/repositories/project_repository_impl.dart": {
       "x": 1860.0,
-      "y": 3220.0,
+      "y": 5427.518082235542,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/debug/debug_session_log.dart": {
+      "x": 79194.849634571,
+      "y": -12077.886983694872,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/domain/entities/canvas_node.dart": {
-      "x": 0.0,
-      "y": 3680.0,
+      "x": -5.113420241046526,
+      "y": 5283.797176586856,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/domain/entities/canvas_snapshot.dart": {
-      "x": 620.0,
-      "y": 3680.0,
+      "x": 579.4431728407897,
+      "y": 5227.547445505672,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/domain/entities/edge.dart": {
       "x": 1240.0,
-      "y": 3680.0,
+      "y": 5781.871349250689,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/domain/entities/flowchart_graph.dart": {
       "x": 1860.0,
-      "y": 3680.0,
+      "y": 5796.2961534751375,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/domain/entities/folder_region.dart": {
-      "x": 0.0,
-      "y": 4140.0,
+      "x": -88.0,
+      "y": 5803.797176586856,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/domain/entities/graphite_project.dart": {
       "x": 620.0,
-      "y": 4140.0,
+      "y": 5607.6267584410325,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/domain/entities/ink_stroke.dart": {
       "x": 1240.0,
-      "y": 4140.0,
+      "y": 6144.175458468075,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/domain/entities/project_file.dart": {
       "x": 1860.0,
-      "y": 4140.0,
+      "y": 6171.6563889263025,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/domain/geometry/axis_aligned_overlap.dart": {
+      "x": 86213.88052777432,
+      "y": -31154.640780706075,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/domain/repositories/llm_flowchart_repository.dart": {
-      "x": 0.0,
-      "y": 4600.0,
+      "x": -3.0,
+      "y": 6148.140657371584,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/domain/repositories/project_repository.dart": {
       "x": 620.0,
-      "y": 4600.0,
+      "y": 5991.6267584410325,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/domain/usecases/calculate_spatial_diff.dart": {
       "x": 1240.0,
-      "y": 4600.0,
+      "y": 6513.926337366814,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/domain/usecases/create_canvas_snapshot.dart": {
       "x": 1860.0,
-      "y": 4600.0,
+      "y": 6551.336506651885,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/domain/usecases/create_file_node.dart": {
-      "x": 0.0,
-      "y": 5060.0,
+      "x": -531.0138867124915,
+      "y": 6713.884261957124,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/domain/usecases/generate_flowchart_from_code.dart": {
-      "x": 620.0,
-      "y": 5060.0,
+      "x": 559.2916666666667,
+      "y": 6741.320707288645,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/domain/usecases/open_project_root.dart": {
       "x": 1240.0,
-      "y": 5060.0,
+      "y": 6888.616693733152,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
@@ -337,65 +1247,149 @@
       "height": 360.0,
       "collapsed": false
     },
-    "lib/domain/usecases/resolve_drag_displacement.dart": {
-      "x": 32152.663897623464,
-      "y": -33731.336743186126,
+    "lib/domain/usecases/rectangle_layout_config.dart": {
+      "x": 84964.5059396159,
+      "y": -37988.64671529633,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/domain/usecases/resolve_rectangle_layout.dart": {
+      "x": 83520.10209495157,
+      "y": -37988.64671529633,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/domain/usecases/sync_project_files.dart": {
       "x": 1860.0,
-      "y": 5060.0,
+      "y": 6935.336506651885,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/lsp/graphite_lsp_host_io.dart": {
+      "x": 101587.19889677306,
+      "y": -15448.263896293267,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/lsp/graphite_lsp_host_provider.dart": {
+      "x": 102043.42666278989,
+      "y": -14992.036130276429,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/lsp/graphite_lsp_host_stub.dart": {
+      "x": 101587.19889677306,
+      "y": -14535.80836425959,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/lsp/graphite_lsp_runtime.dart": {
+      "x": 101130.97113075622,
+      "y": -14992.036130276429,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/lsp/lsp_capabilities.dart": {
+      "x": 101587.19889677306,
+      "y": -16220.719428326942,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/lsp/lsp_capabilities_io.dart": {
+      "x": 102547.82218117159,
+      "y": -15758.10763632508,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/lsp/lsp_capabilities_stub.dart": {
+      "x": 102785.07653927412,
+      "y": -14718.628375257704,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/lsp/lsp_config.dart": {
+      "x": 102120.3046003225,
+      "y": -13885.030730221246,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/lsp/lsp_host_service.dart": {
+      "x": 101054.09319322361,
+      "y": -13885.030730221246,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/lsp/lsp_process.dart": {
+      "x": 100389.321254272,
+      "y": -14718.628375257704,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/lsp/lsp_relay.dart": {
+      "x": 100626.57561237452,
+      "y": -15758.10763632508,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/main.dart": {
-      "x": 0.0,
-      "y": 5520.0,
+      "x": 12.986113287508545,
+      "y": 6532.140657371584,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/presentation/app/graphite_app.dart": {
-      "x": 620.0,
-      "y": 5520.0,
+      "x": 691.1666666666669,
+      "y": 7125.320707288645,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/presentation/canvas/canvas_controller.dart": {
-      "x": 1240.0,
-      "y": 5520.0,
+      "x": 1235.166666666667,
+      "y": 7266.869330374806,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/presentation/canvas/canvas_painter.dart": {
-      "x": 1860.0,
-      "y": 5520.0,
+      "x": 1782.5,
+      "y": 7790.807188040416,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/presentation/canvas/canvas_widget.dart": {
-      "x": 0.0,
-      "y": 5980.0,
+      "x": -276.0,
+      "y": 7211.571506645372,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/presentation/editor/code_language.dart": {
-      "x": 620.0,
-      "y": 5980.0,
+      "x": 556.9861067583164,
+      "y": 7869.722512375489,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "lib/presentation/editor/embedded_editor_node.dart": {
-      "x": 1240.0,
-      "y": 5980.0,
+      "x": 1237.0,
+      "y": 7647.995648695633,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
@@ -423,133 +1417,161 @@
     },
     "lib/presentation/project/project_controller.dart": {
       "x": 1860.0,
-      "y": 5980.0,
+      "y": 7998.191949242456,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/presentation/settings/graphite_settings.dart": {
+      "x": 70621.82658898886,
+      "y": -13253.970478271618,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/presentation/settings/graphite_settings_provider.dart": {
+      "x": 71016.93142427126,
+      "y": -12569.628829246361,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/presentation/settings/settings_sheet.dart": {
+      "x": 70226.72175370646,
+      "y": -12569.628829246361,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "lib/presentation/theme/graphite_canvas_style.dart": {
+      "x": 63172.99168659997,
+      "y": -12797.742712254778,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "linux/CMakeLists.txt": {
-      "x": 0.0,
-      "y": 6440.0,
+      "x": -104.0,
+      "y": 7584.415128989496,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "linux/flutter/CMakeLists.txt": {
       "x": 620.0,
-      "y": 6440.0,
+      "y": 8117.722512375489,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "linux/flutter/generated_plugin_registrant.cc": {
-      "x": 1240.0,
-      "y": 6440.0,
+      "x": 1238.5,
+      "y": 8031.995648695633,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "linux/flutter/generated_plugin_registrant.h": {
       "x": 1860.0,
-      "y": 6440.0,
+      "y": 8360.215862964882,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "linux/runner/CMakeLists.txt": {
-      "x": 0.0,
-      "y": 6900.0,
+      "x": -579.2251892089844,
+      "y": 8811.125500294413,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "linux/runner/main.cc": {
-      "x": 620.0,
-      "y": 6900.0,
+      "x": 208.3070148465834,
+      "y": 8902.271883479656,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "linux/runner/my_application.cc": {
-      "x": 1240.0,
-      "y": 6900.0,
+      "x": 841.8872962674659,
+      "y": 8820.216896833053,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "linux/runner/my_application.h": {
       "x": 1860.0,
-      "y": 6900.0,
+      "y": 8733.227819826097,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "macos/Flutter/GeneratedPluginRegistrant.swift": {
-      "x": 0.0,
-      "y": 7360.0,
+      "x": 297.8872962674659,
+      "y": 9348.685765856724,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "macos/Runner/AppDelegate.swift": {
-      "x": 620.0,
-      "y": 7360.0,
+      "x": 1232.3474431546447,
+      "y": 9162.322049078888,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "macos/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json": {
-      "x": 1240.0,
-      "y": 7360.0,
+      "x": 1695.4714025328967,
+      "y": 9709.522963167834,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "macos/Runner/MainFlutterWindow.swift": {
-      "x": 1860.0,
-      "y": 7360.0,
+      "x": 1776.347443154645,
+      "y": 9117.227819826097,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "macos/RunnerTests/RunnerTests.swift": {
-      "x": 0.0,
-      "y": 7820.0,
+      "x": -408.8388671875,
+      "y": 7968.415128989497,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "pubspec.yaml": {
-      "x": 620.0,
-      "y": 7820.0,
+      "x": 456.190673828125,
+      "y": 10186.80740284802,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "test/core/geometry/canvas_transform_test.dart": {
-      "x": 1240.0,
-      "y": 7820.0,
+      "x": 1831.153273673923,
+      "y": 10082.751288608266,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "test/data/models/flowchart_graph_model_test.dart": {
-      "x": 1860.0,
-      "y": 7820.0,
+      "x": 2399.263295364165,
+      "y": 9357.993618940034,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "test/data/models/graphite_metadata_model_test.dart": {
-      "x": 0.0,
-      "y": 8280.0,
+      "x": -144.0,
+      "y": 10539.44201470274,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "test/data/repositories/project_repository_impl_test.dart": {
-      "x": 620.0,
-      "y": 8280.0,
+      "x": 449.4245898334826,
+      "y": 9666.80740284802,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
@@ -561,9 +1583,16 @@
       "height": 360.0,
       "collapsed": false
     },
+    "test/domain/geometry/axis_aligned_overlap_test.dart": {
+      "x": -75393.4984504902,
+      "y": 44266.79268809542,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
     "test/domain/usecases/calculate_spatial_diff_test.dart": {
-      "x": 1240.0,
-      "y": 8280.0,
+      "x": 1092.0830930221505,
+      "y": 9959.42219265817,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
@@ -575,128 +1604,163 @@
       "height": 360.0,
       "collapsed": false
     },
-    "test/domain/usecases/resolve_drag_displacement_test.dart": {
-      "x": -40612.79710020932,
-      "y": 40510.54534887868,
-      "width": 520.0,
-      "height": 360.0,
-      "collapsed": false
-    },
     "test/presentation/canvas/canvas_painter_test.dart": {
-      "x": 1860.0,
-      "y": 8280.0,
+      "x": 2943.263295364165,
+      "y": 9700.894504284985,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "test/widget_test.dart": {
-      "x": 0.0,
-      "y": 8740.0,
+      "x": -94.57541016651737,
+      "y": 10155.443705631918,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "tooling/monaco_lsp/index.html": {
+      "x": -84762.30401728375,
+      "y": -15562.496349112012,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "tooling/monaco_lsp/package-lock.json": {
+      "x": -84268.27097592369,
+      "y": -14706.8060208586,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "tooling/monaco_lsp/package.json": {
+      "x": -85256.33705864381,
+      "y": -14706.8060208586,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "tooling/monaco_lsp/src/main.ts": {
+      "x": -84762.30401728375,
+      "y": -16519.41678678323,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "tooling/monaco_lsp/tsconfig.json": {
+      "x": -83401.44844973338,
+      "y": -14206.34580202299,
+      "width": 520.0,
+      "height": 360.0,
+      "collapsed": false
+    },
+    "tooling/monaco_lsp/vite.config.ts": {
+      "x": -86123.15958483412,
+      "y": -14206.34580202299,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "web/index.html": {
-      "x": 620.0,
-      "y": 8740.0,
+      "x": 585.3162464398055,
+      "y": 10482.597761903435,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "web/manifest.json": {
-      "x": 1240.0,
-      "y": 8740.0,
+      "x": 1227.1245587575302,
+      "y": 10343.422155541888,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "windows/CMakeLists.txt": {
       "x": 1860.0,
-      "y": 8740.0,
+      "y": 10444.17280063712,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "windows/flutter/CMakeLists.txt": {
       "x": 0.0,
-      "y": 9200.0,
+      "y": 10923.441591970444,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "windows/flutter/generated_plugin_registrant.cc": {
       "x": 620.0,
-      "y": 9200.0,
+      "y": 10861.961937450553,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "windows/flutter/generated_plugin_registrant.h": {
       "x": 1240.0,
-      "y": 9200.0,
+      "y": 10727.422125514184,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "windows/runner/CMakeLists.txt": {
       "x": 1860.0,
-      "y": 9200.0,
+      "y": 10815.40995825484,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "windows/runner/flutter_window.cpp": {
       "x": 0.0,
-      "y": 9660.0,
+      "y": 11307.441380604298,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "windows/runner/flutter_window.h": {
       "x": 620.0,
-      "y": 9660.0,
+      "y": 11243.644025224112,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "windows/runner/main.cpp": {
       "x": 1240.0,
-      "y": 9660.0,
+      "y": 11111.42211050033,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "windows/runner/resource.h": {
       "x": 1860.0,
-      "y": 9660.0,
+      "y": 11193.028537063701,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "windows/runner/utils.cpp": {
       "x": 0.0,
-      "y": 10120.0,
+      "y": 11691.441380604298,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "windows/runner/utils.h": {
       "x": 620.0,
-      "y": 10120.0,
+      "y": 11627.644025224112,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "windows/runner/win32_window.cpp": {
       "x": 1240.0,
-      "y": 10120.0,
+      "y": 11495.42211050033,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
     },
     "windows/runner/win32_window.h": {
       "x": 1860.0,
-      "y": 10120.0,
+      "y": 11577.028537063701,
       "width": 520.0,
       "height": 360.0,
       "collapsed": false
@@ -704,490 +1768,562 @@
   },
   "folders": {
     "android": {
-      "x": -859.0575463010794,
-      "y": -777.2036172009068,
-      "width": 3559.057546301079,
-      "height": 2592.865093277674,
+      "x": -20197.090972859776,
+      "y": -868.6828761845242,
+      "width": 23478.278025941192,
+      "height": 8350.623026459727,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "android/app": {
-      "x": -819.0575463010794,
-      "y": -649.2036172009068,
-      "width": 3479.057546301079,
-      "height": 2424.865093277674,
+      "x": -20157.090972859776,
+      "y": -740.6828761845242,
+      "width": 23398.278025941192,
+      "height": 8182.623026459727,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "android/app/src": {
-      "x": -779.0575463010794,
-      "y": -521.2036172009068,
-      "width": 3399.057546301079,
-      "height": 2256.865093277674,
+      "x": -20117.090972859776,
+      "y": -612.6828761845242,
+      "width": 23318.278025941192,
+      "height": 8014.623026459727,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "android/app/src/debug": {
-      "x": 1820.0,
-      "y": -128.0,
+      "x": 2265.3854423915927,
+      "y": 845.8575626083361,
       "width": 680.0,
       "height": 528.0,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "android/app/src/main": {
-      "x": -739.0575463010794,
-      "y": -393.2036172009068,
-      "width": 3319.057546301079,
-      "height": 2088.865093277674,
+      "x": -20077.090972859776,
+      "y": -484.68287618452416,
+      "width": 23222.619981079108,
+      "height": 7846.623026459727,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "android/app/src/main/java": {
-      "x": -699.0575463010794,
-      "y": -265.2036172009068,
+      "x": -700.1133482551891,
+      "y": -356.68287618452416,
       "width": 920.0,
       "height": 1032.0,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "android/app/src/main/java/io": {
-      "x": -659.0575463010794,
-      "y": -137.20361720090685,
+      "x": -660.1133482551891,
+      "y": -228.6828761845242,
       "width": 840.0,
       "height": 864.0,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "android/app/src/main/java/io/flutter": {
-      "x": -619.0575463010794,
-      "y": -9.203617200906848,
+      "x": -620.1133482551891,
+      "y": -100.68287618452419,
       "width": 760.0,
       "height": 696.0,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "android/app/src/main/java/io/flutter/plugins": {
-      "x": -579.0575463010794,
-      "y": 118.79638279909315,
+      "x": -580.1133482551891,
+      "y": 27.31712381547581,
       "width": 680.0,
       "height": 528.0,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "android/app/src/main/kotlin": {
-      "x": 1160.0047811921556,
-      "y": -209.90922764549794,
-      "width": 1000.0000000000002,
+      "x": 1681.5290082193308,
+      "y": 2404.1055696944595,
+      "width": 999.9999999999998,
       "height": 1200.0,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "android/app/src/main/kotlin/ksa": {
-      "x": 1200.0047811921556,
-      "y": -81.90922764549794,
-      "width": 920.0000000000002,
+      "x": 1721.5290082193308,
+      "y": 2532.1055696944595,
+      "width": 919.9999999999998,
       "height": 1032.0,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "android/app/src/main/kotlin/ksa/hs": {
-      "x": 1240.0047811921556,
-      "y": 46.090772354502064,
-      "width": 840.0000000000002,
+      "x": 1761.5290082193308,
+      "y": 2660.1055696944595,
+      "width": 839.9999999999998,
       "height": 864.0,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "android/app/src/main/kotlin/ksa/hs/kr": {
-      "x": 1280.0047811921556,
-      "y": 174.09077235450206,
-      "width": 760.0,
+      "x": 1801.5290082193308,
+      "y": 2788.1055696944595,
+      "width": 759.9999999999998,
       "height": 696.0,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "android/app/src/main/kotlin/ksa/hs/kr/graphite": {
-      "x": 1320.0047811921556,
-      "y": 302.09077235450206,
-      "width": 680.0,
+      "x": 1841.5290082193308,
+      "y": 2916.1055696944595,
+      "width": 679.9999999999998,
       "height": 528.0,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "android/app/src/main/res": {
-      "x": -80.0,
-      "y": 204.0,
-      "width": 2620.0,
-      "height": 1451.6614760767673,
+      "x": -20037.090972859776,
+      "y": 966.4258245868282,
+      "width": 23142.619981079108,
+      "height": 6355.514325688375,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "android/app/src/main/res/drawable": {
-      "x": -40.0,
-      "y": 792.0,
+      "x": -113.48709241204205,
+      "y": 1094.4258245868282,
       "width": 680.0,
       "height": 528.0,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "android/app/src/main/res/drawable-v21": {
-      "x": 1820.0,
-      "y": 332.0,
+      "x": 2385.5290082193305,
+      "y": 2717.7522039722116,
       "width": 680.0,
       "height": 528.0,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "android/app/src/main/res/values": {
-      "x": 1235.8041421141959,
-      "y": 814.9352239205206,
+      "x": 1035.8202752901138,
+      "y": 2489.4880471275055,
       "width": 680.0,
-      "height": 527.9999999999999,
+      "height": 528.0,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "android/app/src/main/res/values-night": {
-      "x": 488.00864266483666,
-      "y": 1087.6614760767673,
-      "width": 680.0000000000001,
+      "x": 518.6511311620462,
+      "y": 1240.9079856260096,
+      "width": 679.9999999999999,
       "height": 528.0,
       "color": "#DBEAFE",
       "collapsed": true
     },
-    "android/app/src/profile": {
-      "x": 1820.0,
-      "y": 792.0,
+    "android/app/src/main/res/xml": {
+      "x": -19997.090972859776,
+      "y": 6753.9401502752025,
       "width": 680.0,
       "height": 528.0,
       "color": "#DCFCE7",
       "collapsed": true
     },
+    "android/app/src/profile": {
+      "x": 2481.1870530814167,
+      "y": 3101.7522039722116,
+      "width": 680.0,
+      "height": 528.0,
+      "color": "#DCFCE7",
+      "collapsed": true
+    },
+    "assets": {
+      "x": -4698.505426185212,
+      "y": -97202.54065772708,
+      "width": 9397.010852370435,
+      "height": 18390.799359649725,
+      "color": "#FCE7F3",
+      "collapsed": true
+    },
+    "assets/monaco_lsp": {
+      "x": -4658.505426185212,
+      "y": -97074.54065772708,
+      "width": 9317.010852370435,
+      "height": 18222.799359649725,
+      "color": "#EDE9FE",
+      "collapsed": true
+    },
+    "assets/monaco_lsp/assets": {
+      "x": -4618.505426185212,
+      "y": -96946.54065772708,
+      "width": 9237.010852370435,
+      "height": 9165.01085237044,
+      "color": "#E0F2FE",
+      "collapsed": true
+    },
     "ios": {
-      "x": -160.0,
-      "y": 1124.0,
-      "width": 2620.0,
-      "height": 1616.0,
+      "x": -667.25,
+      "y": 3093.2088910756165,
+      "width": 3119.752332000643,
+      "height": 2663.7360232588044,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "ios/Flutter": {
-      "x": 1200.0,
-      "y": 1252.0,
+      "x": 902.4502461358852,
+      "y": 3221.2088910756165,
       "width": 680.0,
       "height": 528.0,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "ios/Runner": {
-      "x": -120.0,
-      "y": 1252.0,
-      "width": 2540.0,
-      "height": 1448.0,
+      "x": -627.25,
+      "y": 3237.537556935405,
+      "width": 3039.752332000643,
+      "height": 2479.407357399016,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "ios/Runner/Assets.xcassets": {
-      "x": -80.0,
-      "y": 1584.0,
-      "width": 1920.0,
-      "height": 696.0,
+      "x": -584.0,
+      "y": 3511.98275929543,
+      "width": 2307.44317284079,
+      "height": 2164.962155038991,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "ios/Runner/Assets.xcassets/AppIcon.appiconset": {
-      "x": -40.0,
-      "y": 1712.0,
+      "x": -544.0,
+      "y": 4355.5071728451285,
       "width": 680.0,
       "height": 528.0,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "ios/Runner/Assets.xcassets/LaunchImage.imageset": {
-      "x": 580.0,
-      "y": 1712.0,
-      "width": 1220.0,
-      "height": 528.0,
+      "x": 320.98754693021397,
+      "y": 3639.98275929543,
+      "width": 1362.4556259105757,
+      "height": 1996.962155038991,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "ios/RunnerTests": {
-      "x": 1200.0,
-      "y": 2172.0,
+      "x": 980.6855468680151,
+      "y": 3904.4156600833526,
       "width": 680.0,
-      "height": 528.0,
+      "height": 527.9999999999995,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "lib": {
-      "x": -120.0,
-      "y": -35344.02004123664,
-      "width": 37544.31702394222,
-      "height": 41804.02004123664,
+      "x": -651.0138867124915,
+      "y": -38372.64671529633,
+      "width": 104036.09042598661,
+      "height": 46850.83866453879,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "lib/core": {
-      "x": -80.0,
-      "y": 2044.0,
-      "width": 2620.0,
-      "height": 1156.0,
+      "x": -281.75,
+      "y": 3565.992574731275,
+      "width": 2733.75,
+      "height": 1741.345759680668,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "lib/core/errors": {
-      "x": 1820.0,
-      "y": 2172.0,
+      "x": 1732.0,
+      "y": 4739.338334411943,
       "width": 680.0,
       "height": 528.0,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "lib/core/files": {
-      "x": -40.0,
-      "y": 2632.0,
-      "width": 1220.0,
-      "height": 528.0,
+      "x": -241.75,
+      "y": 3693.992574731275,
+      "width": 1278.435546868015,
+      "height": 1186.5589334469382,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "lib/core/geometry": {
-      "x": 1200.0,
-      "y": 2632.0,
+      "x": 1111.6666666629415,
+      "y": 4424.415660083352,
       "width": 680.0,
       "height": 528.0,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "lib/data": {
-      "x": -80.0,
-      "y": 2504.0,
-      "width": 2620.0,
-      "height": 1156.0,
+      "x": -230.0,
+      "y": 4595.388819634951,
+      "width": 2770.0,
+      "height": 1276.1455701655796,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "lib/data/datasources": {
       "x": 1820.0,
-      "y": 2632.0,
+      "y": 4941.8467390818205,
       "width": 680.0,
       "height": 528.0,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "lib/data/models": {
-      "x": -40.0,
-      "y": 3092.0,
-      "width": 1220.0,
-      "height": 528.0,
+      "x": -190.0,
+      "y": 4723.388819634951,
+      "width": 1288.8865797589535,
+      "height": 731.1778728484933,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "lib/data/repositories": {
       "x": 1200.0,
-      "y": 3092.0,
+      "y": 5299.518082235542,
       "width": 1220.0,
-      "height": 528.0,
+      "height": 532.016307564988,
       "color": "#E0F2FE",
       "collapsed": true
     },
+    "lib/debug": {
+      "x": 79154.849634571,
+      "y": -12205.886983694872,
+      "width": 680.0,
+      "height": 528.0,
+      "color": "#EDE9FE",
+      "collapsed": true
+    },
     "lib/domain": {
-      "x": -80.0,
-      "y": -35216.02004123664,
-      "width": 34061.34719567398,
-      "height": 40716.02004123664,
+      "x": -611.0138867124915,
+      "y": -38244.64671529633,
+      "width": 87504.89441448681,
+      "height": 45619.98322194822,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "lib/domain/entities": {
-      "x": -40.0,
-      "y": 3552.0,
-      "width": 2460.0,
-      "height": 988.0,
+      "x": -128.0,
+      "y": 5099.547445505672,
+      "width": 2548.0,
+      "height": 1472.1089434206306,
+      "color": "#DCFCE7",
+      "collapsed": true
+    },
+    "lib/domain/geometry": {
+      "x": 86173.88052777432,
+      "y": -31282.640780706075,
+      "width": 680.0,
+      "height": 528.0,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "lib/domain/repositories": {
-      "x": -40.0,
-      "y": 4472.0,
-      "width": 1220.0,
-      "height": 528.0,
+      "x": -43.0,
+      "y": 5863.6267584410325,
+      "width": 1223.0,
+      "height": 684.5138989305515,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "lib/domain/usecases": {
-      "x": -40.0,
-      "y": -35088.02004123664,
-      "width": 33981.34719567398,
-      "height": 40548.02004123664,
+      "x": -571.0138867124915,
+      "y": -38116.64671529633,
+      "width": 86095.5198263284,
+      "height": 45451.98322194822,
       "color": "#FCE7F3",
       "collapsed": true
     },
+    "lib/lsp": {
+      "x": 100349.321254272,
+      "y": -16348.719428326942,
+      "width": 2995.7552850021166,
+      "height": 2863.688698105696,
+      "color": "#EDE9FE",
+      "collapsed": true
+    },
     "lib/presentation": {
-      "x": -80.0,
+      "x": -356.0,
       "y": -25603.426981236422,
-      "width": 37464.31702394222,
-      "height": 32023.426981236422,
+      "width": 71972.93142427126,
+      "height": 34041.61893047888,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "lib/presentation/app": {
-      "x": 580.0,
-      "y": 5392.0,
-      "width": 680.0,
+      "x": 651.1666666666669,
+      "y": 6997.320707288645,
+      "width": 680.0000000000001,
       "height": 528.0,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "lib/presentation/canvas": {
-      "x": -40.0,
-      "y": 5392.0,
-      "width": 2460.0,
-      "height": 988.0,
+      "x": -316.0,
+      "y": 7083.571506645372,
+      "width": 2658.5,
+      "height": 1107.2356813950437,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "lib/presentation/editor": {
-      "x": 580.0,
+      "x": 516.9861067583164,
       "y": -25475.426981236422,
-      "width": 36764.31702394222,
-      "height": 31855.426981236422,
+      "width": 36827.3309171839,
+      "height": 33745.14949361191,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "lib/presentation/project": {
       "x": 1820.0,
-      "y": 5852.0,
+      "y": 7870.191949242456,
       "width": 680.0,
-      "height": 528.0,
+      "height": 528.0000000000009,
       "color": "#FEF3C7",
       "collapsed": true
     },
+    "lib/presentation/settings": {
+      "x": 70186.72175370646,
+      "y": -13381.970478271618,
+      "width": 1390.2096705648,
+      "height": 1212.3416490252566,
+      "color": "#EDE9FE",
+      "collapsed": true
+    },
+    "lib/presentation/theme": {
+      "x": 63132.99168659997,
+      "y": -12925.742712254778,
+      "width": 680.0,
+      "height": 528.0,
+      "color": "#E0F2FE",
+      "collapsed": true
+    },
     "linux": {
-      "x": -80.0,
-      "y": 6184.0,
-      "width": 2540.0,
-      "height": 1156.0,
+      "x": -659.2251892089844,
+      "y": 7456.415128989496,
+      "width": 3119.2251892089844,
+      "height": 1885.8567544901598,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "linux/flutter": {
       "x": 580.0,
-      "y": 6312.0,
+      "y": 7903.995648695633,
       "width": 1840.0,
-      "height": 528.0,
+      "height": 856.2202142692495,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "linux/runner": {
-      "x": -40.0,
-      "y": 6772.0,
-      "width": 2460.0,
-      "height": 528.0,
+      "x": -619.2251892089844,
+      "y": 8605.227819826097,
+      "width": 3039.2251892089844,
+      "height": 697.0440636535586,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "macos": {
-      "x": -80.0,
-      "y": 6848.0,
-      "width": 2540.0,
-      "height": 1412.0,
+      "x": -488.8388671875,
+      "y": 7712.415128989497,
+      "width": 2944.3102697203967,
+      "height": 2517.107834178337,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "macos/Flutter": {
-      "x": -40.0,
-      "y": 7232.0,
+      "x": 257.8872962674659,
+      "y": 9220.685765856724,
       "width": 680.0,
       "height": 528.0,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "macos/Runner": {
-      "x": 580.0,
-      "y": 6976.0,
-      "width": 1840.0,
-      "height": 864.0,
+      "x": 1192.3474431546447,
+      "y": 8989.227819826097,
+      "width": 1223.123959378252,
+      "height": 1200.2951433417365,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "macos/Runner/Assets.xcassets": {
-      "x": 1160.0,
-      "y": 7104.0,
+      "x": 1615.4714025328967,
+      "y": 9453.522963167834,
       "width": 760.0,
       "height": 696.0,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "macos/Runner/Assets.xcassets/AppIcon.appiconset": {
-      "x": 1200.0,
-      "y": 7232.0,
+      "x": 1655.4714025328967,
+      "y": 9581.522963167834,
       "width": 680.0,
       "height": 528.0,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "macos/RunnerTests": {
-      "x": -40.0,
-      "y": 7692.0,
+      "x": -448.8388671875,
+      "y": 7840.415128989497,
       "width": 680.0,
-      "height": 528.0,
+      "height": 528.0000000000009,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "test": {
-      "x": -40732.79710020932,
-      "y": 7436.0,
-      "width": 43312.79710020932,
-      "height": 33554.54534887868,
+      "x": -75513.4984504902,
+      "y": 8973.993618940034,
+      "width": 79176.76174585435,
+      "height": 35772.799069155386,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "test/core": {
-      "x": 1160.0,
-      "y": 7564.0,
-      "width": 760.0,
+      "x": 1751.153273673923,
+      "y": 9826.751288608266,
+      "width": 759.9999999999998,
       "height": 696.0,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "test/core/geometry": {
-      "x": 1200.0,
-      "y": 7692.0,
-      "width": 680.0,
+      "x": 1791.153273673923,
+      "y": 9954.751288608266,
+      "width": 679.9999999999998,
       "height": 528.0,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "test/data": {
-      "x": -80.0,
-      "y": 7564.0,
-      "width": 2540.0,
-      "height": 1156.0,
+      "x": -224.0,
+      "y": 9101.993618940034,
+      "width": 3223.263295364165,
+      "height": 1877.4483957627053,
       "color": "#FCE7F3",
       "collapsed": true
     },
     "test/data/models": {
-      "x": -40.0,
-      "y": 7692.0,
-      "width": 2460.0,
-      "height": 988.0,
+      "x": -184.0,
+      "y": 9229.993618940034,
+      "width": 3143.263295364165,
+      "height": 1709.4483957627053,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "test/data/repositories": {
-      "x": 580.0,
-      "y": 8152.0,
-      "width": 680.0,
+      "x": 409.4245898334826,
+      "y": 9538.80740284802,
+      "width": 679.9999999999999,
       "height": 528.0,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "test/domain": {
-      "x": -40692.79710020932,
-      "y": 8024.0,
-      "width": 42532.79710020932,
-      "height": 32926.54534887868,
+      "x": -75473.4984504902,
+      "y": 9703.42219265817,
+      "width": 77165.58154351235,
+      "height": 35003.37049543725,
       "color": "#DBEAFE",
       "collapsed": true
     },
@@ -1199,59 +2335,91 @@
       "color": "#DCFCE7",
       "collapsed": true
     },
+    "test/domain/geometry": {
+      "x": -75433.4984504902,
+      "y": 44138.79268809542,
+      "width": 680.0,
+      "height": 528.0,
+      "color": "#E0F2FE",
+      "collapsed": true
+    },
     "test/domain/usecases": {
-      "x": -40652.79710020932,
-      "y": 8152.0,
-      "width": 42452.79710020932,
-      "height": 32758.54534887868,
+      "x": -39862.5874296445,
+      "y": 9831.42219265817,
+      "width": 41514.67052266665,
+      "height": 31079.12315622051,
       "color": "#DCFCE7",
       "collapsed": true
     },
     "test/presentation": {
-      "x": 1780.0,
-      "y": 8024.0,
+      "x": 2863.263295364165,
+      "y": 9444.894504284985,
       "width": 760.0,
       "height": 696.0,
       "color": "#FEF3C7",
       "collapsed": true
     },
     "test/presentation/canvas": {
-      "x": 1820.0,
-      "y": 8152.0,
+      "x": 2903.263295364165,
+      "y": 9572.894504284985,
       "width": 680.0,
       "height": 528.0,
       "color": "#FCE7F3",
       "collapsed": true
     },
-    "web": {
-      "x": 580.0,
-      "y": 8612.0,
-      "width": 1220.0,
+    "tooling": {
+      "x": -86203.15958483412,
+      "y": -16903.41678678323,
+      "width": 3401.711135100748,
+      "height": 3137.0709847602393,
+      "color": "#FCE7F3",
+      "collapsed": true
+    },
+    "tooling/monaco_lsp": {
+      "x": -86163.15958483412,
+      "y": -16775.41678678323,
+      "width": 3321.711135100748,
+      "height": 2969.0709847602393,
+      "color": "#EDE9FE",
+      "collapsed": true
+    },
+    "tooling/monaco_lsp/src": {
+      "x": -84802.30401728375,
+      "y": -16647.41678678323,
+      "width": 680.0,
       "height": 528.0,
+      "color": "#E0F2FE",
+      "collapsed": true
+    },
+    "web": {
+      "x": 545.3162464398055,
+      "y": 10215.422155541888,
+      "width": 1241.8083123177248,
+      "height": 667.1756063615467,
       "color": "#EDE9FE",
       "collapsed": true
     },
     "windows": {
       "x": -80.0,
-      "y": 8612.0,
+      "y": 10316.17280063712,
       "width": 2540.0,
-      "height": 1948.0,
+      "height": 1815.268579967178,
       "color": "#E0F2FE",
       "collapsed": true
     },
     "windows/flutter": {
       "x": -40.0,
-      "y": 9072.0,
+      "y": 10599.422125514184,
       "width": 1840.0,
-      "height": 528.0,
+      "height": 724.0194664562605,
       "color": "#DBEAFE",
       "collapsed": true
     },
     "windows/runner": {
       "x": -40.0,
-      "y": 9072.0,
+      "y": 10687.40995825484,
       "width": 2460.0,
-      "height": 1448.0,
+      "height": 1404.031422349457,
       "color": "#DCFCE7",
       "collapsed": true
     }

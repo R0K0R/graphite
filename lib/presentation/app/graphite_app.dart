@@ -83,13 +83,33 @@ class _GraphiteHomePageState extends ConsumerState<GraphiteHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      body: Stack(
-        children: <Widget>[
-          const CanvasWidget(),
-          _CanvasHud(rootController: _rootController),
-          _FileTreeSidebar(
-            isOpen: _isSidebarOpen,
-            onToggle: () => setState(() => _isSidebarOpen = !_isSidebarOpen),
+      body: Column(
+        children: [
+          const _TopMenuBar(),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  width: _isSidebarOpen ? 280 : 0,
+                  child: _FileTreeSidebar(
+                    isOpen: _isSidebarOpen,
+                    rootController: _rootController,
+                    onToggle: () =>
+                        setState(() => _isSidebarOpen = !_isSidebarOpen),
+                  ),
+                ),
+                _SidebarToggleButton(
+                  isOpen: _isSidebarOpen,
+                  onTap: () => setState(() => _isSidebarOpen = !_isSidebarOpen),
+                ),
+                const Expanded(
+                  child: CanvasWidget(),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -97,8 +117,168 @@ class _GraphiteHomePageState extends ConsumerState<GraphiteHomePage> {
   }
 }
 
-class _CanvasHud extends ConsumerWidget {
-  const _CanvasHud({required this.rootController});
+class _TopMenuBar extends StatelessWidget {
+  const _TopMenuBar();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: colorScheme.outlineVariant, width: 1),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          const Text(
+            'Graphite',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+          ),
+          const Spacer(),
+          IconButton(
+            tooltip: 'Settings',
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => showGraphiteSettingsSheet(context),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FileTreeSidebar extends ConsumerStatefulWidget {
+  const _FileTreeSidebar({
+    required this.isOpen,
+    required this.onToggle,
+    required this.rootController,
+  });
+
+  final bool isOpen;
+  final VoidCallback onToggle;
+  final TextEditingController rootController;
+
+  @override
+  ConsumerState<_FileTreeSidebar> createState() => _FileTreeSidebarState();
+}
+
+class _FileTreeSidebarState extends ConsumerState<_FileTreeSidebar> {
+  final Set<String> _manuallyToggledFolders = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final projectState = ref.watch(projectControllerProvider);
+    final canvasState = ref.watch(canvasControllerProvider);
+    final project = projectState.project;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    if (project == null) {
+      return Container(
+        height: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            right: BorderSide(color: colorScheme.outlineVariant, width: 1),
+          ),
+        ),
+        child: widget.isOpen
+            ? _ProjectControls(rootController: widget.rootController)
+            : null,
+      );
+    }
+
+    // Determine active path based on selection AND visibility
+    final activePathSet = <String>{};
+
+    // 1. Selection
+    final selectedNodeId = canvasState.selectedNodeId;
+    if (selectedNodeId != null) {
+      _addPathWithAncestors(activePathSet, selectedNodeId);
+    }
+
+    // 2. Visibility
+    final viewportSize = MediaQuery.of(context).size;
+    final viewportWorldRect = CanvasTransform.screenRectToWorld(
+      canvasState.transform,
+      Offset.zero & viewportSize,
+    );
+
+    for (final node in project.nodes) {
+      if (node.visualBounds.overlaps(viewportWorldRect)) {
+        _addPathWithAncestors(activePathSet, node.id);
+      }
+    }
+
+    for (final folder in project.folderRegions) {
+      if (folder.bounds.overlaps(viewportWorldRect)) {
+        _addPathWithAncestors(activePathSet, folder.relativePath);
+      }
+    }
+
+    return Container(
+      height: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          right: BorderSide(color: colorScheme.outlineVariant, width: 1),
+        ),
+      ),
+      child: widget.isOpen
+          ? Listener(
+              onPointerSignal: (event) {
+                if (event is PointerScrollEvent) {
+                  GestureBinding.instance.pointerSignalResolver.register(
+                    event,
+                    (event) {},
+                  );
+                }
+              },
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _ProjectControls(rootController: widget.rootController),
+                    Divider(height: 1, color: colorScheme.outlineVariant),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: _FileTreeList(
+                        project: project,
+                        activePathSet: activePathSet,
+                        manuallyToggledFolders: _manuallyToggledFolders,
+                        onToggleFolder: (path) {
+                          setState(() {
+                            if (_manuallyToggledFolders.contains(path)) {
+                              _manuallyToggledFolders.remove(path);
+                            } else {
+                              _manuallyToggledFolders.add(path);
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : null,
+    );
+  }
+
+  void _addPathWithAncestors(Set<String> set, String path) {
+    set.add(path);
+    final parts = path.split('/');
+    for (int i = 1; i < parts.length; i++) {
+      set.add(parts.sublist(0, i).join('/'));
+    }
+  }
+}
+
+class _ProjectControls extends ConsumerWidget {
+  const _ProjectControls({required this.rootController});
 
   final TextEditingController rootController;
 
@@ -107,126 +287,93 @@ class _CanvasHud extends ConsumerWidget {
     final projectState = ref.watch(projectControllerProvider);
     final project = projectState.project;
     final controller = ref.read(projectControllerProvider.notifier);
+    final colorScheme = Theme.of(context).colorScheme;
 
-    final ColorScheme cs = Theme.of(context).colorScheme;
-
-    return Positioned(
-      left: 24,
-      top: 24,
-      child: SizedBox(
-        width: 420,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: const <BoxShadow>[
-              BoxShadow(
-                color: Color(0x1f000000),
-                blurRadius: 16,
-                offset: Offset(0, 8),
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const Text(
+            'Project Management',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(
+                child: TextField(
+                  controller: rootController,
+                  style: const TextStyle(fontSize: 13),
+                  decoration: const InputDecoration(
+                    labelText: 'Project root',
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton.outlined(
+                onPressed: () async {
+                  final String? picked =
+                      await FilePicker.platform.getDirectoryPath();
+                  if (picked != null) {
+                    rootController.text = picked;
+                  }
+                },
+                icon: const Icon(Icons.folder_open_outlined, size: 20),
               ),
             ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    const Expanded(
-                      child: Text(
-                        'Graphite',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Settings',
-                      visualDensity: VisualDensity.compact,
-                      icon: const Icon(Icons.settings_outlined),
-                      onPressed: () => showGraphiteSettingsSheet(context),
-                    ),
-                  ],
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: <Widget>[
+              FilledButton(
+                onPressed: projectState.isLoading
+                    ? null
+                    : () => controller.openProject(rootController.text),
+                child: Text(
+                  projectState.isLoading ? 'Opening...' : 'Open',
                 ),
-                const SizedBox(height: 4),
-                const Text('Drag nodes, pan the canvas, scroll to zoom.'),
-                const SizedBox(height: 12),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Expanded(
-                      child: TextField(
-                        controller: rootController,
-                        decoration: const InputDecoration(
-                          labelText: 'Project root',
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: () async {
-                        final String? picked =
-                            await FilePicker.platform.getDirectoryPath();
-                        if (picked != null) {
-                          rootController.text = picked;
-                        }
-                      },
-                      child: const Text('Browse'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: <Widget>[
-                    FilledButton(
-                      onPressed: projectState.isLoading
-                          ? null
-                          : () => controller.openProject(rootController.text),
-                      child: Text(
-                        projectState.isLoading ? 'Opening...' : 'Open',
-                      ),
-                    ),
-                    OutlinedButton(
-                      onPressed: project == null ? null : controller.syncNow,
-                      child: const Text('Sync files'),
-                    ),
-                    OutlinedButton(
-                      onPressed: project == null
-                          ? null
-                          : () => _showCreateFileDialog(context, ref),
-                      child: const Text('New file node'),
-                    ),
-                  ],
-                ),
-                if (project != null) ...<Widget>[
-                  const SizedBox(height: 10),
-                  Text(
-                    '${project.files.length} files, '
-                    '${project.folderRegions.length} folder regions',
-                    style: TextStyle(color: Theme.of(context).colorScheme.secondary),
-                  ),
-                ],
-                if (projectState.error != null) ...<Widget>[
-                  const SizedBox(height: 10),
-                  Text(
-                    projectState.error!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                ],
-              ],
-            ),
+              ),
+              OutlinedButton(
+                onPressed: project == null ? null : controller.syncNow,
+                child: const Text('Sync'),
+              ),
+              OutlinedButton(
+                onPressed: project == null
+                    ? null
+                    : () => _showCreateFileDialog(context, ref),
+                child: const Text('New'),
+              ),
+            ],
           ),
-        ),
+          if (project != null) ...<Widget>[
+            const SizedBox(height: 12),
+            Text(
+              '${project.files.length} files, '
+              '${project.folderRegions.length} regions',
+              style: TextStyle(
+                color: colorScheme.secondary,
+                fontSize: 12,
+              ),
+            ),
+          ],
+          if (projectState.error != null) ...<Widget>[
+            const SizedBox(height: 12),
+            Text(
+              projectState.error!,
+              style: TextStyle(
+                color: colorScheme.error,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -320,121 +467,6 @@ class _CanvasHud extends ConsumerWidget {
   }
 }
 
-class _FileTreeSidebar extends ConsumerStatefulWidget {
-  const _FileTreeSidebar({required this.isOpen, required this.onToggle});
-
-  final bool isOpen;
-  final VoidCallback onToggle;
-
-  @override
-  ConsumerState<_FileTreeSidebar> createState() => _FileTreeSidebarState();
-}
-
-class _FileTreeSidebarState extends ConsumerState<_FileTreeSidebar> {
-  final Set<String> _manuallyToggledFolders = {};
-
-  @override
-  Widget build(BuildContext context) {
-    final projectState = ref.watch(projectControllerProvider);
-    final canvasState = ref.watch(canvasControllerProvider);
-    final project = projectState.project;
-    if (project == null) return const SizedBox.shrink();
-
-    // Determine active path based on selection AND visibility
-    final activePathSet = <String>{};
-
-    // 1. Selection
-    final selectedNodeId = canvasState.selectedNodeId;
-    if (selectedNodeId != null) {
-      _addPathWithAncestors(activePathSet, selectedNodeId);
-    }
-
-    // 2. Visibility
-    final viewportSize = MediaQuery.of(context).size;
-    final viewportWorldRect = CanvasTransform.screenRectToWorld(
-      canvasState.transform,
-      Offset.zero & viewportSize,
-    );
-
-    for (final node in project.nodes) {
-      if (node.visualBounds.overlaps(viewportWorldRect)) {
-        _addPathWithAncestors(activePathSet, node.id);
-      }
-    }
-
-    for (final folder in project.folderRegions) {
-      if (folder.visualBounds.overlaps(viewportWorldRect)) {
-        _addPathWithAncestors(activePathSet, folder.relativePath);
-      }
-    }
-
-    return AnimatedPositioned(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      left: widget.isOpen ? 24 : -250,
-      top: 260, // Positioned below the HUD
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 280,
-            height: 400,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x1f000000),
-                  blurRadius: 16,
-                  offset: Offset(0, 8),
-                ),
-              ],
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Listener(
-              onPointerSignal: (event) {
-                if (event is PointerScrollEvent) {
-                  GestureBinding.instance.pointerSignalResolver.register(
-                    event,
-                    (event) {},
-                  );
-                }
-              },
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: _FileTreeList(
-                  project: project,
-                  activePathSet: activePathSet,
-                  manuallyToggledFolders: _manuallyToggledFolders,
-                  onToggleFolder: (path) {
-                    setState(() {
-                      if (_manuallyToggledFolders.contains(path)) {
-                        _manuallyToggledFolders.remove(path);
-                      } else {
-                        _manuallyToggledFolders.add(path);
-                      }
-                    });
-                  },
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          _SidebarToggleButton(isOpen: widget.isOpen, onTap: widget.onToggle),
-        ],
-      ),
-    );
-  }
-
-  void _addPathWithAncestors(Set<String> set, String path) {
-    set.add(path);
-    final parts = path.split('/');
-    for (int i = 1; i < parts.length; i++) {
-      set.add(parts.sublist(0, i).join('/'));
-    }
-  }
-}
-
 class _SidebarToggleButton extends StatelessWidget {
   const _SidebarToggleButton({required this.isOpen, required this.onTap});
 
@@ -443,19 +475,32 @@ class _SidebarToggleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      elevation: 4,
-      shape: const CircleBorder(),
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: Icon(
-            isOpen ? Icons.chevron_left : Icons.chevron_right,
-            color: const Color(0xff2563eb),
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 40,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          right: BorderSide(color: colorScheme.outlineVariant, width: 1),
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Material(
+        color: Colors.white,
+        elevation: 2,
+        shape: const CircleBorder(),
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: 32,
+            height: 32,
+            child: Icon(
+              isOpen ? Icons.chevron_left : Icons.chevron_right,
+              size: 20,
+              color: colorScheme.primary,
+            ),
           ),
         ),
       ),
