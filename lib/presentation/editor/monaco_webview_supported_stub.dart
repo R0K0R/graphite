@@ -1,1 +1,0 @@
-bool get isMonacoWebViewSupported => false;
