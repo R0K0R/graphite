@@ -1,0 +1,245 @@
+:root {
+  --bg: #0d1117;
+  --surface: #161b27;
+  --surface2: #1e2535;
+  --surface3: #263045;
+  --border: #2a3347;
+  --text: #cbd5e1;
+  --muted: #4a5568;
+  --accent: #3b82f6;
+  --mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+  --ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ui);
+  font-size: 13px;
+  overflow: hidden;
+  height: 100vh;
+}
+
+.canvas-app {
+  height: 100vh;
+  width: 100vw;
+}
+
+.canvas-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+.chap-node {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  min-width: 170px;
+  max-width: 220px;
+  font-family: var(--ui);
+  transition: box-shadow 0.15s;
+  position: relative;
+}
+
+.chap-node.status-running {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.25), 0 0 12px rgba(59, 130, 246, 0.12);
+}
+
+.chap-node.status-done {
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.chap-node--error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.3) !important;
+}
+
+.chap-node--selected {
+  box-shadow: 0 0 0 2px var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+.chap-labels {
+  display: flex;
+  justify-content: space-around;
+  padding: 2px 6px 3px;
+}
+
+.chap-labels--top {
+  padding-top: 6px;
+}
+
+.chap-labels--bottom {
+  padding-bottom: 6px;
+}
+
+.chap-label {
+  font-size: 9px;
+  font-family: var(--mono);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 68px;
+  opacity: 0.9;
+}
+
+.chap-rule {
+  height: 1px;
+  background: var(--border);
+  margin: 0 8px;
+}
+
+.chap-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px 4px;
+}
+
+.chap-name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chap-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.chap-status-dot--pulse {
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.chap-body {
+  padding: 3px 10px 7px;
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+}
+
+.chap-meta {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.chap-badge {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--surface3);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-weight: 600;
+}
+
+.chap-badge--gpu {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+}
+
+.chap-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.chap-progress-track {
+  flex: 1;
+  height: 3px;
+  background: var(--surface3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.chap-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.18s ease-out;
+}
+
+.chap-progress-label {
+  font-size: 9px;
+  font-family: var(--mono);
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.chap-status-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.react-flow__attribution {
+  display: none;
+}
+
+.react-flow__handle {
+  cursor: crosshair;
+}
+
+.react-flow__background {
+  background: var(--bg);
+}
+
+.react-flow__controls {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.react-flow__controls-button {
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.react-flow__controls-button:hover {
+  background: var(--surface3);
+}
+
+.react-flow__controls-button svg {
+  fill: var(--muted);
+}
+
+.react-flow__minimap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.react-flow__minimap-mask {
+  fill: rgba(13, 17, 23, 0.7);
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+.react-flow__connection-path {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+}
