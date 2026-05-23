@@ -1,6 +1,6 @@
 .PHONY: install build electron dev
 
-NPM ?= npm
+NPM      ?= npm
 ELECTRON ?= $(shell command -v electron 2>/dev/null || echo npx electron)
 
 install:
@@ -10,7 +10,7 @@ build:
 	$(NPM) run build
 
 electron: build
-	$(ELECTRON) .
+	ELECTRON_EXEC="$(ELECTRON)" $(NPM) run electron
 
 dev:
-	$(NPM) run dev
+	ELECTRON_EXEC="$(ELECTRON)" $(NPM) run dev
