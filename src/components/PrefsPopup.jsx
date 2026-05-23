@@ -24,6 +24,8 @@ export default function PrefsPopup({
   regionAlpha, onAlpha,
   hoverScale,  onHoverScale,
   dimScale,    onDimScale,
+  hoverDelay,  onHoverDelay,
+  focusZoom,   onFocusZoom,
 }) {
   if (!open) return null;
 
@@ -96,6 +98,20 @@ export default function PrefsPopup({
           min={0.4} max={1.0} step={0.05}
           onChange={onDimScale}
           fmt={v => `${Math.round(v * 100)}%`}
+        />
+        <Slider
+          label="Hover delay"
+          value={hoverDelay}
+          min={0} max={800} step={50}
+          onChange={v => onHoverDelay(Math.round(v))}
+          fmt={v => `${v}ms`}
+        />
+        <Slider
+          label="Focus zoom (Alt+F)"
+          value={focusZoom}
+          min={50} max={150} step={5}
+          onChange={onFocusZoom}
+          fmt={v => `${v}%`}
         />
 
       </div>

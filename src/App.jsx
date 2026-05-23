@@ -238,16 +238,25 @@ function FlowCanvas() {
   const [showPrefs, setShowPrefs]     = useState(false);
   const [hoveredNodeId, setHoveredNodeId] = useState(null);
   const [focusedNodeId, setFocusedNodeId] = useState(null);
+  const [hoverDelay, setHoverDelay]       = useState(() => parseInt(localStorage.getItem('hoverDelay')  ?? '200', 10));
+  const [focusZoom,   setFocusZoom]       = useState(() => parseFloat(localStorage.getItem('focusZoom') ?? '100'));
 
   const nodesRef        = useRef(nodes);
   const metaTimer       = useRef(null);
+  const hoverTimer      = useRef(null);
   const hoveredNodeRef  = useRef(null);
   const focusedNodeRef  = useRef(null);
+  const focusZoomRef    = useRef(focusZoom);
   const regionBoundsRef = useRef(new Map());
-  const { fitView, getViewport } = useReactFlow();
+  const { fitView, getViewport, setViewport } = useReactFlow();
+  const fitViewRef       = useRef(fitView);
+  const setViewportRef   = useRef(setViewport);
 
-  useEffect(() => { hoveredNodeRef.current = hoveredNodeId; }, [hoveredNodeId]);
-  useEffect(() => { focusedNodeRef.current = focusedNodeId; }, [focusedNodeId]);
+  useEffect(() => { hoveredNodeRef.current  = hoveredNodeId; },  [hoveredNodeId]);
+  useEffect(() => { focusedNodeRef.current  = focusedNodeId; },  [focusedNodeId]);
+  useEffect(() => { focusZoomRef.current    = focusZoom; },      [focusZoom]);
+  useEffect(() => { fitViewRef.current      = fitView; },        [fitView]);
+  useEffect(() => { setViewportRef.current  = setViewport; },    [setViewport]);
 
   useEffect(() => {
     document.body.dataset.theme = theme;
@@ -257,13 +266,15 @@ function FlowCanvas() {
   useEffect(() => { localStorage.setItem('regionAlpha', regionAlpha); }, [regionAlpha]);
   useEffect(() => { localStorage.setItem('hoverScale',  hoverScale);  }, [hoverScale]);
   useEffect(() => { localStorage.setItem('dimScale',    dimScale);    }, [dimScale]);
+  useEffect(() => { localStorage.setItem('hoverDelay',  hoverDelay);  }, [hoverDelay]);
+  useEffect(() => { localStorage.setItem('focusZoom',   focusZoom);   }, [focusZoom]);
 
   useEffect(() => {
     document.body.style.setProperty('--hover-scale', hoverScale);
     document.body.style.setProperty('--dim-scale',   dimScale);
   }, [hoverScale, dimScale]);
 
-  // Alt+F: toggle focus on hovered node (capture phase so Monaco doesn't swallow it)
+  // Alt+F: zoom viewport to hovered node at focusZoom level; toggle returns to overview
   useEffect(() => {
     function onKeyDown(e) {
       if (!e.altKey || e.key.toLowerCase() !== 'f') return;
@@ -272,17 +283,65 @@ function FlowCanvas() {
       const fid = focusedNodeRef.current;
       const hid = hoveredNodeRef.current;
       if (fid) {
+        setNodes(nds => nds.map(n => {
+          if (n.id !== fid) return n;
+          const { _savedStyle, expanded: _, ...cleanData } = n.data;
+          return { ...n, style: _savedStyle ?? undefined, data: cleanData };
+        }));
         setFocusedNodeId(null);
-        requestAnimationFrame(() => fitView({ padding: 0.3, duration: 350 }));
+        focusedNodeRef.current = null;
+        setTimeout(() => fitViewRef.current({ padding: 0.3, duration: 350 }), 80);
       } else if (hid) {
+        const node = nodesRef.current.find(n => n.id === hid);
+        if (!node) return;
+        setHoveredNodeId(null);
+        hoveredNodeRef.current = null;
         setFocusedNodeId(hid);
-        const isRegion = nodesRef.current.find(n => n.id === hid)?.type === 'region';
-        requestAnimationFrame(() =>
-          fitView({ nodes: [{ id: hid }], padding: isRegion ? 0.05 : 0.08, duration: 350 })
-        );
+        focusedNodeRef.current = hid;
+
+        const canvas = document.querySelector('.ide-canvas');
+        const { width: cw, height: ch } = canvas?.getBoundingClientRect() ?? { width: 1200, height: 800 };
+        const targetZoom = focusZoomRef.current / 100; // 100% → zoom 1.0
+        const fill = 0.9;
+
+        const isRegion = node.type === 'region';
+        if (!isRegion) {
+          // Expand node to fill the screen at targetZoom
+          const nodeW = Math.round(cw * fill / targetZoom);
+          const nodeH = Math.round(ch * fill / targetZoom);
+          setNodes(nds => nds.map(n => {
+            if (n.id !== hid) return n;
+            return {
+              ...n,
+              style: { ...n.style, width: nodeW, height: nodeH },
+              data: { ...n.data, expanded: true, _savedStyle: n.style ?? null },
+            };
+          }));
+          // Pan to center after node has committed its new size
+          setTimeout(() => {
+            const fresh = nodesRef.current.find(n => n.id === hid);
+            if (!fresh) return;
+            const cx = fresh.position.x + nodeW / 2;
+            const cy = fresh.position.y + nodeH / 2;
+            setViewportRef.current(
+              { x: cw / 2 - cx * targetZoom, y: ch / 2 - cy * targetZoom, zoom: targetZoom },
+              { duration: 350 },
+            );
+          }, 80);
+        } else {
+          // Regions: just zoom-fit at targetZoom
+          const b = regionBoundsRef.current.get(hid);
+          if (!b) return;
+          const cx = b.position.x + b.width / 2;
+          const cy = b.position.y + b.height / 2;
+          setViewportRef.current(
+            { x: cw / 2 - cx * targetZoom, y: ch / 2 - cy * targetZoom, zoom: targetZoom },
+            { duration: 350 },
+          );
+        }
       }
     }
-    window.addEventListener('keydown', onKeyDown, true); // capture phase
+    window.addEventListener('keydown', onKeyDown, true);
     return () => window.removeEventListener('keydown', onKeyDown, true);
   }, []);
 
@@ -378,9 +437,9 @@ function FlowCanvas() {
   }, [setNodes]);
 
   const focusNode = useCallback((nodeId) => {
-    setActiveFileId(nodeId);
+    const isRegion = nodesRef.current.find(n => n.id === nodeId)?.type === 'region';
     requestAnimationFrame(() => {
-      fitView({ nodes: [{ id: nodeId }], duration: 400, padding: 0.4 });
+      fitView({ nodes: [{ id: nodeId }], duration: 350, padding: isRegion ? 0.05 : 0.15 });
     });
   }, [fitView]);
 
@@ -496,28 +555,37 @@ function FlowCanvas() {
       }
     }
 
-    // Ancestors: walk up childParentMap; add each if fully visible on screen.
-    // Grandparent is always larger than parent, so stop as soon as one is off-screen.
-    const { x: vpX, y: vpY, zoom } = getViewport();
-    const cw = window.innerWidth  - 220; // sidebar
-    const ch = window.innerHeight - 62;  // titlebar + statusbar
-    let cur = childParentMap.get(activeId);
-    while (cur) {
-      const b = regionBounds.get(cur);
-      if (!b) break;
-      const l = b.position.x * zoom + vpX;
-      const t = b.position.y * zoom + vpY;
-      const r = (b.position.x + b.width)  * zoom + vpX;
-      const bo = (b.position.y + b.height) * zoom + vpY;
-      if (l < 0 || t < 0 || r > cw || bo > ch) break;
-      magnifiedIds.add(cur);
-      cur = childParentMap.get(cur);
+  }
+
+  // Spread magnified leaf positions outward during hover only (CSS-scale causes visual overlap)
+  // Skip spread when a node is expanded (physically large, no CSS scale applied)
+  const magnifiedLeaves = (!focusedNodeId && hoveredNodeId)
+    ? visibleNodes.filter(n => magnifiedIds.has(n.id) && n.type !== 'region')
+    : [];
+  const scaledPositions = new Map();
+  if (magnifiedLeaves.length > 0 && activeId) {
+    const cx = magnifiedLeaves.reduce((s, n) => s + n.position.x + T_FW / 2, 0) / magnifiedLeaves.length;
+    const cy = magnifiedLeaves.reduce((s, n) => s + n.position.y + T_FH / 2, 0) / magnifiedLeaves.length;
+    for (const n of magnifiedLeaves) {
+      scaledPositions.set(n.id, {
+        x: cx + (n.position.x + T_FW / 2 - cx) * hoverScale - T_FW / 2,
+        y: cy + (n.position.y + T_FH / 2 - cy) * hoverScale - T_FH / 2,
+      });
     }
   }
 
+  // Re-derive region bounds from scaled leaf positions so parent regions expand too
+  const scaledRegionBounds = scaledPositions.size > 0
+    ? computeAllRegionBounds(nodes.map(n => { const sp = scaledPositions.get(n.id); return sp ? { ...n, position: sp } : n; }))
+    : regionBounds;
+
   const nodesWithCallbacks = visibleNodes.map(node => {
-    const bounds = regionBounds.get(node.id);
     const isMagnified = magnifiedIds.has(node.id);
+
+    const effectiveBounds = isMagnified
+      ? (scaledRegionBounds.get(node.id) ?? regionBounds.get(node.id))
+      : regionBounds.get(node.id);
+    const scaledPos = (isMagnified && node.type !== 'region') ? scaledPositions.get(node.id) : null;
 
     let nodeClass = '';
     if (isMagnified) {
@@ -526,13 +594,14 @@ function FlowCanvas() {
 
     return {
       ...node,
-      ...(bounds ? {
-        position: bounds.position,
-        style: { ...node.style, width: bounds.width, height: bounds.height },
+      ...(scaledPos ? { position: scaledPos } : {}),
+      ...(effectiveBounds ? {
+        position: effectiveBounds.position,
+        style: { ...node.style, width: effectiveBounds.width, height: effectiveBounds.height },
       } : {}),
       draggable: node.type !== 'region',
       className: nodeClass,
-      zIndex: isMagnified ? 100 : node.type === 'region' ? 0 : 2,
+      zIndex: node.type === 'region' ? 0 : (isMagnified ? 200 : 10),
       data: {
         ...node.data,
         ...(node.type === 'chaperonin' ? { onChangeParam } : {}),
@@ -543,7 +612,7 @@ function FlowCanvas() {
   });
 
   return (
-    <PrefsContext.Provider value={{ theme, regionAlpha, hoverScale, dimScale }}>
+    <PrefsContext.Provider value={{ theme, regionAlpha, hoverScale, dimScale, hoverDelay, focusZoom }}>
     <div className="ide-shell">
       {/* Title bar */}
       <div className="ide-titlebar">
@@ -571,25 +640,28 @@ function FlowCanvas() {
           deleteKeyCode={['Delete', 'Backspace']}
           proOptions={{ hideAttribution: true }}
           onNodeMouseEnter={(_, node) => {
-            if (node.type === 'region') {
-              const b = regionBoundsRef.current.get(node.id);
-              if (!b) return;
-              const { x: vpX, y: vpY, zoom } = getViewport();
-              const canvas = document.querySelector('.ide-canvas');
-              if (!canvas) return;
-              const { width: cw, height: ch } = canvas.getBoundingClientRect();
-              const left   = b.position.x * zoom + vpX;
-              const top    = b.position.y * zoom + vpY;
-              const right  = (b.position.x + b.width)  * zoom + vpX;
-              const bottom = (b.position.y + b.height) * zoom + vpY;
-              if (left >= 0 && top >= 0 && right <= cw && bottom <= ch) {
+            clearTimeout(hoverTimer.current);
+            hoverTimer.current = setTimeout(() => {
+              if (node.type === 'region') {
+                const b = regionBoundsRef.current.get(node.id);
+                if (!b) return;
+                const { x: vpX, y: vpY, zoom } = getViewport();
+                const canvas = document.querySelector('.ide-canvas');
+                if (!canvas) return;
+                const { width: cw, height: ch } = canvas.getBoundingClientRect();
+                const left   = b.position.x * zoom + vpX;
+                const top    = b.position.y * zoom + vpY;
+                const right  = (b.position.x + b.width)  * zoom + vpX;
+                const bottom = (b.position.y + b.height) * zoom + vpY;
+                if (left >= 0 && top >= 0 && right <= cw && bottom <= ch) {
+                  setHoveredNodeId(node.id);
+                }
+              } else {
                 setHoveredNodeId(node.id);
               }
-            } else {
-              setHoveredNodeId(node.id);
-            }
+            }, hoverDelay);
           }}
-          onNodeMouseLeave={() => setHoveredNodeId(null)}
+          onNodeMouseLeave={() => { clearTimeout(hoverTimer.current); setHoveredNodeId(null); }}
         >
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1a2235" />
           <Controls />
@@ -614,6 +686,8 @@ function FlowCanvas() {
         regionAlpha={regionAlpha} onAlpha={setRegionAlpha}
         hoverScale={hoverScale}   onHoverScale={setHoverScale}
         dimScale={dimScale}       onDimScale={setDimScale}
+        hoverDelay={hoverDelay}   onHoverDelay={setHoverDelay}
+        focusZoom={focusZoom}     onFocusZoom={setFocusZoom}
       />
     </div>
     </PrefsContext.Provider>

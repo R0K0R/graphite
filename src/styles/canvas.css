@@ -371,6 +371,21 @@ body {
   position: relative;
 }
 
+.file-node--expanded {
+  min-width: unset;
+  max-width: unset;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.file-node--expanded .file-code-container {
+  flex: 1;
+  min-height: 0;
+  height: auto !important;
+}
+
 .file-node--selected {
   box-shadow: 0 0 0 2px var(--accent) !important;
   border-color: var(--accent) !important;
@@ -470,10 +485,9 @@ body {
   outline-offset: 2px;
 }
 
-/* focused: fitView handles apparent size; no additional CSS scale */
 .react-flow__node.node-state-focused > * {
-  outline: 1.5px solid var(--accent);
-  outline-offset: 2px;
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 /* Overflow must be visible so scaled-up content isn't clipped by the RF wrapper */

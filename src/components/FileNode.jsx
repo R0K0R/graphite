@@ -30,7 +30,7 @@ function basename(filePath) {
 }
 
 export default function FileNode({ id, data, selected }) {
-  const { filePath, content, externalChange, _diskContent, onContentChange, onFilePicked } = data;
+  const { filePath, content, externalChange, _diskContent, onContentChange, onFilePicked, expanded } = data;
   const writeTimer = useRef(null);
   const { theme } = usePrefs();
   const monacoTheme = theme === 'light' ? 'vs' : 'vs-dark';
@@ -62,7 +62,7 @@ export default function FileNode({ id, data, selected }) {
 
   return (
     <div
-      className={`file-node${selected ? ' file-node--selected' : ''}`}
+      className={`file-node${selected ? ' file-node--selected' : ''}${expanded ? ' file-node--expanded' : ''}`}
       style={{ borderLeftColor: langColor }}
     >
       <div className="file-node-header">
@@ -92,9 +92,9 @@ export default function FileNode({ id, data, selected }) {
       )}
 
       {filePath ? (
-        <div className="file-code-container nodrag nowheel" style={{ height: 300 }}>
+        <div className="file-code-container nodrag nowheel" style={expanded ? undefined : { height: 300 }}>
           <Editor
-            height="300px"
+            height={expanded ? '100%' : '300px'}
             language={lang}
             theme={monacoTheme}
             value={content}

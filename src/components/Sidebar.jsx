@@ -32,10 +32,9 @@ function TreeItem({ entry, depth, onFocusNode, openDirs, toggleDir }) {
       <div
         className="sidebar-item sidebar-dir"
         style={{ paddingLeft: 12 + depth * 14 }}
-        onClick={() => toggleDir(entry.path)}
       >
-        <span className="sidebar-arrow">{isOpen ? '▾' : '▸'}</span>
-        <span className="sidebar-name">{entry.name}</span>
+        <span className="sidebar-arrow" onClick={() => toggleDir(entry.path)}>{isOpen ? '▾' : '▸'}</span>
+        <span className="sidebar-name" onClick={() => onFocusNode(`dir:${entry.path}`)}>{entry.name}</span>
       </div>
       {isOpen && (entry.children ?? []).map(child => (
         <TreeItem
