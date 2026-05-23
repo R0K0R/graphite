@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { usePrefs } from '../ThemeContext.js';
+import * as lspClient from '../lsp/LspClient.js';
+import { registerProviders, applyDiagnostics } from '../lsp/monacoProviders.js';
 
 const EXT_LANG = {
   py: 'python', js: 'javascript', jsx: 'javascript',
@@ -30,8 +32,13 @@ function basename(filePath) {
 }
 
 export default function FileNode({ id, data, selected }) {
-  const { filePath, content, externalChange, _diskContent, onContentChange, onFilePicked, expanded } = data;
-  const writeTimer = useRef(null);
+  const { filePath, content, externalChange, _diskContent, onContentChange, onFilePicked, expanded, rootPath, onEditorFocus, onEditorBlur } = data;
+  const writeTimer    = useRef(null);
+  const lspChangeTimer = useRef(null);
+  const editorRef     = useRef(null);
+  const monacoRef     = useRef(null);
+  const lspUriRef     = useRef(null);
+  const unsubDiagRef  = useRef(null);
   const { theme } = usePrefs();
   const monacoTheme = theme === 'light' ? 'vs' : 'vs-dark';
 
@@ -47,6 +54,52 @@ export default function FileNode({ id, data, selected }) {
     return () => { window.electronAPI.unwatchFile(filePath); };
   }, [filePath]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Clean up LSP document on unmount
+  useEffect(() => {
+    return () => {
+      clearTimeout(lspChangeTimer.current);
+      if (lspUriRef.current) {
+        lspClient.closeDocument(lspUriRef.current);
+        unsubDiagRef.current?.();
+        const model = editorRef.current?.getModel();
+        if (model) monacoRef.current?.editor.setModelMarkers(model, 'lsp', []);
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleEditorMount(editor, monaco) {
+    editorRef.current = editor;
+    monacoRef.current = monaco;
+    if (!filePath) return;
+
+    registerProviders(monaco, lang);
+
+    const workspaceRoot = rootPath ?? filePath.slice(0, filePath.lastIndexOf('/'));
+    const key = await lspClient.startServer(workspaceRoot, lang);
+    if (!key) return;
+
+    const uri = 'file://' + filePath;
+    lspUriRef.current = uri;
+
+    // Open with current model content (may be '' if readFile hasn't returned yet —
+    // onDidChangeModelContent below will sync the real content when it arrives).
+    lspClient.openDocument(key, uri, lang, editor.getValue());
+
+    // Single source of truth for LSP content sync: Monaco's own model-change event.
+    // This fires for both user edits and prop-driven value updates (file read/reload).
+    editor.onDidChangeModelContent(() => {
+      clearTimeout(lspChangeTimer.current);
+      lspChangeTimer.current = setTimeout(() => {
+        if (lspUriRef.current) lspClient.changeDocument(lspUriRef.current, editor.getValue());
+      }, 200);
+    });
+
+    unsubDiagRef.current = lspClient.onDiagnostics(uri, diags => {
+      const model = editor.getModel();
+      if (model) applyDiagnostics(monaco, model, diags);
+    });
+  }
+
   function handleChange(val) {
     if (!filePath) return;
     onContentChange?.(id, val ?? '');
@@ -54,6 +107,7 @@ export default function FileNode({ id, data, selected }) {
     writeTimer.current = setTimeout(() => {
       window.electronAPI?.writeFile(filePath, val ?? '');
     }, 500);
+    // LSP sync is handled by editor.onDidChangeModelContent in handleEditorMount
   }
 
   function handleReloadFromDisk() {
@@ -92,12 +146,14 @@ export default function FileNode({ id, data, selected }) {
       )}
 
       {filePath ? (
-        <div className="file-code-container nodrag nowheel" style={expanded ? undefined : { height: 300 }}>
+        <div className="file-code-container nodrag nowheel" style={expanded ? undefined : { height: 300 }} onFocus={() => onEditorFocus?.(id)} onBlur={onEditorBlur}>
           <Editor
             height={expanded ? '100%' : '300px'}
+            path={'file://' + filePath}
             language={lang}
             theme={monacoTheme}
             value={content}
+            onMount={handleEditorMount}
             onChange={handleChange}
             options={{
               fontSize: 11,

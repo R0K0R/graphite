@@ -17,7 +17,7 @@ import StatusBar from './components/StatusBar.jsx';
 import PrefsPopup from './components/PrefsPopup.jsx';
 import { CATEGORIES } from './data/modules.js';
 import { computeAllRegionBounds } from './utils/regionBounds.js';
-import { useLiveRef, centerViewport, isRectFullyVisible } from './utils/viewport.js';
+import { useLiveRef, centerViewport } from './utils/viewport.js';
 import { buildNodesFromTree } from './utils/treeLayout.js';
 import { mkScriptNode, mkRegion, mkFileNode } from './utils/nodeFactories.js';
 import { usePrefsState } from './hooks/usePrefsState.js';
@@ -36,6 +36,9 @@ export default function FlowCanvas() {
   const [showPrefs, setShowPrefs]           = useState(false);
   const [hoveredNodeId, setHoveredNodeId]   = useState(null);
   const [focusedNodeId, setFocusedNodeId]   = useState(null);
+  const [draggingNodeId, setDraggingNodeId] = useState(null);
+  const [editMode, setEditMode]             = useState(false);
+  const [accessStack, setAccessStack]       = useState([]); // nodeIds, most recently accessed last → highest z-index
 
   const {
     theme, setTheme,
@@ -49,6 +52,7 @@ export default function FlowCanvas() {
   const nodesRef        = useRef(nodes);
   const metaTimer       = useRef(null);
   const hoverTimer      = useRef(null);
+  const editBlurTimer   = useRef(null);
   const regionBoundsRef = useRef(new Map());
   const { fitView, getViewport, setViewport } = useReactFlow();
 
@@ -57,6 +61,15 @@ export default function FlowCanvas() {
   const focusZoomRef   = useLiveRef(focusZoom);
   const fitViewRef     = useLiveRef(fitView);
   const setViewportRef = useLiveRef(setViewport);
+  const editModeRef    = useLiveRef(editMode);
+
+  const markAccessed = useCallback((nodeId) => {
+    if (!nodeId) return;
+    setAccessStack(prev =>
+      prev[prev.length - 1] === nodeId ? prev : [...prev.filter(id => id !== nodeId), nodeId]
+    );
+  }, []);
+  const markAccessedRef = useLiveRef(markAccessed);
 
   // Alt+F: expand node to fill viewport; toggle restores
   useEffect(() => {
@@ -79,6 +92,7 @@ export default function FlowCanvas() {
         if (!node) return;
         setHoveredNodeId(null);
         setFocusedNodeId(hid);
+        markAccessedRef.current(hid);
 
         const canvas = document.querySelector('.ide-canvas');
         const { width: cw, height: ch } = canvas?.getBoundingClientRect() ?? { width: 1200, height: 800 };
@@ -99,6 +113,11 @@ export default function FlowCanvas() {
             const fresh = nodesRef.current.find(n => n.id === hid);
             if (!fresh) return;
             centerViewport(setViewportRef.current, fresh.position.x + nodeW / 2, fresh.position.y + nodeH / 2, targetZoom, cw, ch);
+            // Focus the Monaco editor after the viewport animation settles
+            setTimeout(() => {
+              const ta = document.querySelector(`[data-id="${hid}"] .monaco-editor textarea`);
+              if (ta) { ta.focus(); setEditMode(true); }
+            }, 380);
           }, 80);
         } else {
           const b = regionBoundsRef.current.get(hid);
@@ -109,6 +128,18 @@ export default function FlowCanvas() {
     }
     window.addEventListener('keydown', onKeyDown, true);
     return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, []);
+
+  // ESC exits edit mode
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (e.key === 'Escape' && editModeRef.current) {
+        document.activeElement?.blur();
+        setEditMode(false);
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
   useEffect(() => { nodesRef.current = nodes; }, [nodes]);
@@ -202,6 +233,17 @@ export default function FlowCanvas() {
       ));
     });
   }, [setNodes]);
+
+  const onEditorFocus = useCallback((nodeId) => {
+    clearTimeout(editBlurTimer.current);
+    setEditMode(true);
+    markAccessed(nodeId);
+  }, [markAccessed]);
+
+  const onEditorBlur = useCallback(() => {
+    // Debounce so clicking between two Monaco editors doesn't flash out of edit mode
+    editBlurTimer.current = setTimeout(() => setEditMode(false), 100);
+  }, []);
 
   const focusNode = useCallback((nodeId) => {
     const isRegion = nodesRef.current.find(n => n.id === nodeId)?.type === 'region';
@@ -298,7 +340,9 @@ export default function FlowCanvas() {
   const regionBounds = computeAllRegionBounds(nodes);
   regionBoundsRef.current = regionBounds;
 
-  const activeId = focusedNodeId ?? hoveredNodeId;
+  // Dragging and hover both trigger magnification; only hover spreads positions.
+  const hoverActiveId = hoveredNodeId ?? draggingNodeId;
+  const activeId = focusedNodeId ?? hoverActiveId;
   const magnifiedIds = new Set();
   if (activeId) {
     magnifiedIds.add(activeId);
@@ -313,7 +357,7 @@ export default function FlowCanvas() {
   }
 
   const scaledPositions = new Map();
-  if (!focusedNodeId && hoveredNodeId && magnifiedIds.size > 0) {
+  if (!focusedNodeId && hoveredNodeId && !draggingNodeId && magnifiedIds.size > 0) {
     const leaves = visibleNodes.filter(n => magnifiedIds.has(n.id) && n.type !== 'region');
     if (leaves.length > 0) {
       const cx = leaves.reduce((s, n) => s + n.position.x + T_FW / 2, 0) / leaves.length;
@@ -351,12 +395,12 @@ export default function FlowCanvas() {
       style,
       draggable: !isRegion,
       className: isMagnified ? (focusedNodeId ? 'node-state-focused' : 'node-state-hovered') : '',
-      zIndex: isRegion ? 0 : (isMagnified ? 200 : 10),
+      zIndex: isRegion ? 0 : 10 + (accessStack.indexOf(node.id) + 1),
       data: {
         ...node.data,
         ...(node.type === 'chaperonin' ? { onChangeParam } : {}),
         ...(isRegion                   ? { onToggleCollapse: toggleRegionCollapse, onLinkDir } : {}),
-        ...(node.type === 'file'       ? { onContentChange, onFilePicked } : {}),
+        ...(node.type === 'file'       ? { onContentChange, onFilePicked, rootPath, onEditorFocus, onEditorBlur } : {}),
       },
     };
   });
@@ -384,24 +428,24 @@ export default function FlowCanvas() {
           nodeTypes={NODE_TYPES}
           fitView
           fitViewOptions={{ padding: 0.3 }}
-          deleteKeyCode={['Delete', 'Backspace']}
+          deleteKeyCode={editMode ? null : ['Delete', 'Backspace']}
+          panActivationKeyCode={editMode ? null : ' '}
+          panOnDrag={!focusedNodeId}
+          panOnScroll={!focusedNodeId}
+          zoomOnScroll={!focusedNodeId}
+          zoomOnPinch={!focusedNodeId}
+          zoomOnDoubleClick={!focusedNodeId}
           proOptions={{ hideAttribution: true }}
           onNodeMouseEnter={(_, node) => {
+            if (node.type === 'region') return;
             clearTimeout(hoverTimer.current);
             hoverTimer.current = setTimeout(() => {
-              if (node.type === 'region') {
-                const b = regionBoundsRef.current.get(node.id);
-                if (!b) return;
-                const { x: vpX, y: vpY, zoom } = getViewport();
-                const canvas = document.querySelector('.ide-canvas');
-                if (!canvas) return;
-                const { width: cw, height: ch } = canvas.getBoundingClientRect();
-                if (isRectFullyVisible(b, vpX, vpY, zoom, cw, ch)) setHoveredNodeId(node.id);
-              } else {
-                setHoveredNodeId(node.id);
-              }
+              setHoveredNodeId(node.id);
+              markAccessed(node.id);
             }, hoverDelay);
           }}
+          onNodeDragStart={(_, node) => { setDraggingNodeId(node.id); markAccessed(node.id); }}
+          onNodeDragStop={() => setDraggingNodeId(null)}
           onNodeMouseLeave={() => { clearTimeout(hoverTimer.current); setHoveredNodeId(null); }}
         >
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1a2235" />

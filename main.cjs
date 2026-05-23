@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
+const { spawn, execFileSync } = require('child_process');
 
 const distIndex = path.join(__dirname, 'dist', 'index.html');
 
@@ -146,6 +147,86 @@ ipcMain.handle('dir:write-metadata', (_e, dirPath, metadata) =>
   )
 );
 
+// --- IPC: LSP server management ---
+
+// Each language lists candidate binaries in preference order; first one found in PATH wins.
+const LSP_SERVERS = {
+  python:     [['basedpyright-langserver', ['--stdio']], ['pyright-langserver', ['--stdio']]],
+  typescript: [['typescript-language-server', ['--stdio']]],
+  javascript: [['typescript-language-server', ['--stdio']]],
+  rust:       [['rust-analyzer', []]],
+  go:         [['gopls', []]],
+};
+
+function findServer(languageId) {
+  for (const [cmd, args] of (LSP_SERVERS[languageId] ?? [])) {
+    try { execFileSync('which', [cmd], { stdio: 'ignore' }); return [cmd, args]; } catch (_) {}
+  }
+  return null;
+}
+
+// key (`rootPath|languageId`) → { proc }
+const lspProcesses = new Map();
+
+function writeLsp(proc, msg) {
+  const body = JSON.stringify(msg);
+  proc.stdin.write(`Content-Length: ${Buffer.byteLength(body, 'utf8')}\r\n\r\n${body}`);
+}
+
+ipcMain.handle('lsp:start', (_e, rootPath, languageId) => {
+  const key = `${rootPath}|${languageId}`;
+  if (lspProcesses.has(key)) return { ok: true, key };
+
+  const def = findServer(languageId);
+  if (!def) return { ok: false, key, reason: 'no-server' };
+  const [cmd, args] = def;
+
+  let proc;
+  try {
+    proc = spawn(cmd, args, { cwd: rootPath, stdio: ['pipe', 'pipe', 'pipe'] });
+  } catch (e) {
+    return { ok: false, key, reason: 'spawn-failed', error: e.message };
+  }
+
+  let buf = '';
+  proc.stdout.on('data', chunk => {
+    buf += chunk.toString('utf8');
+    while (true) {
+      const sep = buf.indexOf('\r\n\r\n');
+      if (sep === -1) break;
+      const m = buf.slice(0, sep).match(/Content-Length:\s*(\d+)/i);
+      if (!m) { buf = buf.slice(sep + 4); continue; }
+      const len = parseInt(m[1], 10);
+      if (buf.length < sep + 4 + len) break;
+      const body = buf.slice(sep + 4, sep + 4 + len);
+      buf = buf.slice(sep + 4 + len);
+      try { mainWin?.webContents.send('lsp:message', key, JSON.parse(body)); } catch (_) {}
+    }
+  });
+
+  proc.stderr.on('data', d => {
+    d.toString().split('\n').filter(Boolean).forEach(line => {
+      console.log(`[LSP:${languageId}]`, line);
+      mainWin?.webContents.send('lsp:stderr', languageId, line);
+    });
+  });
+  proc.on('error', err => mainWin?.webContents.send('lsp:error', key, err.message));
+  proc.on('exit', () => { lspProcesses.delete(key); mainWin?.webContents.send('lsp:exit', key); });
+
+  lspProcesses.set(key, { proc });
+  return { ok: true, key };
+});
+
+ipcMain.on('lsp:send', (_e, key, msg) => {
+  const entry = lspProcesses.get(key);
+  if (entry) writeLsp(entry.proc, msg);
+});
+
+ipcMain.handle('lsp:stop', (_e, key) => {
+  const entry = lspProcesses.get(key);
+  if (entry) { entry.proc.kill(); lspProcesses.delete(key); }
+});
+
 // --- App lifecycle ---
 
 app.whenReady().then(() => {
@@ -157,4 +238,8 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('before-quit', () => {
+  for (const { proc } of lspProcesses.values()) proc.kill();
 });
