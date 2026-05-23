@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
+import { usePrefs } from '../ThemeContext.js';
 
 const EXT_LANG = {
   py: 'python', js: 'javascript', jsx: 'javascript',
@@ -31,6 +32,8 @@ function basename(filePath) {
 export default function FileNode({ id, data, selected }) {
   const { filePath, content, externalChange, _diskContent, onContentChange, onFilePicked } = data;
   const writeTimer = useRef(null);
+  const { theme } = usePrefs();
+  const monacoTheme = theme === 'light' ? 'vs' : 'vs-dark';
 
   const lang = filePath ? extLang(filePath) : 'plaintext';
   const langColor = LANG_COLOR[lang] || LANG_COLOR.plaintext;
@@ -93,7 +96,7 @@ export default function FileNode({ id, data, selected }) {
           <Editor
             height="300px"
             language={lang}
-            theme="vs-dark"
+            theme={monacoTheme}
             value={content}
             onChange={handleChange}
             options={{

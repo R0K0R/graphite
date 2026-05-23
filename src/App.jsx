@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { PrefsContext, THEMES } from './ThemeContext.js';
 import ReactFlow, {
   ReactFlowProvider,
   useNodesState,
@@ -13,10 +14,11 @@ import ChaperonNode from './components/ChaperonNode.jsx';
 import RegionNode from './components/RegionNode.jsx';
 import FileNode from './components/FileNode.jsx';
 import Sidebar from './components/Sidebar.jsx';
-import TabBar from './components/TabBar.jsx';
 import StatusBar from './components/StatusBar.jsx';
 import { MODULES, CATEGORIES } from './data/modules.js';
 import { annularBinPack } from './utils/layout.js';
+import { assignColorIndices } from './utils/colors.js';
+import PrefsPopup from './components/PrefsPopup.jsx';
 
 const NODE_TYPES = {
   chaperonin: ChaperonNode,
@@ -96,7 +98,7 @@ function computeAllRegionBounds(nodes) {
 // relative to this subtree's own origin (0, 0).  The caller offsets them
 // after packing its own children.
 
-function layoutSubtree(entry) {
+function layoutSubtree(entry, colorIndices) {
   if (entry.type === 'file') {
     return {
       nodes: [{
@@ -111,6 +113,7 @@ function layoutSubtree(entry) {
   }
 
   const children = entry.children ?? [];
+  const colorIndex = colorIndices.get(entry.path) ?? 0;
 
   if (!children.length) {
     return {
@@ -119,7 +122,7 @@ function layoutSubtree(entry) {
         type: 'region',
         position: { x: 0, y: 0 },
         style: { width: 220, height: 100 },
-        data: { label: entry.name, dirPath: entry.path, children: [] },
+        data: { label: entry.name, dirPath: entry.path, children: [], colorIndex },
         draggable: false,
       }],
       w: 220,
@@ -127,13 +130,11 @@ function layoutSubtree(entry) {
     };
   }
 
-  // Recurse: each child layout has nodes at relative (0,0)
   const childResults = children.map(child => {
     const id = child.type === 'file' ? `file:${child.path}` : `dir:${child.path}`;
-    return { id, child, ...layoutSubtree(child) };
+    return { id, child, ...layoutSubtree(child, colorIndices) };
   });
 
-  // Pack children by their bounding boxes
   const packed = annularBinPack(childResults.map(cr => ({ id: cr.id, w: cr.w, h: cr.h })));
   const posMap = new Map(packed.map(p => [p.id, p]));
 
@@ -143,7 +144,6 @@ function layoutSubtree(entry) {
   for (const cr of childResults) {
     childIds.push(cr.id);
     const pos = posMap.get(cr.id);
-    // Shift into this dir's content area: (T_PAD, T_HDR + T_PAD) + packed offset
     const ox = T_PAD + pos.x;
     const oy = T_HDR + T_PAD + pos.y;
     allChildNodes.push(...cr.nodes.map(n => ({
@@ -152,7 +152,6 @@ function layoutSubtree(entry) {
     })));
   }
 
-  // Bounding box: widest/tallest packed child determines this dir's size
   const maxX = Math.max(...childResults.map(cr => posMap.get(cr.id).x + cr.w));
   const maxY = Math.max(...childResults.map(cr => posMap.get(cr.id).y + cr.h));
   const w = Math.max(maxX + T_PAD * 2, 220);
@@ -165,7 +164,7 @@ function layoutSubtree(entry) {
         type: 'region',
         position: { x: 0, y: 0 },
         style: { width: w, height: h },
-        data: { label: entry.name, dirPath: entry.path, children: childIds },
+        data: { label: entry.name, dirPath: entry.path, children: childIds, colorIndex },
         draggable: false,
       },
       ...allChildNodes,
@@ -176,12 +175,13 @@ function layoutSubtree(entry) {
 }
 
 function buildNodesFromTree(root) {
+  const colorIndices = assignColorIndices(root);
   const children = root.children ?? [];
   if (!children.length) return [];
 
   const childResults = children.map(child => {
     const id = child.type === 'file' ? `file:${child.path}` : `dir:${child.path}`;
-    return { id, ...layoutSubtree(child) };
+    return { id, ...layoutSubtree(child, colorIndices) };
   });
 
   const packed = annularBinPack(childResults.map(cr => ({ id: cr.id, w: cr.w, h: cr.h })));
@@ -231,10 +231,60 @@ function FlowCanvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [fileTree, setFileTree] = useState(null);
   const [rootPath, setRootPath] = useState(null);
-  const [activeFileId, setActiveFileId] = useState(null);
-  const nodesRef = useRef(nodes);
-  const metaTimer = useRef(null);
-  const { fitView } = useReactFlow();
+  const [theme, setTheme]             = useState(() => localStorage.getItem('theme') || 'dark');
+  const [regionAlpha, setRegionAlpha] = useState(() => parseFloat(localStorage.getItem('regionAlpha') ?? '0.05'));
+  const [hoverScale, setHoverScale]   = useState(() => parseFloat(localStorage.getItem('hoverScale')   ?? '1.2'));
+  const [dimScale, setDimScale]       = useState(() => parseFloat(localStorage.getItem('dimScale')     ?? '0.8'));
+  const [showPrefs, setShowPrefs]     = useState(false);
+  const [hoveredNodeId, setHoveredNodeId] = useState(null);
+  const [focusedNodeId, setFocusedNodeId] = useState(null);
+
+  const nodesRef        = useRef(nodes);
+  const metaTimer       = useRef(null);
+  const hoveredNodeRef  = useRef(null);
+  const focusedNodeRef  = useRef(null);
+  const regionBoundsRef = useRef(new Map());
+  const { fitView, getViewport } = useReactFlow();
+
+  useEffect(() => { hoveredNodeRef.current = hoveredNodeId; }, [hoveredNodeId]);
+  useEffect(() => { focusedNodeRef.current = focusedNodeId; }, [focusedNodeId]);
+
+  useEffect(() => {
+    document.body.dataset.theme = theme;
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  useEffect(() => { localStorage.setItem('regionAlpha', regionAlpha); }, [regionAlpha]);
+  useEffect(() => { localStorage.setItem('hoverScale',  hoverScale);  }, [hoverScale]);
+  useEffect(() => { localStorage.setItem('dimScale',    dimScale);    }, [dimScale]);
+
+  useEffect(() => {
+    document.body.style.setProperty('--hover-scale', hoverScale);
+    document.body.style.setProperty('--dim-scale',   dimScale);
+  }, [hoverScale, dimScale]);
+
+  // Alt+F: toggle focus on hovered node (capture phase so Monaco doesn't swallow it)
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (!e.altKey || e.key.toLowerCase() !== 'f') return;
+      e.preventDefault();
+      e.stopPropagation();
+      const fid = focusedNodeRef.current;
+      const hid = hoveredNodeRef.current;
+      if (fid) {
+        setFocusedNodeId(null);
+        requestAnimationFrame(() => fitView({ padding: 0.3, duration: 350 }));
+      } else if (hid) {
+        setFocusedNodeId(hid);
+        const isRegion = nodesRef.current.find(n => n.id === hid)?.type === 'region';
+        requestAnimationFrame(() =>
+          fitView({ nodes: [{ id: hid }], padding: isRegion ? 0.05 : 0.08, duration: 350 })
+        );
+      }
+    }
+    window.addEventListener('keydown', onKeyDown, true); // capture phase
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, []);
 
   useEffect(() => { nodesRef.current = nodes; }, [nodes]);
 
@@ -427,9 +477,53 @@ function FlowCanvas() {
   const visibleNodes = nodes.filter(n => !isHiddenByCollapse(n.id));
 
   const regionBounds = computeAllRegionBounds(nodes);
+  regionBoundsRef.current = regionBounds;
+
+  // Build magnified set: active node + its descendants + fully-visible ancestor regions
+  const activeId = focusedNodeId ?? hoveredNodeId;
+  const magnifiedIds = new Set();
+  if (activeId) {
+    magnifiedIds.add(activeId);
+
+    // Descendants (region children propagate magnification inward)
+    const byId = new Map(nodes.map(n => [n.id, n]));
+    const queue = [activeId];
+    while (queue.length > 0) {
+      const id = queue.shift();
+      for (const cid of byId.get(id)?.data?.children ?? []) {
+        magnifiedIds.add(cid);
+        queue.push(cid);
+      }
+    }
+
+    // Ancestors: walk up childParentMap; add each if fully visible on screen.
+    // Grandparent is always larger than parent, so stop as soon as one is off-screen.
+    const { x: vpX, y: vpY, zoom } = getViewport();
+    const cw = window.innerWidth  - 220; // sidebar
+    const ch = window.innerHeight - 62;  // titlebar + statusbar
+    let cur = childParentMap.get(activeId);
+    while (cur) {
+      const b = regionBounds.get(cur);
+      if (!b) break;
+      const l = b.position.x * zoom + vpX;
+      const t = b.position.y * zoom + vpY;
+      const r = (b.position.x + b.width)  * zoom + vpX;
+      const bo = (b.position.y + b.height) * zoom + vpY;
+      if (l < 0 || t < 0 || r > cw || bo > ch) break;
+      magnifiedIds.add(cur);
+      cur = childParentMap.get(cur);
+    }
+  }
 
   const nodesWithCallbacks = visibleNodes.map(node => {
     const bounds = regionBounds.get(node.id);
+    const isMagnified = magnifiedIds.has(node.id);
+
+    let nodeClass = '';
+    if (isMagnified) {
+      nodeClass = focusedNodeId ? 'node-state-focused' : 'node-state-hovered';
+    }
+
     return {
       ...node,
       ...(bounds ? {
@@ -437,47 +531,34 @@ function FlowCanvas() {
         style: { ...node.style, width: bounds.width, height: bounds.height },
       } : {}),
       draggable: node.type !== 'region',
+      className: nodeClass,
+      zIndex: isMagnified ? 100 : node.type === 'region' ? 0 : 2,
       data: {
         ...node.data,
         ...(node.type === 'chaperonin' ? { onChangeParam } : {}),
-        ...(node.type === 'region' ? { onToggleCollapse: toggleRegionCollapse, onLinkDir } : {}),
-        ...(node.type === 'file' ? { onContentChange, onFilePicked } : {}),
+        ...(node.type === 'region'     ? { onToggleCollapse: toggleRegionCollapse, onLinkDir } : {}),
+        ...(node.type === 'file'       ? { onContentChange, onFilePicked } : {}),
       },
     };
   });
 
-  const openFiles = nodes
-    .filter(n => n.type === 'file' && n.data.filePath)
-    .map(n => ({
-      id: n.id,
-      label: n.data.filePath.slice(n.data.filePath.lastIndexOf('/') + 1),
-      filePath: n.data.filePath,
-    }));
-
   return (
+    <PrefsContext.Provider value={{ theme, regionAlpha, hoverScale, dimScale }}>
     <div className="ide-shell">
       {/* Title bar */}
       <div className="ide-titlebar">
-        <button className="titlebar-btn" onClick={openRootFolder} title="Open Folder">
-          🗂
-        </button>
+        <button className="titlebar-btn" onClick={openRootFolder} title="Open Folder">Open</button>
         <div className="titlebar-sep" />
-        <button className="titlebar-btn" onClick={addFileNode} title="New File Node">📄</button>
-        <button className="titlebar-btn" onClick={addScriptNode} title="New Script Node">⚡</button>
-        <button className="titlebar-btn" onClick={addRegionNode} title="New Region">📁</button>
+        <button className="titlebar-btn" onClick={addFileNode}   title="New File Node">File</button>
+        <button className="titlebar-btn" onClick={addScriptNode} title="New Script Node">Script</button>
+        <button className="titlebar-btn" onClick={addRegionNode} title="New Region">Region</button>
+        <div className="titlebar-sep" />
+        <button className="titlebar-btn titlebar-theme-btn" onClick={() => setShowPrefs(true)} title="Preferences">Prefs</button>
         {rootPath && <span className="titlebar-path">{rootPath}</span>}
       </div>
 
       {/* Sidebar */}
       <Sidebar tree={fileTree} rootPath={rootPath} onFocusNode={focusNode} />
-
-      {/* Tab bar */}
-      <TabBar
-        tabs={openFiles}
-        activeId={activeFileId}
-        onSelect={focusNode}
-        onClose={removeNode}
-      />
 
       {/* Canvas */}
       <div className="ide-canvas">
@@ -489,9 +570,26 @@ function FlowCanvas() {
           fitViewOptions={{ padding: 0.3 }}
           deleteKeyCode={['Delete', 'Backspace']}
           proOptions={{ hideAttribution: true }}
-          onNodeClick={(_, node) => {
-            if (node.type === 'file') setActiveFileId(node.id);
+          onNodeMouseEnter={(_, node) => {
+            if (node.type === 'region') {
+              const b = regionBoundsRef.current.get(node.id);
+              if (!b) return;
+              const { x: vpX, y: vpY, zoom } = getViewport();
+              const canvas = document.querySelector('.ide-canvas');
+              if (!canvas) return;
+              const { width: cw, height: ch } = canvas.getBoundingClientRect();
+              const left   = b.position.x * zoom + vpX;
+              const top    = b.position.y * zoom + vpY;
+              const right  = (b.position.x + b.width)  * zoom + vpX;
+              const bottom = (b.position.y + b.height) * zoom + vpY;
+              if (left >= 0 && top >= 0 && right <= cw && bottom <= ch) {
+                setHoveredNodeId(node.id);
+              }
+            } else {
+              setHoveredNodeId(node.id);
+            }
           }}
+          onNodeMouseLeave={() => setHoveredNodeId(null)}
         >
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1a2235" />
           <Controls />
@@ -508,7 +606,17 @@ function FlowCanvas() {
       </div>
 
       <StatusBar rootPath={rootPath} nodeCount={nodes.length} />
+
+      <PrefsPopup
+        open={showPrefs}
+        onClose={() => setShowPrefs(false)}
+        theme={theme}        onTheme={setTheme}
+        regionAlpha={regionAlpha} onAlpha={setRegionAlpha}
+        hoverScale={hoverScale}   onHoverScale={setHoverScale}
+        dimScale={dimScale}       onDimScale={setDimScale}
+      />
     </div>
+    </PrefsContext.Provider>
   );
 }
 

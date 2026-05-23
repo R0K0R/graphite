@@ -1,8 +1,11 @@
 import Editor from '@monaco-editor/react';
 import { CATEGORIES } from '../data/modules';
+import { usePrefs } from '../ThemeContext.js';
 
 export default function ChaperonNode({ data, selected }) {
   const { module: mod } = data;
+  const { theme } = usePrefs();
+  const monacoTheme = theme === 'light' ? 'vs' : 'vs-dark';
   if (!mod) {
     return (
       <div className="chap-node" style={{ padding: 12, color: '#ef4444', fontSize: 11 }}>
@@ -30,7 +33,7 @@ export default function ChaperonNode({ data, selected }) {
             <Editor
               height="260px"
               language="python"
-              theme="vs-dark"
+              theme={monacoTheme}
               value={data.params[codeParam.id] ?? codeParam.default}
               onChange={(val) => {
                 if (data.onChangeParam) {
