@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "regionId": "dir:/home/r0k0r/graphite/src/data",
+  "dirPath": "/home/r0k0r/graphite/src/data",
+  "position": {
+    "x": 1613,
+    "y": 554
+  },
+  "width": 372,
+  "height": 404,
+  "nodes": [
+    {
+      "id": "file:/home/r0k0r/graphite/src/data/modules.js",
+      "x": 1629,
+      "y": 590
+    }
+  ]
+}

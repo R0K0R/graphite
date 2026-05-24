@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "regionId": "dir:/home/r0k0r/graphite/src/components",
+  "dirPath": "/home/r0k0r/graphite/src/components",
+  "position": {
+    "x": 878,
+    "y": 1003
+  },
+  "width": 1843,
+  "height": 1997,
+  "nodes": [
+    {
+      "id": "dir:/home/r0k0r/graphite/src/components/nodes",
+      "x": 1256,
+      "y": 1433
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/components/ChaperonNode.jsx",
+      "x": 2365,
+      "y": 1836
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/components/FileNode.jsx",
+      "x": 894,
+      "y": 1836
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/components/PrefsPopup.jsx",
+      "x": 1667,
+      "y": 2632
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/components/RegionNode.jsx",
+      "x": 1592,
+      "y": 1039
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/components/SessionPanel.jsx",
+      "x": 2364,
+      "y": 2205
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/components/Sidebar.jsx",
+      "x": 895,
+      "y": 2205
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/components/StatusBar.jsx",
+      "x": 2364,
+      "y": 1467
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/components/TabBar.jsx",
+      "x": 895,
+      "y": 1467
+    }
+  ]
+}

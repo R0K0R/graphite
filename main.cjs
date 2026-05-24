@@ -85,12 +85,26 @@ ipcMain.handle('file:unwatch', (_e, filePath) => {
   }
 });
 
+ipcMain.handle('file:read-binary', (_e, filePath) =>
+  fs.promises.readFile(filePath).then(buf => buf.toString('base64'))
+);
+
 // --- IPC: directory tree scanner ---
 
 const IGNORED = new Set([
   '.git', '.svn', '.hg', 'node_modules', '__pycache__', '.cache',
   'dist', 'build', '.next', '.nuxt', 'target', 'venv', '.venv',
   '.mypy_cache', '.pytest_cache', '.tox', 'coverage', '.graphite.json',
+]);
+
+const SKIP_EXTS = new Set([
+  'zip', 'tar', 'gz', 'bz2', 'xz', '7z', 'rar',
+  'exe', 'dll', 'so', 'dylib', 'bin',
+  'mp4', 'mkv', 'avi', 'mov', 'webm', 'mp3', 'wav', 'ogg', 'flac',
+  'pyc', 'pyo', 'class', 'o', 'a',
+  'woff', 'woff2', 'ttf', 'eot',
+  'db', 'sqlite', 'sqlite3',
+  'lock',
 ]);
 const MAX_DEPTH = 4;
 
@@ -110,7 +124,8 @@ async function readTree(dirPath, depth = 0) {
       const sub = await readTree(fullPath, depth + 1);
       if (sub) children.push(sub);
     } else if (entry.isFile()) {
-      children.push({ name: entry.name, path: fullPath, type: 'file' });
+      const ext = entry.name.slice(entry.name.lastIndexOf('.') + 1).toLowerCase();
+      if (!SKIP_EXTS.has(ext)) children.push({ name: entry.name, path: fullPath, type: 'file' });
     }
   }
   children.sort((a, b) => {

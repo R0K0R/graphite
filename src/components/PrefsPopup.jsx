@@ -37,13 +37,15 @@ export default function PrefsPopup({
       <div className="prefs-panel" onClick={e => e.stopPropagation()}>
 
         <div className="prefs-header">
-          <span className="prefs-title">Preferences</span>
-          <button className="prefs-close" onClick={onClose}>x</button>
+          <span className="prefs-title">preferences</span>
+          <button className="prefs-close" onClick={onClose}>×</button>
         </div>
+
+        <div className="prefs-body">
 
         {/* Theme */}
         <div className="prefs-section">
-          <div className="prefs-section-label">Color theme</div>
+          <div className="prefs-section-label">color theme</div>
           <div className="prefs-themes">
             {THEMES.map(t => (
               <button
@@ -65,7 +67,7 @@ export default function PrefsPopup({
         {/* Region fill opacity */}
         <div className="prefs-section">
           <div className="prefs-row">
-            <span className="prefs-section-label" style={{ marginBottom: 0 }}>Region fill opacity</span>
+            <span className="prefs-section-label" style={{ marginBottom: 0 }}>region fill opacity</span>
             <span className="prefs-value">{Math.round(regionAlpha * 100)}%</span>
           </div>
           <input
@@ -78,42 +80,18 @@ export default function PrefsPopup({
             className="prefs-alpha-preview"
             style={{ background: previewColor + previewAlphaHex, borderColor: previewColor + 'a0' }}
           >
-            <span style={{ color: previewColor, fontSize: 10, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase' }}>
-              sample directory
+            <span style={{ color: previewColor, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              sample region
             </span>
           </div>
         </div>
 
-        {/* Node scale sliders */}
-        <Slider
-          label="Hover scale"
-          value={hoverScale}
-          min={1.0} max={1.6} step={0.05}
-          onChange={onHoverScale}
-          fmt={v => `${Math.round(v * 100)}%`}
-        />
-        <Slider
-          label="Dim scale (others)"
-          value={dimScale}
-          min={0.4} max={1.0} step={0.05}
-          onChange={onDimScale}
-          fmt={v => `${Math.round(v * 100)}%`}
-        />
-        <Slider
-          label="Hover delay"
-          value={hoverDelay}
-          min={0} max={800} step={50}
-          onChange={v => onHoverDelay(Math.round(v))}
-          fmt={v => `${v}ms`}
-        />
-        <Slider
-          label="Focus zoom (Alt+F)"
-          value={focusZoom}
-          min={50} max={150} step={5}
-          onChange={onFocusZoom}
-          fmt={v => `${v}%`}
-        />
+        <Slider label="hover scale"     value={hoverScale} min={1.0} max={1.6} step={0.05} onChange={onHoverScale} fmt={v => `${Math.round(v * 100)}%`} />
+        <Slider label="dim scale"       value={dimScale}   min={0.4} max={1.0} step={0.05} onChange={onDimScale}   fmt={v => `${Math.round(v * 100)}%`} />
+        <Slider label="hover delay"     value={hoverDelay} min={0}   max={800} step={50}   onChange={v => onHoverDelay(Math.round(v))} fmt={v => `${v}ms`} />
+        <Slider label="focus zoom (⌥F)" value={focusZoom}  min={50}  max={150} step={5}    onChange={onFocusZoom}  fmt={v => `${v}%`} />
 
+        </div>{/* prefs-body */}
       </div>
     </div>
   );

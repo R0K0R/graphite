@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "regionId": "dir:/home/r0k0r/graphite/src/crdt",
+  "dirPath": "/home/r0k0r/graphite/src/crdt",
+  "position": {
+    "x": 124,
+    "y": 1691
+  },
+  "width": 728,
+  "height": 772,
+  "nodes": [
+    {
+      "id": "file:/home/r0k0r/graphite/src/crdt/doc.js",
+      "x": 140,
+      "y": 1727
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/crdt/monacoBinding.js",
+      "x": 496,
+      "y": 1727
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/crdt/usePeers.js",
+      "x": 140,
+      "y": 2095
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/crdt/useYNodes.js",
+      "x": 496,
+      "y": 2095
+    }
+  ]
+}

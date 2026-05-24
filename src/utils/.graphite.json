@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "regionId": "dir:/home/r0k0r/graphite/src/utils",
+  "dirPath": "/home/r0k0r/graphite/src/utils",
+  "position": {
+    "x": 2747,
+    "y": 1412
+  },
+  "width": 1087,
+  "height": 1180,
+  "nodes": [
+    {
+      "id": "file:/home/r0k0r/graphite/src/utils/canvasConstants.js",
+      "x": 3120,
+      "y": 1836
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/utils/colors.js",
+      "x": 3478,
+      "y": 1836
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/utils/layout.js",
+      "x": 2763,
+      "y": 1836
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/utils/nodeFactories.js",
+      "x": 3120,
+      "y": 2206
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/utils/regionBounds.js",
+      "x": 3120,
+      "y": 1467
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/utils/treeLayout.js",
+      "x": 3478,
+      "y": 2224
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/utils/viewport.js",
+      "x": 3478,
+      "y": 1448
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "regionId": "dir:/home/r0k0r/graphite/src/styles",
+  "dirPath": "/home/r0k0r/graphite/src/styles",
+  "position": {
+    "x": 2009,
+    "y": 553
+  },
+  "width": 372,
+  "height": 404,
+  "nodes": [
+    {
+      "id": "file:/home/r0k0r/graphite/src/styles/canvas.css",
+      "x": 2025,
+      "y": 589
+    }
+  ]
+}

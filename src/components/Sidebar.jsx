@@ -4,7 +4,7 @@ const EXT_COLOR = {
   py: '#3572A5', js: '#f1e05a', jsx: '#61dafb', ts: '#3178c6', tsx: '#3178c6',
   rs: '#dea584', go: '#00ADD8', css: '#563d7c', html: '#e34c26',
   json: '#cbcb41', md: '#083fa1', sh: '#89e051', toml: '#9c4121',
-  rb: '#701516', java: '#b07219', c: '#555555', cpp: '#f34b7d',
+  rb: '#701516', java: '#b07219', c: '#555555', cpp: '#6f5c62ff',
 };
 
 function fileColor(name) {

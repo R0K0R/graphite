@@ -1,20 +1,23 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { PrefsContext } from './ThemeContext.js';
 import ReactFlow, {
-  useNodesState,
   useReactFlow,
   Background,
   Controls,
   MiniMap,
   BackgroundVariant,
 } from 'reactflow';
+import { useYNodes } from './crdt/useYNodes.js';
+import { initRoom, destroyProviders, getDoc, getYText, getAwareness } from './crdt/doc.js';
 
-import ChaperonNode from './components/ChaperonNode.jsx';
-import RegionNode from './components/RegionNode.jsx';
-import FileNode from './components/FileNode.jsx';
+import ChaperonNode from './components/nodes/ScriptNode.jsx';
+import RegionNode from './components/nodes/RegionNode.jsx';
+import FileNode from './components/nodes/FileNode.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import StatusBar from './components/StatusBar.jsx';
 import PrefsPopup from './components/PrefsPopup.jsx';
+import SessionPanel from './components/SessionPanel.jsx';
+import { usePeers } from './crdt/usePeers.js';
 import { CATEGORIES } from './data/modules.js';
 import { computeAllRegionBounds } from './utils/regionBounds.js';
 import { useLiveRef, centerViewport } from './utils/viewport.js';
@@ -30,10 +33,12 @@ const NODE_TYPES = {
 };
 
 export default function FlowCanvas() {
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [nodes, setNodes, onNodesChange] = useYNodes();
   const [fileTree, setFileTree] = useState(null);
   const [rootPath, setRootPath] = useState(null);
   const [showPrefs, setShowPrefs]           = useState(false);
+  const [showSession, setShowSession]       = useState(false);
+  const peers = usePeers();
   const [hoveredNodeId, setHoveredNodeId]   = useState(null);
   const [focusedNodeId, setFocusedNodeId]   = useState(null);
   const [draggingNodeId, setDraggingNodeId] = useState(null);
@@ -48,6 +53,17 @@ export default function FlowCanvas() {
     hoverDelay, setHoverDelay,
     focusZoom, setFocusZoom,
   } = usePrefsState();
+
+  const [expandedNodeId, setExpandedNodeId] = useState(null);
+  const [expandedDims, setExpandedDims]     = useState(null); // { width, height } — state so resize triggers re-render
+  const expandSavedRef      = useRef(null);  // { style, width, height } saved before expand
+  const expandedNodeIdRef   = useLiveRef(expandedNodeId); // stable ref for callbacks
+  const shrinkingNodeIdRef  = useRef(null);  // blocks stale dimension events after Alt+F shrink
+  const shrinkTimerRef      = useRef(null);
+
+  // Two-phase layout: phase 1 = estimated, phase 2 = measured actual sizes
+  const treeRef           = useRef(null);
+  const layoutPhaseRef    = useRef(0); // 0=idle, 1=measuring, 2=done
 
   const nodesRef        = useRef(nodes);
   const metaTimer       = useRef(null);
@@ -71,64 +87,97 @@ export default function FlowCanvas() {
   }, []);
   const markAccessedRef = useLiveRef(markAccessed);
 
-  // Alt+F: expand node to fill viewport; toggle restores
+  // Alt+F: expand node to fill viewport; toggle restores.
+  // Expand state is purely local (never in Yjs) so Yjs roundtrips can't clobber it.
   useEffect(() => {
+    function calcDims() {
+      const canvas = document.querySelector('.ide-canvas');
+      const { width: cw, height: ch } = canvas?.getBoundingClientRect() ?? { width: window.innerWidth, height: window.innerHeight };
+      const targetZoom = focusZoomRef.current / 100;
+      return {
+        nodeW: Math.round(cw * FOCUS_FILL / targetZoom),
+        nodeH: Math.round(ch * FOCUS_FILL / targetZoom),
+        cw, ch, targetZoom,
+      };
+    }
+
     function onKeyDown(e) {
       if (!e.altKey || e.key.toLowerCase() !== 'f') return;
       e.preventDefault();
       e.stopPropagation();
       const fid = focusedNodeRef.current;
       const hid = hoveredNodeRef.current;
+
       if (fid) {
+        const saved = expandSavedRef.current;
+        shrinkingNodeIdRef.current = fid;
+        clearTimeout(shrinkTimerRef.current);
+        shrinkTimerRef.current = setTimeout(() => { shrinkingNodeIdRef.current = null; }, 600);
+        setExpandedDims(null);
+        expandSavedRef.current = null;
+        setExpandedNodeId(null);
+        setFocusedNodeId(null);
+        setEditMode(false);
         setNodes(nds => nds.map(n => {
           if (n.id !== fid) return n;
-          const { _savedStyle, expanded: _, ...cleanData } = n.data;
-          return { ...n, style: _savedStyle ?? undefined, data: cleanData };
+          if (saved?.width != null) {
+            const next = { ...n, width: saved.width, height: saved.height };
+            if (saved.style) next.style = saved.style; else delete next.style;
+            return next;
+          }
+          const { width: _w, height: _h, style: _s, ...rest } = n;
+          return rest;
         }));
-        setFocusedNodeId(null);
         setTimeout(() => fitViewRef.current({ padding: 0.3, duration: 350 }), 80);
       } else if (hid) {
         const node = nodesRef.current.find(n => n.id === hid);
         if (!node) return;
+        if (node.type === 'region') {
+          const b = regionBoundsRef.current.get(hid);
+          if (!b) return;
+          const { cw, ch, targetZoom } = calcDims();
+          centerViewport(setViewportRef.current, b.position.x + b.width / 2, b.position.y + b.height / 2, targetZoom, cw, ch);
+          return;
+        }
+
         setHoveredNodeId(null);
         setFocusedNodeId(hid);
         markAccessedRef.current(hid);
 
-        const canvas = document.querySelector('.ide-canvas');
-        const { width: cw, height: ch } = canvas?.getBoundingClientRect() ?? { width: 1200, height: 800 };
-        const targetZoom = focusZoomRef.current / 100;
+        // Measure canvas right now — fresh every time Alt+F is pressed
+        const { nodeW, nodeH, cw, ch, targetZoom } = calcDims();
 
-        if (node.type !== 'region') {
-          const nodeW = Math.round(cw * FOCUS_FILL / targetZoom);
-          const nodeH = Math.round(ch * FOCUS_FILL / targetZoom);
-          setNodes(nds => nds.map(n => {
-            if (n.id !== hid) return n;
-            return {
-              ...n,
-              style: { ...n.style, width: nodeW, height: nodeH },
-              data: { ...n.data, expanded: true, _savedStyle: n.style ?? null },
-            };
-          }));
+        // Save original state so shrink can restore it exactly
+        expandSavedRef.current = { style: node.style ?? null, width: node.width, height: node.height };
+        setExpandedDims({ width: nodeW, height: nodeH });
+        setExpandedNodeId(hid);
+
+        const nodePos = node.position;
+        setTimeout(() => {
+          centerViewport(setViewportRef.current, nodePos.x + nodeW / 2, nodePos.y + nodeH / 2, targetZoom, cw, ch);
           setTimeout(() => {
-            const fresh = nodesRef.current.find(n => n.id === hid);
-            if (!fresh) return;
-            centerViewport(setViewportRef.current, fresh.position.x + nodeW / 2, fresh.position.y + nodeH / 2, targetZoom, cw, ch);
-            // Focus the Monaco editor after the viewport animation settles
-            setTimeout(() => {
-              const ta = document.querySelector(`[data-id="${hid}"] .monaco-editor textarea`);
-              if (ta) { ta.focus(); setEditMode(true); }
-            }, 380);
-          }, 80);
-        } else {
-          const b = regionBoundsRef.current.get(hid);
-          if (!b) return;
-          centerViewport(setViewportRef.current, b.position.x + b.width / 2, b.position.y + b.height / 2, targetZoom, cw, ch);
-        }
+            const ta = document.querySelector(`[data-id="${hid}"] .monaco-editor textarea`);
+            if (ta) { ta.focus(); setEditMode(true); }
+          }, 380);
+        }, 80);
       }
     }
     window.addEventListener('keydown', onKeyDown, true);
     return () => window.removeEventListener('keydown', onKeyDown, true);
   }, []);
+
+  // Recalculate expanded dimensions whenever the window is resized while a node is expanded
+  useEffect(() => {
+    if (!expandedNodeId) return;
+    function onResize() {
+      const canvas = document.querySelector('.ide-canvas');
+      const { width: cw, height: ch } = canvas?.getBoundingClientRect() ?? { width: window.innerWidth, height: window.innerHeight };
+      const targetZoom = focusZoomRef.current / 100;
+      setExpandedDims({ width: Math.round(cw * FOCUS_FILL / targetZoom), height: Math.round(ch * FOCUS_FILL / targetZoom) });
+    }
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [expandedNodeId]);
 
   // ESC exits edit mode
   useEffect(() => {
@@ -144,16 +193,26 @@ export default function FlowCanvas() {
 
   useEffect(() => { nodesRef.current = nodes; }, [nodes]);
 
+  useEffect(() => () => destroyProviders(), []);
+
+  // Broadcast which node the local user is viewing via awareness
+  useEffect(() => {
+    const aw = getAwareness();
+    if (!aw) return;
+    aw.setLocalStateField('focusedNode', focusedNodeId ?? hoveredNodeId ?? null);
+  }, [focusedNodeId, hoveredNodeId]);
+
   useEffect(() => {
     if (!window.electronAPI) return;
     return window.electronAPI.onFileChanged(({ filePath, content }) => {
-      setNodes(nds => nds.map(n =>
-        n.type === 'file' && n.data.filePath === filePath
-          ? { ...n, data: { ...n.data, externalChange: true, _diskContent: content } }
-          : n
-      ));
+      // Route external disk changes through Y.Text so all peers see them
+      const yText = getYText(filePath);
+      getDoc().transact(() => {
+        yText.delete(0, yText.length);
+        yText.insert(0, content);
+      });
     });
-  }, [setNodes]);
+  }, []);
 
   const { childParentMap, nodeById } = useMemo(() => {
     const childParentMap = new Map();
@@ -260,6 +319,20 @@ export default function FlowCanvas() {
     setNodes(nds => nds.filter(n => n.id !== nodeId));
   }, [setNodes]);
 
+  // Phase 2: once ReactFlow has measured all file nodes, re-layout with actual sizes
+  useEffect(() => {
+    if (layoutPhaseRef.current !== 1) return;
+    const tree = treeRef.current;
+    if (!tree) return;
+    const fileNodes = nodes.filter(n => n.type === 'file');
+    if (fileNodes.length === 0) return;
+    if (!fileNodes.every(n => n.width != null && n.width > 0)) return;
+
+    layoutPhaseRef.current = 2;
+    const sizeMap = new Map(fileNodes.map(n => [n.id, { w: n.width, h: n.height }]));
+    setNodes(buildNodesFromTree(tree, sizeMap));
+  }, [nodes, setNodes]);
+
   const openRootFolder = useCallback(() => {
     if (!window.electronAPI) return;
     nodesRef.current.forEach(n => {
@@ -268,10 +341,13 @@ export default function FlowCanvas() {
     window.electronAPI.openDirPicker().then(dirPath => {
       if (!dirPath) return;
       setRootPath(dirPath);
+      initRoom(dirPath);
       window.electronAPI.readTree(dirPath).then(tree => {
         if (!tree) return;
         setFileTree(tree);
-        setNodes(buildNodesFromTree(tree));
+        treeRef.current = tree;
+        layoutPhaseRef.current = 1;
+        setNodes(buildNodesFromTree(tree)); // phase 1: estimated sizes
       });
     });
   }, [setNodes]);
@@ -293,7 +369,18 @@ export default function FlowCanvas() {
   }, [setNodes]);
 
   const handleNodesChange = useCallback((changes) => {
-    changes.forEach(c => {
+    // Don't let ReactFlow's measurement of the expanded node overwrite its real
+    // stored dimensions in Yjs — that would make the node stay wide after shrink.
+    const expandedId = expandedNodeIdRef.current;
+    const shrinkingId = shrinkingNodeIdRef.current;
+    const filtered = changes.filter(c =>
+      !(c.type === 'dimensions' && (
+        (expandedId  && c.id === expandedId) ||
+        (shrinkingId && c.id === shrinkingId)
+      ))
+    );
+
+    filtered.forEach(c => {
       if (c.type === 'remove') {
         const node = nodesRef.current.find(n => n.id === c.id);
         if (node?.type === 'file' && node.data.filePath && window.electronAPI) {
@@ -301,7 +388,7 @@ export default function FlowCanvas() {
         }
       }
     });
-    onNodesChange(changes);
+    onNodesChange(filtered);
 
     clearTimeout(metaTimer.current);
     metaTimer.current = setTimeout(() => {
@@ -360,12 +447,14 @@ export default function FlowCanvas() {
   if (!focusedNodeId && hoveredNodeId && !draggingNodeId && magnifiedIds.size > 0) {
     const leaves = visibleNodes.filter(n => magnifiedIds.has(n.id) && n.type !== 'region');
     if (leaves.length > 0) {
-      const cx = leaves.reduce((s, n) => s + n.position.x + T_FW / 2, 0) / leaves.length;
-      const cy = leaves.reduce((s, n) => s + n.position.y + T_FH / 2, 0) / leaves.length;
+      const cx = leaves.reduce((s, n) => s + n.position.x + (n.width ?? T_FW) / 2, 0) / leaves.length;
+      const cy = leaves.reduce((s, n) => s + n.position.y + (n.height ?? T_FH) / 2, 0) / leaves.length;
       for (const n of leaves) {
+        const nw = n.width ?? T_FW;
+        const nh = n.height ?? T_FH;
         scaledPositions.set(n.id, {
-          x: cx + (n.position.x + T_FW / 2 - cx) * hoverScale - T_FW / 2,
-          y: cy + (n.position.y + T_FH / 2 - cy) * hoverScale - T_FH / 2,
+          x: cx + (n.position.x + nw / 2 - cx) * hoverScale - nw / 2,
+          y: cy + (n.position.y + nh / 2 - cy) * hoverScale - nh / 2,
         });
       }
     }
@@ -378,6 +467,7 @@ export default function FlowCanvas() {
   const nodesWithCallbacks = visibleNodes.map(node => {
     const isMagnified = magnifiedIds.has(node.id);
     const isRegion = node.type === 'region';
+    const isExpanded = node.id === expandedNodeId;
 
     const bounds = isRegion
       ? (isMagnified ? activeRegionBounds.get(node.id) : regionBounds.get(node.id)) ?? regionBounds.get(node.id)
@@ -385,9 +475,13 @@ export default function FlowCanvas() {
     const position = isRegion
       ? (bounds?.position ?? node.position)
       : (scaledPositions.get(node.id) ?? node.position);
-    const style = bounds
-      ? { ...node.style, width: bounds.width, height: bounds.height }
-      : node.style;
+
+    // Expand style is local — never stored in Yjs
+    const style = isExpanded
+      ? expandedDims
+      : bounds
+        ? { ...node.style, width: bounds.width, height: bounds.height }
+        : node.style;
 
     return {
       ...node,
@@ -400,7 +494,11 @@ export default function FlowCanvas() {
         ...node.data,
         ...(node.type === 'chaperonin' ? { onChangeParam } : {}),
         ...(isRegion                   ? { onToggleCollapse: toggleRegionCollapse, onLinkDir } : {}),
-        ...(node.type === 'file'       ? { onContentChange, onFilePicked, rootPath, onEditorFocus, onEditorBlur } : {}),
+        ...(node.type === 'file'       ? {
+          onContentChange, onFilePicked, rootPath, onEditorFocus, onEditorBlur,
+          expanded: isExpanded,
+          peerColors: peers.filter(p => !p.isLocal && p.focusedNode === node.id).map(p => p.color),
+        } : {}),
       },
     };
   });
@@ -409,14 +507,54 @@ export default function FlowCanvas() {
     <PrefsContext.Provider value={{ theme, regionAlpha, hoverScale, dimScale, hoverDelay, focusZoom }}>
     <div className="ide-shell">
       <div className="ide-titlebar">
-        <button className="titlebar-btn" onClick={openRootFolder} title="Open Folder">Open</button>
+        {/* Logo */}
+        <div className="titlebar-logo">
+          <div className="titlebar-logo-mark" />
+          <span className="titlebar-logo-name">graphite</span>
+        </div>
+
         <div className="titlebar-sep" />
-        <button className="titlebar-btn" onClick={addFileNode}   title="New File Node">File</button>
-        <button className="titlebar-btn" onClick={addScriptNode} title="New Script Node">Script</button>
-        <button className="titlebar-btn" onClick={addRegionNode} title="New Region">Region</button>
+
+        <button className="titlebar-btn" onClick={openRootFolder}>open</button>
+
         <div className="titlebar-sep" />
-        <button className="titlebar-btn titlebar-theme-btn" onClick={() => setShowPrefs(true)} title="Preferences">Prefs</button>
+
+        <button className="titlebar-btn" onClick={addFileNode}>file</button>
+        <button className="titlebar-btn" onClick={addScriptNode}>script</button>
+        <button className="titlebar-btn" onClick={addRegionNode}>region</button>
+
+        <div className="titlebar-sep" />
+
+        <button className="titlebar-btn" onClick={() => setShowPrefs(true)}>prefs</button>
+
         {rootPath && <span className="titlebar-path">{rootPath}</span>}
+
+        <div className="titlebar-spacer" />
+
+        {/* Peer cluster */}
+        {peers.filter(p => !p.isLocal).length > 0 && (
+          <div className="titlebar-peers">
+            {peers.filter(p => !p.isLocal).slice(0, 4).map(p => (
+              <div
+                key={p.id}
+                className="titlebar-peer-dot"
+                style={{ background: p.color }}
+                title={p.name}
+              >
+                {p.name.slice(0, 2).toUpperCase()}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Session button */}
+        <button
+          className={`titlebar-sync-btn${peers.length > 1 ? ' is-active' : ''}`}
+          onClick={() => setShowSession(s => !s)}
+        >
+          <div className={`sync-dot${peers.length > 1 ? ' is-live' : ''}`} />
+          {peers.length > 1 ? `sync · ${peers.length - 1}` : 'sync'}
+        </button>
       </div>
 
       <Sidebar tree={fileTree} rootPath={rootPath} onFocusNode={focusNode} />
@@ -462,7 +600,13 @@ export default function FlowCanvas() {
         </ReactFlow>
       </div>
 
-      <StatusBar rootPath={rootPath} nodeCount={nodes.length} />
+      <StatusBar rootPath={rootPath} nodeCount={nodes.length} peers={peers} />
+
+      <SessionPanel
+        open={showSession}
+        onClose={() => setShowSession(false)}
+        rootPath={rootPath}
+      />
 
       <PrefsPopup
         open={showPrefs}

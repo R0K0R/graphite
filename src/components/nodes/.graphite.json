@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "regionId": "dir:/home/r0k0r/graphite/src/components/nodes",
+  "dirPath": "/home/r0k0r/graphite/src/components/nodes",
+  "position": {
+    "x": 1256,
+    "y": 1433
+  },
+  "width": 1088,
+  "height": 1178,
+  "nodes": [
+    {
+      "id": "file:/home/r0k0r/graphite/src/components/nodes/CodeNode.jsx",
+      "x": 1988,
+      "y": 1856
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/components/nodes/FileNode.jsx",
+      "x": 1272,
+      "y": 1856
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/components/nodes/ImageNode.jsx",
+      "x": 1630,
+      "y": 2224
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/components/nodes/MarkdownNode.jsx",
+      "x": 1629,
+      "y": 1856
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/components/nodes/Node.jsx",
+      "x": 1630,
+      "y": 1488
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/components/nodes/PdfNode.jsx",
+      "x": 1986,
+      "y": 2243
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/components/nodes/RegionNode.jsx",
+      "x": 1986,
+      "y": 1469
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/components/nodes/ScriptNode.jsx",
+      "x": 1274,
+      "y": 2243
+    }
+  ]
+}

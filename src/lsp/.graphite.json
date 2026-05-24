@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "regionId": "dir:/home/r0k0r/graphite/src/lsp",
+  "dirPath": "/home/r0k0r/graphite/src/lsp",
+  "position": {
+    "x": 1435,
+    "y": 3046
+  },
+  "width": 728,
+  "height": 404,
+  "nodes": [
+    {
+      "id": "file:/home/r0k0r/graphite/src/lsp/LspClient.js",
+      "x": 1451,
+      "y": 3082
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/lsp/monacoProviders.js",
+      "x": 1807,
+      "y": 3082
+    }
+  ]
+}

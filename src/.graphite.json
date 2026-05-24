@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "regionId": "dir:/home/r0k0r/graphite/src",
+  "dirPath": "/home/r0k0r/graphite/src",
+  "position": {
+    "x": 108,
+    "y": 517
+  },
+  "width": 3742,
+  "height": 2949,
+  "nodes": [
+    {
+      "id": "dir:/home/r0k0r/graphite/src/components",
+      "x": 878,
+      "y": 1003
+    },
+    {
+      "id": "dir:/home/r0k0r/graphite/src/crdt",
+      "x": 124,
+      "y": 1691
+    },
+    {
+      "id": "dir:/home/r0k0r/graphite/src/data",
+      "x": 1613,
+      "y": 554
+    },
+    {
+      "id": "dir:/home/r0k0r/graphite/src/hooks",
+      "x": 481,
+      "y": 1213
+    },
+    {
+      "id": "dir:/home/r0k0r/graphite/src/lsp",
+      "x": 1435,
+      "y": 3046
+    },
+    {
+      "id": "dir:/home/r0k0r/graphite/src/styles",
+      "x": 2009,
+      "y": 553
+    },
+    {
+      "id": "dir:/home/r0k0r/graphite/src/utils",
+      "x": 2747,
+      "y": 1412
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/App.jsx",
+      "x": 1202,
+      "y": 610
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/FlowCanvas.jsx",
+      "x": 501,
+      "y": 2483
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/main.jsx",
+      "x": 2213,
+      "y": 3020
+    },
+    {
+      "id": "file:/home/r0k0r/graphite/src/ThemeContext.js",
+      "x": 1075,
+      "y": 3039
+    }
+  ]
+}

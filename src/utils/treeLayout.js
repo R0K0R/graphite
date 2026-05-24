@@ -1,9 +1,15 @@
-import { T_PAD, T_HDR, T_FW, T_FH } from './canvasConstants.js';
+import { T_PAD, T_HDR, fileNodeSize } from './canvasConstants.js';
 import { annularBinPack } from './layout.js';
 import { assignColorIndices } from './colors.js';
 
-export function layoutSubtree(entry, colorIndices) {
+function resolveSize(entry, sizeMap) {
+  const id = `file:${entry.path}`;
+  return sizeMap?.get(id) ?? fileNodeSize(entry.path);
+}
+
+function layoutSubtree(entry, colorIndices, sizeMap) {
   if (entry.type === 'file') {
+    const { w, h } = resolveSize(entry, sizeMap);
     return {
       nodes: [{
         id: `file:${entry.path}`,
@@ -11,8 +17,8 @@ export function layoutSubtree(entry, colorIndices) {
         position: { x: 0, y: 0 },
         data: { filePath: entry.path, content: '', externalChange: false },
       }],
-      w: T_FW,
-      h: T_FH,
+      w,
+      h,
     };
   }
 
@@ -36,7 +42,7 @@ export function layoutSubtree(entry, colorIndices) {
 
   const childResults = children.map(child => {
     const id = child.type === 'file' ? `file:${child.path}` : `dir:${child.path}`;
-    return { id, child, ...layoutSubtree(child, colorIndices) };
+    return { id, child, ...layoutSubtree(child, colorIndices, sizeMap) };
   });
 
   const packed = annularBinPack(childResults.map(cr => ({ id: cr.id, w: cr.w, h: cr.h })));
@@ -78,14 +84,16 @@ export function layoutSubtree(entry, colorIndices) {
   };
 }
 
-export function buildNodesFromTree(root) {
+// sizeMap: optional Map<nodeId, {w, h}> of measured dimensions.
+// When provided, uses actual sizes instead of fileNodeSize estimates.
+export function buildNodesFromTree(root, sizeMap = null) {
   const colorIndices = assignColorIndices(root);
   const children = root.children ?? [];
   if (!children.length) return [];
 
   const childResults = children.map(child => {
     const id = child.type === 'file' ? `file:${child.path}` : `dir:${child.path}`;
-    return { id, ...layoutSubtree(child, colorIndices) };
+    return { id, ...layoutSubtree(child, colorIndices, sizeMap) };
   });
 
   const packed = annularBinPack(childResults.map(cr => ({ id: cr.id, w: cr.w, h: cr.h })));

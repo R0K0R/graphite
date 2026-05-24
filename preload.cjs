@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
   openFilePicker: () => ipcRenderer.invoke('file:open-picker'),
   readFile:       (p) => ipcRenderer.invoke('file:read', p),
+  readFileBinary: (p) => ipcRenderer.invoke('file:read-binary', p),
   writeFile:      (p, c) => ipcRenderer.invoke('file:write', p, c),
   watchFile:      (p) => ipcRenderer.invoke('file:watch', p),
   unwatchFile:    (p) => ipcRenderer.invoke('file:unwatch', p),
