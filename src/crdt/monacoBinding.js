@@ -18,7 +18,7 @@ export function bindMonaco(filePath, editor, initialContent) {
       if (aw) {
         aw.getStates().forEach((s, id) => {
           if (id !== aw.clientID)
-            console.log(`  remote peer ${id} cursor:`, s?.cursor ?? 'NOT SET');
+            console.log(`  remote peer ${id} selection:`, s?.selection ?? 'NOT SET');
         });
       }
     }
@@ -52,20 +52,31 @@ export function bindMonaco(filePath, editor, initialContent) {
     if (awareness) {
       const onAwarenessChange = ({ added, updated, removed }) => {
         const states = awareness.getStates();
-        // Inject per-peer CSS so yRemoteSelection-{id} gets the peer's color
         states.forEach((s, id) => {
           if (id === awareness.clientID || !s?.color) return;
+          // Rebuild on every change so the name label stays current
           const styleId = `y-peer-${id}`;
-          if (!document.getElementById(styleId)) {
-            const el = document.createElement('style');
+          let el = document.getElementById(styleId);
+          if (!el) {
+            el = document.createElement('style');
             el.id = styleId;
-            el.textContent = [
-              `.yRemoteSelection-${id} { background: ${s.color}44; }`,
-              `.yRemoteSelectionHead-${id}::after { border-color: ${s.color}; }`,
-              `.yRemoteSelectionHead-${id}::before { border-color: ${s.color}; }`,
-            ].join('\n');
             document.head.appendChild(el);
           }
+          // Strip chars that would break a CSS string literal
+          const name = (s.name ?? `peer-${String(id).slice(-4)}`).replace(/[\\'"\n\r]/g, '');
+          el.textContent = [
+            `.yRemoteSelection-${id} { background: ${s.color}44; }`,
+            // The head span IS the DOM element — border-left = cursor caret
+            `.yRemoteSelectionHead-${id} {`,
+            `  border-left-color: ${s.color};`,
+            `  border-top-color:  ${s.color};`,
+            `}`,
+            // Name tag floats above the cursor on hover
+            `.yRemoteSelectionHead-${id}::after {`,
+            `  content: '${name}';`,
+            `  background: ${s.color};`,
+            `}`,
+          ].join('\n');
         });
         const changed = [...added, ...updated].map(id => {
           const s = states.get(id);

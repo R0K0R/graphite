@@ -1337,17 +1337,33 @@ body {
 
 /* ── y-monaco remote cursor decorations ─────────────────── */
 
-/* Fallback color when per-peer <style> hasn't been injected yet */
 .yRemoteSelection { background: rgba(100, 160, 255, 0.25); }
 
-.yRemoteSelectionHead::after,
-.yRemoteSelectionHead::before {
-  position: absolute;
-  border-style: solid;
-  border-width: 0 0 0 2px;
-  border-color: #64a0ff;
-  height: 1.2em;
-  pointer-events: none;
+/* The head span IS the cursor caret — border-left draws the vertical bar */
+.yRemoteSelectionHead {
+  position: relative;
+  border-left: 2px solid #64a0ff;
+  border-top:  2px solid #64a0ff;
+  margin-left: -1px;
 }
-.yRemoteSelectionHead::after  { content: ''; top: 0; }
-.yRemoteSelectionHead::before { content: ''; bottom: 0; }
+
+/* Name label: hidden by default, floats above the cursor on hover */
+.yRemoteSelectionHead::after {
+  content: '';
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: -2px;
+  background: #64a0ff;
+  color: #fff;
+  font-family: var(--ui);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 3px 3px 3px 0;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 200;
+}
+.yRemoteSelectionHead:hover::after { display: block; }
