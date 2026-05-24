@@ -4,7 +4,7 @@ import { usePrefs } from '../../ThemeContext.js';
 import * as lspClient from '../../lsp/LspClient.js';
 import { registerProviders, applyDiagnostics } from '../../lsp/monacoProviders.js';
 import { bindMonaco } from '../../crdt/monacoBinding.js';
-import { getYText } from '../../crdt/doc.js';
+import { getYText, onRoomChange } from '../../crdt/doc.js';
 import Node, { PeerDots } from './Node.jsx';
 
 export const EXT_LANG = {
@@ -89,15 +89,21 @@ export default function CodeNode({ id, data, selected }) {
     try { diskContent = await window.electronAPI?.readFile(filePath) ?? ''; } catch (_) {}
     const unbind = bindMonaco(filePath, editor, diskContent);
 
-    // Disk write: Y.Text observer debounces → writeFile
-    const yText = getYText(filePath);
+    // Disk write: Y.Text observer debounces → writeFile.
+    // activeYText must follow room changes — initRoom() replaces the Y.Doc entirely.
+    let activeYText = getYText(filePath);
     function onYChange() {
       clearTimeout(writeTimer.current);
       writeTimer.current = setTimeout(() => {
-        window.electronAPI?.writeFile(filePath, yText.toString());
+        window.electronAPI?.writeFile(filePath, activeYText.toString());
       }, 500);
     }
-    yText.observe(onYChange);
+    activeYText.observe(onYChange);
+    const unsubDiskRoom = onRoomChange(() => {
+      activeYText.unobserve(onYChange);
+      activeYText = getYText(filePath);
+      activeYText.observe(onYChange);
+    });
 
     // LSP setup
     registerProviders(monaco, lang);
@@ -119,13 +125,15 @@ export default function CodeNode({ id, data, selected }) {
       });
       unsubDiagRef.current = () => {
         unbind();
-        yText.unobserve(onYChange);
+        activeYText.unobserve(onYChange);
+        unsubDiskRoom();
         unsubDiag();
       };
     } else {
       unsubDiagRef.current = () => {
         unbind();
-        yText.unobserve(onYChange);
+        activeYText.unobserve(onYChange);
+        unsubDiskRoom();
       };
     }
   }

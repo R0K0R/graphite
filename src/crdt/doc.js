@@ -31,7 +31,8 @@ export function getRoomCode()  { return _roomCode; }
 export function setLocalUser(name, color) {
   _localName  = name  ?? _localName;
   _localColor = color ?? _localColor;
-  _awareness?.setLocalState({ name: _localName, color: _localColor });
+  _awareness?.setLocalStateField('name', _localName);
+  _awareness?.setLocalStateField('color', _localColor);
 }
 
 export function getPeers() {
@@ -53,7 +54,8 @@ export function initRoom(rootPath, customCode) {
   const persist = new IndexeddbPersistence(_roomCode, _doc);
   const ws = new WebsocketProvider('ws://localhost:1234', _roomCode, _doc);
   _awareness = ws.awareness;
-  _awareness.setLocalState({ name: _localName, color: _localColor });
+  _awareness.setLocalStateField('name', _localName);
+  _awareness.setLocalStateField('color', _localColor);
   _providers = [persist, ws];
 
   ws.on('status', ({ status }) => console.log('[CRDT] ws status:', status));

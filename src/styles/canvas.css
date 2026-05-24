@@ -1334,3 +1334,20 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border2); }
+
+/* ── y-monaco remote cursor decorations ─────────────────── */
+
+/* Fallback color when per-peer <style> hasn't been injected yet */
+.yRemoteSelection { background: rgba(100, 160, 255, 0.25); }
+
+.yRemoteSelectionHead::after,
+.yRemoteSelectionHead::before {
+  position: absolute;
+  border-style: solid;
+  border-width: 0 0 0 2px;
+  border-color: #64a0ff;
+  height: 1.2em;
+  pointer-events: none;
+}
+.yRemoteSelectionHead::after  { content: ''; top: 0; }
+.yRemoteSelectionHead::before { content: ''; bottom: 0; }
