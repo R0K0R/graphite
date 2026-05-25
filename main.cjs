@@ -411,11 +411,13 @@ ipcMain.handle('vcs:init', (_e, rootPath) => {
 
 ipcMain.handle('vcs:commit', async (_e, rootPath, updateB64, message) => {
   try {
-    const updateBuf = decodeUpdate(updateB64);
-    const vcs = readVcsJson(rootPath);
+    const updateBuf    = decodeUpdate(updateB64);
+    const vcs          = readVcsJson(rootPath);
     const currentBranch = gitExec(['rev-parse', '--abbrev-ref', 'HEAD'], rootPath);
+    const author       = gitExecSafe(['config', 'user.name'], rootPath) ?? 'unknown';
+    const now          = Date.now();
 
-    // Compute blame diff
+    // Compute which nodes changed vs. last snapshot
     const currentNodes = decodeNodes(updateBuf);
     const branchMeta   = vcs.branches[currentBranch] ?? {};
     let baseNodes = [];
@@ -423,66 +425,53 @@ ipcMain.handle('vcs:commit', async (_e, rootPath, updateB64, message) => {
       const sp = snapshotPath(rootPath, branchMeta.snapshotHash);
       if (fs.existsSync(sp)) baseNodes = decodeNodes(fs.readFileSync(sp));
     }
-    const diff = computeNodeDiffMain(baseNodes, currentNodes);
+    const diff       = computeNodeDiffMain(baseNodes, currentNodes);
+    const changedIds = [...diff.added, ...diff.modified, ...diff.moved, ...diff.removed];
 
-    // Write snapshot to .graphite/snapshots/PENDING.bin first, then rename after commit
+    // Write snapshot under a temp name until we have the real commit hash
     const pendingPath = path.join(graphiteDir(rootPath), 'snapshots', 'PENDING.bin');
     fs.writeFileSync(pendingPath, updateBuf);
 
-    // Update blame.json
+    // Initial commit (snapshot only, blame/vcs still have placeholder hash)
+    gitExec(['add', '.graphite/snapshots/PENDING.bin'], rootPath);
+    gitExec(['commit', '-m', message, '--allow-empty'], rootPath);
+    const firstHash = gitExec(['rev-parse', 'HEAD'], rootPath);
+
+    // Rename snapshot to the real hash
+    const snapshotFile = snapshotPath(rootPath, firstHash);
+    fs.renameSync(pendingPath, snapshotFile);
+
+    // Update blame.json and vcs.json with real hash, then amend once
     const blame = readBlameJson(rootPath);
-    const author = gitExecSafe(['config', 'user.name'], rootPath) ?? 'unknown';
-    const now    = Date.now();
-    const changedIds = [...diff.added, ...diff.modified, ...diff.moved, ...diff.removed];
     for (const id of changedIds) {
       blame[id] = {
-        author,
-        authorColor: '#60a5fa', // will be updated post-commit with actual color
-        timestamp: now,
-        message,
+        author, authorColor: '#60a5fa',
+        timestamp: now, message,
+        commitHash: firstHash, shortHash: firstHash.slice(0, 7),
       };
     }
     writeBlameJson(rootPath, blame);
 
-    // Stage and commit
+    vcs.branches[currentBranch] = {
+      ...(vcs.branches[currentBranch] ?? {}),
+      roomCode:     roomCodeForBranch(rootPath, currentBranch),
+      snapshotHash: firstHash,
+    };
+    writeVcsJson(rootPath, vcs);
+
     gitExec(['add', '.graphite/'], rootPath);
-    gitExec(['commit', '-m', message, '--allow-empty'], rootPath);
-
-    const gitHash = gitExec(['rev-parse', 'HEAD'], rootPath);
-
-    // Rename snapshot to use actual commit hash
-    const finalPath = snapshotPath(rootPath, gitHash);
-    fs.renameSync(pendingPath, finalPath);
-
-    // Update blame entries with real hash
-    for (const id of changedIds) {
-      blame[id].commitHash = gitHash;
-      blame[id].shortHash  = gitHash.slice(0, 7);
-    }
-    writeBlameJson(rootPath, blame);
-    gitExec(['add', '.graphite/blame.json'], rootPath);
     gitExec(['commit', '--amend', '--no-edit'], rootPath);
     const finalHash = gitExec(['rev-parse', 'HEAD'], rootPath);
 
-    // Update vcs.json with snapshot hash
-    vcs.branches[currentBranch] = {
-      ...(vcs.branches[currentBranch] ?? {}),
-      roomCode: roomCodeForBranch(rootPath, currentBranch),
-      snapshotHash: finalHash,
-    };
-    writeVcsJson(rootPath, vcs);
-    gitExec(['add', '.graphite/vcs.json'], rootPath);
-    gitExec(['commit', '--amend', '--no-edit'], rootPath);
-    const absoluteFinalHash = gitExec(['rev-parse', 'HEAD'], rootPath);
+    // If amend changed the hash, rename the snapshot file to match
+    if (finalHash !== firstHash) {
+      const finalSnapshotFile = snapshotPath(rootPath, finalHash);
+      try { fs.renameSync(snapshotFile, finalSnapshotFile); } catch (_) {}
+      vcs.branches[currentBranch].snapshotHash = finalHash;
+      writeVcsJson(rootPath, vcs);
+    }
 
-    // Rename snapshot file to final hash
-    const absoluteFinalPath = snapshotPath(rootPath, absoluteFinalHash);
-    try { fs.renameSync(finalPath, absoluteFinalPath); } catch (_) {}
-
-    vcs.branches[currentBranch].snapshotHash = absoluteFinalHash;
-    writeVcsJson(rootPath, vcs);
-
-    return { ok: true, gitHash: absoluteFinalHash };
+    return { ok: true, gitHash: finalHash };
   } catch (e) {
     console.error('[VCS] commit error', e);
     return { ok: false, error: e.message };
