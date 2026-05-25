@@ -70,9 +70,9 @@ export default function CodeNode({ id, data, selected }) {
     return () => {
       clearTimeout(lspChangeTimer.current);
       clearTimeout(writeTimer.current);
+      unsubDiagRef.current?.();
       if (lspUriRef.current) {
         lspClient.closeDocument(lspUriRef.current);
-        unsubDiagRef.current?.();
         const model = editorRef.current?.getModel();
         if (model) monacoRef.current?.editor.setModelMarkers(model, 'lsp', []);
       }

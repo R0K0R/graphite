@@ -3,7 +3,7 @@ import Editor from '@monaco-editor/react';
 import { marked } from 'marked';
 import { usePrefs } from '../../ThemeContext.js';
 import { bindMonaco } from '../../crdt/monacoBinding.js';
-import { getYText } from '../../crdt/doc.js';
+import { getYText, onRoomChange } from '../../crdt/doc.js';
 import Node, { PeerDots } from './Node.jsx';
 import { basename, LANG_COLOR } from './CodeNode.jsx';
 
@@ -18,14 +18,23 @@ export default function MarkdownNode({ id, data, selected }) {
   const { theme } = usePrefs();
   const monacoTheme = theme === 'light' ? 'vs' : 'vs-dark';
 
-  // Subscribe to Y.Text for preview rendering
+  // Subscribe to Y.Text for preview rendering — re-attach when initRoom() replaces the doc.
   useEffect(() => {
     if (!filePath) return;
-    const yText = getYText(filePath);
+    let yText = getYText(filePath);
     const sync = () => setContent(yText.toString());
     yText.observe(sync);
     sync();
-    return () => yText.unobserve(sync);
+    const unsubRoom = onRoomChange(() => {
+      yText.unobserve(sync);
+      yText = getYText(filePath);
+      yText.observe(sync);
+      sync();
+    });
+    return () => {
+      yText.unobserve(sync);
+      unsubRoom();
+    };
   }, [filePath]);
 
   useEffect(() => {
@@ -47,18 +56,24 @@ export default function MarkdownNode({ id, data, selected }) {
     try { diskContent = await window.electronAPI?.readFile(filePath) ?? ''; } catch (_) {}
     const unbind = bindMonaco(filePath, editor, diskContent);
 
-    const yText = getYText(filePath);
+    let activeYText = getYText(filePath);
     function onYChange() {
       clearTimeout(writeTimer.current);
       writeTimer.current = setTimeout(() => {
-        window.electronAPI?.writeFile(filePath, yText.toString());
+        window.electronAPI?.writeFile(filePath, activeYText.toString());
       }, 500);
     }
-    yText.observe(onYChange);
+    activeYText.observe(onYChange);
+    const unsubDiskRoom = onRoomChange(() => {
+      activeYText.unobserve(onYChange);
+      activeYText = getYText(filePath);
+      activeYText.observe(onYChange);
+    });
 
     unbindRef.current = () => {
       unbind();
-      yText.unobserve(onYChange);
+      activeYText.unobserve(onYChange);
+      unsubDiskRoom();
     };
   }
 
