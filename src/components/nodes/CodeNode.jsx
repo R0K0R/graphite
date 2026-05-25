@@ -5,7 +5,7 @@ import * as lspClient from '../../lsp/LspClient.js';
 import { registerProviders, applyDiagnostics } from '../../lsp/monacoProviders.js';
 import { bindMonaco } from '../../crdt/monacoBinding.js';
 import { getYText, onRoomChange } from '../../crdt/doc.js';
-import Node, { PeerDots } from './Node.jsx';
+import Node, { PeerDots, BlameDot } from './Node.jsx';
 
 export const EXT_LANG = {
   py: 'python', js: 'javascript', jsx: 'javascript',
@@ -39,7 +39,7 @@ export function basename(filePath) {
 }
 
 export default function CodeNode({ id, data, selected }) {
-  const { filePath, onFilePicked, expanded, rootPath, onEditorFocus, onEditorBlur, peerColors } = data;
+  const { filePath, onFilePicked, expanded, rootPath, onEditorFocus, onEditorBlur, peerColors, blameInfo } = data;
   const writeTimer     = useRef(null);
   const lspChangeTimer = useRef(null);
   const editorRef      = useRef(null);
@@ -144,6 +144,7 @@ export default function CodeNode({ id, data, selected }) {
         <span className="file-node-filename">{filePath ? basename(filePath) : 'File Node'}</span>
         {filePath && <span className="file-node-lang">{lang}</span>}
         <PeerDots colors={peerColors} />
+        <BlameDot blameInfo={blameInfo} />
         {!filePath && (
           <button className="toolbar-btn nodrag" style={{ padding: '2px 8px', fontSize: 10, borderRadius: 4 }} onClick={() => onFilePicked?.(id)}>
             open file

@@ -4,13 +4,13 @@ import { marked } from 'marked';
 import { usePrefs } from '../../ThemeContext.js';
 import { bindMonaco } from '../../crdt/monacoBinding.js';
 import { getYText, onRoomChange } from '../../crdt/doc.js';
-import Node, { PeerDots } from './Node.jsx';
+import Node, { PeerDots, BlameDot } from './Node.jsx';
 import { basename, LANG_COLOR } from './CodeNode.jsx';
 
 marked.setOptions({ breaks: true, gfm: true });
 
 export default function MarkdownNode({ id, data, selected }) {
-  const { filePath, onFilePicked, expanded, onEditorFocus, onEditorBlur, peerColors } = data;
+  const { filePath, onFilePicked, expanded, onEditorFocus, onEditorBlur, peerColors, blameInfo } = data;
   const [mode, setMode] = useState('preview'); // 'preview' | 'source'
   const [content, setContent] = useState('');
   const writeTimer = useRef(null);
@@ -85,6 +85,7 @@ export default function MarkdownNode({ id, data, selected }) {
         <span className="file-node-filename">{filePath ? basename(filePath) : 'Markdown'}</span>
         <span className="file-node-lang">md</span>
         <PeerDots colors={peerColors} />
+        <BlameDot blameInfo={blameInfo} />
         <button
           className="md-toggle-btn nodrag"
           onClick={() => setMode(m => m === 'preview' ? 'source' : 'preview')}

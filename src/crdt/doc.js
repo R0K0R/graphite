@@ -136,3 +136,7 @@ export function destroyProviders() {
 
 export const getYNodes = () => getDoc().getMap('nodes');
 export const getYText  = (filePath) => getDoc().getText('file:' + filePath);
+
+export function captureUpdate() {
+  return Y.encodeStateAsUpdate(getDoc());
+}

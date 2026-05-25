@@ -32,4 +32,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('lsp:stderr', handler);
     return () => ipcRenderer.removeListener('lsp:stderr', handler);
   },
+
+  // VCS
+  vcsInit:         (rootPath)               => ipcRenderer.invoke('vcs:init',         rootPath),
+  vcsCommit:       (rootPath, update, msg)  => ipcRenderer.invoke('vcs:commit',       rootPath, update, msg),
+  vcsCreateBranch: (rootPath, name, update) => ipcRenderer.invoke('vcs:create-branch',rootPath, name, update),
+  vcsCheckout:     (rootPath, branch)       => ipcRenderer.invoke('vcs:checkout',     rootPath, branch),
+  vcsDiff:         (rootPath, hash, update) => ipcRenderer.invoke('vcs:diff',         rootPath, hash, update),
+  vcsLoadBlame:    (rootPath)               => ipcRenderer.invoke('vcs:load-blame',   rootPath),
+  vcsGitLog:       (rootPath, n)            => ipcRenderer.invoke('vcs:git-log',      rootPath, n),
+  vcsGitBranches:  (rootPath)               => ipcRenderer.invoke('vcs:git-branches', rootPath),
+  onGitBranchChanged: (cb) => {
+    const handler = (_e, branch) => cb(branch);
+    ipcRenderer.on('vcs:git-branch-changed', handler);
+    return () => ipcRenderer.removeListener('vcs:git-branch-changed', handler);
+  },
 });

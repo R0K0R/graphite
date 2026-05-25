@@ -1,6 +1,16 @@
 // Base wrapper used by all node types.
 // accentColor sets the left-border accent; peerColors shows who's viewing.
-export default function Node({ selected, baseClass = 'file-node', accentColor, className = '', peerColors, fillParent = false, children }) {
+
+function timeAgo(ts) {
+  if (!ts) return '';
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60)    return `${s}s ago`;
+  if (s < 3600)  return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
+
+export default function Node({ selected, baseClass = 'file-node', accentColor, className = '', fillParent = false, children }) {
   const style = {
     ...(accentColor ? { borderLeftColor: accentColor } : {}),
     ...(fillParent ? { width: '100%', height: '100%' } : {}),
@@ -27,3 +37,15 @@ export function PeerDots({ colors = [] }) {
   );
 }
 
+// Blame dot — shows author color + tooltip with commit info.
+export function BlameDot({ blameInfo }) {
+  if (!blameInfo) return null;
+  const tip = [blameInfo.author, blameInfo.message, timeAgo(blameInfo.timestamp)].filter(Boolean).join(' · ');
+  return (
+    <div
+      className="blame-dot nodrag"
+      style={{ background: blameInfo.authorColor ?? '#888' }}
+      title={tip}
+    />
+  );
+}

@@ -5,6 +5,8 @@ import { getDoc, getYNodes, onRoomChange } from './doc.js';
 const CALLBACK_KEYS = new Set([
   'onContentChange', 'onFilePicked', 'onEditorFocus', 'onEditorBlur',
   'onChangeParam', 'onToggleCollapse', 'onLinkDir', 'peerColors',
+  'diffState', 'blameInfo', 'mergeConflict',
+  'expanded', 'rootPath',
 ]);
 
 function stripCallbacks(node) {

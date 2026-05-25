@@ -6,6 +6,7 @@ import ReactFlow, {
   Controls,
   MiniMap,
   BackgroundVariant,
+  MarkerType,
 } from 'reactflow';
 import { useYNodes } from './crdt/useYNodes.js';
 import { initRoom, destroyProviders, getDoc, getYText, getAwareness } from './crdt/doc.js';
@@ -13,11 +14,15 @@ import { initRoom, destroyProviders, getDoc, getYText, getAwareness } from './cr
 import ChaperonNode from './components/nodes/ScriptNode.jsx';
 import RegionNode from './components/nodes/RegionNode.jsx';
 import FileNode from './components/nodes/FileNode.jsx';
+import DiffGhostNode from './components/nodes/DiffGhostNode.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import StatusBar from './components/StatusBar.jsx';
 import PrefsPopup from './components/PrefsPopup.jsx';
 import SessionPanel from './components/SessionPanel.jsx';
+import BranchBar from './components/BranchBar.jsx';
+import DiffPanel from './components/DiffPanel.jsx';
 import { usePeers } from './crdt/usePeers.js';
+import { useVcs } from './vcs/useVcs.js';
 import { CATEGORIES } from './data/modules.js';
 import { computeAllRegionBounds } from './utils/regionBounds.js';
 import { useLiveRef, centerViewport } from './utils/viewport.js';
@@ -30,6 +35,7 @@ const NODE_TYPES = {
   chaperonin: ChaperonNode,
   region: RegionNode,
   file: FileNode,
+  'diff-ghost': DiffGhostNode,
 };
 
 export default function FlowCanvas() {
@@ -53,6 +59,8 @@ export default function FlowCanvas() {
     hoverDelay, setHoverDelay,
     focusZoom, setFocusZoom,
   } = usePrefsState();
+
+  const vcs = useVcs(rootPath);
 
   const [expandedNodeId, setExpandedNodeId] = useState(null);
   const [expandedDims, setExpandedDims]     = useState(null); // { width, height } — state so resize triggers re-render
@@ -342,10 +350,11 @@ export default function FlowCanvas() {
     nodesRef.current.forEach(n => {
       if (n.type === 'file' && n.data.filePath) window.electronAPI.unwatchFile(n.data.filePath);
     });
-    window.electronAPI.openDirPicker().then(dirPath => {
+    window.electronAPI.openDirPicker().then(async dirPath => {
       if (!dirPath) return;
       setRootPath(dirPath);
       initRoom(dirPath);
+      vcs.init(dirPath);
       window.electronAPI.readTree(dirPath).then(tree => {
         if (!tree) return;
         setFileTree(tree);
@@ -468,6 +477,8 @@ export default function FlowCanvas() {
     ? computeAllRegionBounds(nodes.map(n => { const sp = scaledPositions.get(n.id); return sp ? { ...n, position: sp } : n; }))
     : regionBounds;
 
+  const diffEdges = [];
+
   const nodesWithCallbacks = visibleNodes.map(node => {
     const isMagnified = magnifiedIds.has(node.id);
     const isRegion = node.type === 'region';
@@ -502,10 +513,69 @@ export default function FlowCanvas() {
           onContentChange, onFilePicked, rootPath, onEditorFocus, onEditorBlur,
           expanded: isExpanded,
           peerColors: peers.filter(p => !p.isLocal && p.focusedNode === node.id).map(p => p.color),
+          blameInfo: vcs.blameMap[node.id] ?? null,
         } : {}),
       },
     };
   });
+
+  // Diff overlay injection
+  const { diffMode } = vcs;
+  if (diffMode) {
+    const { diffById, baseOpacity } = diffMode;
+
+    // Dim unchanged current nodes
+    for (const n of nodesWithCallbacks) {
+      if (!diffById.has(n.id)) {
+        n.className = ((n.className ?? '') + ' diff-unchanged').trim();
+      } else {
+        const d = diffById.get(n.id);
+        if (d.type === 'added')    n.className = ((n.className ?? '') + ' diff-added').trim();
+        if (d.type === 'modified') n.className = ((n.className ?? '') + ' diff-modified').trim();
+        if (d.type === 'moved')    n.className = ((n.className ?? '') + ' diff-moved').trim();
+      }
+    }
+
+    // Inject base-layer ghost nodes for removed or moved-from positions
+    for (const [id, d] of diffById) {
+      if (d.type === 'removed' || d.type === 'moved') {
+        const ghostPos = d.type === 'moved' ? d.prevPosition : d.node.position;
+        nodesWithCallbacks.push({
+          id: 'base:' + id,
+          type: 'diff-ghost',
+          position: ghostPos,
+          style: {
+            width:         d.node.width  ?? 380,
+            height:        d.node.height ?? 180,
+            pointerEvents: 'none',
+            opacity:       baseOpacity,
+          },
+          selectable: false,
+          draggable:  false,
+          zIndex:     4,
+          data: {
+            diffType:  d.type,
+            nodeType:  d.node.type,
+            label:     d.node.data?.filePath ?? d.node.data?.label ?? d.node.id,
+            arrowTo:   d.type === 'moved' ? d.node.position : null,
+          },
+        });
+
+        // Movement arrow
+        if (d.type === 'moved') {
+          diffEdges.push({
+            id: 'diff-arrow:' + id,
+            source: 'base:' + id,
+            target: id,
+            type: 'default',
+            style: { stroke: 'var(--amber, #fbbf24)', strokeWidth: 1.5, strokeDasharray: '5 3', opacity: 0.55 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--amber, #fbbf24)' },
+            animated: false,
+          });
+        }
+      }
+    }
+  }
 
   return (
     <PrefsContext.Provider value={{ theme, regionAlpha, hoverScale, dimScale, hoverDelay, focusZoom }}>
@@ -574,9 +644,22 @@ export default function FlowCanvas() {
 
       <Sidebar tree={fileTree} rootPath={rootPath} onFocusNode={focusNode} />
 
-      <div className="ide-canvas">
+      <BranchBar
+        hasGit={vcs.hasGit}
+        branches={vcs.branches}
+        currentBranch={vcs.currentBranch}
+        isDirty={vcs.isDirty}
+        gitLog={vcs.gitLog}
+        onCommit={vcs.commit}
+        onCreateBranch={vcs.createBranch}
+        onCheckout={vcs.checkout}
+        onShowDiff={vcs.showDiff}
+      />
+
+      <div className="ide-canvas" data-anim={vcs.canvasAnim ?? undefined}>
         <ReactFlow
           nodes={nodesWithCallbacks}
+          edges={diffEdges}
           onNodesChange={handleNodesChange}
           nodeTypes={NODE_TYPES}
           fitView
@@ -603,6 +686,11 @@ export default function FlowCanvas() {
         >
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1a2235" />
           <Controls />
+          <DiffPanel
+            diffMode={vcs.diffMode}
+            onExit={vcs.exitDiff}
+            onOpacityChange={vcs.setDiffOpacity}
+          />
           <MiniMap
             nodeColor={n => {
               if (n.type === 'region') return '#1e2535';

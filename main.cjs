@@ -243,6 +243,338 @@ ipcMain.handle('lsp:stop', (_e, key) => {
   if (entry) { entry.proc.kill(); lspProcesses.delete(key); }
 });
 
+// --- IPC: VCS (git + canvas snapshots) ---
+
+const { createHash } = require('crypto');
+
+function gitExec(args, cwd) {
+  return execFileSync('git', args, { cwd, stdio: ['ignore', 'pipe', 'ignore'], encoding: 'utf8' }).trim();
+}
+
+function gitExecSafe(args, cwd) {
+  try { return gitExec(args, cwd); } catch (_) { return null; }
+}
+
+function sha1hex(str) {
+  return createHash('sha1').update(str).digest('hex');
+}
+
+function roomCodeForBranch(rootPath, branchName) {
+  return 'branch:' + sha1hex(rootPath + ':' + branchName).slice(0, 8);
+}
+
+function graphiteDir(rootPath) {
+  return path.join(rootPath, '.graphite');
+}
+
+function snapshotPath(rootPath, gitHash) {
+  return path.join(graphiteDir(rootPath), 'snapshots', gitHash + '.bin');
+}
+
+function vcsJsonPath(rootPath) {
+  return path.join(graphiteDir(rootPath), 'vcs.json');
+}
+
+function blamePath(rootPath) {
+  return path.join(graphiteDir(rootPath), 'blame.json');
+}
+
+function readVcsJson(rootPath) {
+  try {
+    return JSON.parse(fs.readFileSync(vcsJsonPath(rootPath), 'utf8'));
+  } catch (_) {
+    return { version: 1, branches: {} };
+  }
+}
+
+function writeVcsJson(rootPath, data) {
+  fs.mkdirSync(graphiteDir(rootPath), { recursive: true });
+  fs.writeFileSync(vcsJsonPath(rootPath), JSON.stringify(data, null, 2), 'utf8');
+}
+
+function readBlameJson(rootPath) {
+  try {
+    return JSON.parse(fs.readFileSync(blamePath(rootPath), 'utf8'));
+  } catch (_) {
+    return {};
+  }
+}
+
+function writeBlameJson(rootPath, data) {
+  fs.mkdirSync(graphiteDir(rootPath), { recursive: true });
+  fs.writeFileSync(blamePath(rootPath), JSON.stringify(data, null, 2), 'utf8');
+}
+
+// Decode base64 update → Buffer
+function decodeUpdate(b64) {
+  return Buffer.from(b64, 'base64');
+}
+
+// Inline Y.Doc manipulation in main process using yjs (CommonJS)
+let Y = null;
+function getY() {
+  if (!Y) Y = require('yjs');
+  return Y;
+}
+
+function decodeNodes(updateBuf) {
+  const yjs = getY();
+  const doc = new yjs.Doc();
+  yjs.applyUpdate(doc, updateBuf);
+  const yMap = doc.getMap('nodes');
+  return Array.from(yMap.values());
+}
+
+function computeNodeDiffMain(baseNodes, currentNodes) {
+  const POS_THRESHOLD = 8;
+  const baseMap    = new Map(baseNodes.map(n => [n.id, n]));
+  const currentMap = new Map(currentNodes.map(n => [n.id, n]));
+  const added = [], removed = [], moved = [], modified = [];
+
+  for (const [id, base] of baseMap) {
+    const cur = currentMap.get(id);
+    if (!cur) { removed.push(id); continue; }
+    const dx = Math.abs((base.position?.x ?? 0) - (cur.position?.x ?? 0));
+    const dy = Math.abs((base.position?.y ?? 0) - (cur.position?.y ?? 0));
+    const isMoved = dx > POS_THRESHOLD || dy > POS_THRESHOLD;
+    if (isMoved) moved.push(id);
+    else {
+      const SKIP = new Set(['peerColors', 'blameInfo', 'diffState', 'mergeConflict',
+        'onContentChange', 'onFilePicked', 'onEditorFocus', 'onEditorBlur',
+        'onChangeParam', 'onToggleCollapse', 'onLinkDir', 'expanded', 'rootPath']);
+      const a = Object.fromEntries(Object.entries(base.data ?? {}).filter(([k]) => !SKIP.has(k)));
+      const b = Object.fromEntries(Object.entries(cur.data  ?? {}).filter(([k]) => !SKIP.has(k)));
+      if (JSON.stringify(a) !== JSON.stringify(b)) modified.push(id);
+    }
+  }
+  for (const [id] of currentMap) {
+    if (!baseMap.has(id)) added.push(id);
+  }
+  return { added, removed, moved, modified };
+}
+
+// HEAD watcher — fires vcs:git-branch-changed when .git/HEAD changes
+let headWatcher = null;
+
+function watchGitHead(rootPath) {
+  if (headWatcher) { try { headWatcher.close(); } catch (_) {} headWatcher = null; }
+  const headFile = path.join(rootPath, '.git', 'HEAD');
+  if (!fs.existsSync(headFile)) return;
+  let last = null;
+  try { last = fs.readFileSync(headFile, 'utf8').trim(); } catch (_) {}
+  headWatcher = fs.watch(headFile, () => {
+    try {
+      const content = fs.readFileSync(headFile, 'utf8').trim();
+      if (content === last) return;
+      last = content;
+      const branch = content.startsWith('ref: refs/heads/')
+        ? content.slice('ref: refs/heads/'.length)
+        : content.slice(0, 7); // detached HEAD
+      mainWin?.webContents.send('vcs:git-branch-changed', branch);
+    } catch (_) {}
+  });
+}
+
+ipcMain.handle('vcs:init', (_e, rootPath) => {
+  try {
+    const hasGit = fs.existsSync(path.join(rootPath, '.git'));
+    if (!hasGit) return { hasGit: false, branches: [], currentBranch: null };
+
+    watchGitHead(rootPath);
+
+    const branchesRaw = gitExecSafe(['branch', '--format=%(refname:short)'], rootPath) ?? '';
+    const branches    = branchesRaw.split('\n').map(s => s.trim()).filter(Boolean);
+    const currentBranch = gitExecSafe(['rev-parse', '--abbrev-ref', 'HEAD'], rootPath) ?? null;
+
+    // Ensure .graphite dir and vcs.json exist
+    fs.mkdirSync(path.join(graphiteDir(rootPath), 'snapshots'), { recursive: true });
+    const vcs = readVcsJson(rootPath);
+    if (currentBranch && !vcs.branches[currentBranch]) {
+      vcs.branches[currentBranch] = { roomCode: roomCodeForBranch(rootPath, currentBranch) };
+      writeVcsJson(rootPath, vcs);
+    }
+
+    // Try to load last snapshot for current branch
+    let snapshotUpdate = null;
+    const branchMeta = vcs.branches[currentBranch];
+    if (branchMeta?.snapshotHash) {
+      const sp = snapshotPath(rootPath, branchMeta.snapshotHash);
+      if (fs.existsSync(sp)) snapshotUpdate = fs.readFileSync(sp).toString('base64');
+    }
+
+    return { hasGit: true, branches, currentBranch, snapshotUpdate };
+  } catch (e) {
+    console.error('[VCS] init error', e);
+    return { hasGit: false, branches: [], currentBranch: null };
+  }
+});
+
+ipcMain.handle('vcs:commit', async (_e, rootPath, updateB64, message) => {
+  try {
+    const updateBuf = decodeUpdate(updateB64);
+    const vcs = readVcsJson(rootPath);
+    const currentBranch = gitExec(['rev-parse', '--abbrev-ref', 'HEAD'], rootPath);
+
+    // Compute blame diff
+    const currentNodes = decodeNodes(updateBuf);
+    const branchMeta   = vcs.branches[currentBranch] ?? {};
+    let baseNodes = [];
+    if (branchMeta.snapshotHash) {
+      const sp = snapshotPath(rootPath, branchMeta.snapshotHash);
+      if (fs.existsSync(sp)) baseNodes = decodeNodes(fs.readFileSync(sp));
+    }
+    const diff = computeNodeDiffMain(baseNodes, currentNodes);
+
+    // Write snapshot to .graphite/snapshots/PENDING.bin first, then rename after commit
+    const pendingPath = path.join(graphiteDir(rootPath), 'snapshots', 'PENDING.bin');
+    fs.writeFileSync(pendingPath, updateBuf);
+
+    // Update blame.json
+    const blame = readBlameJson(rootPath);
+    const author = gitExecSafe(['config', 'user.name'], rootPath) ?? 'unknown';
+    const now    = Date.now();
+    const changedIds = [...diff.added, ...diff.modified, ...diff.moved, ...diff.removed];
+    for (const id of changedIds) {
+      blame[id] = {
+        author,
+        authorColor: '#60a5fa', // will be updated post-commit with actual color
+        timestamp: now,
+        message,
+      };
+    }
+    writeBlameJson(rootPath, blame);
+
+    // Stage and commit
+    gitExec(['add', '.graphite/'], rootPath);
+    gitExec(['commit', '-m', message, '--allow-empty'], rootPath);
+
+    const gitHash = gitExec(['rev-parse', 'HEAD'], rootPath);
+
+    // Rename snapshot to use actual commit hash
+    const finalPath = snapshotPath(rootPath, gitHash);
+    fs.renameSync(pendingPath, finalPath);
+
+    // Update blame entries with real hash
+    for (const id of changedIds) {
+      blame[id].commitHash = gitHash;
+      blame[id].shortHash  = gitHash.slice(0, 7);
+    }
+    writeBlameJson(rootPath, blame);
+    gitExec(['add', '.graphite/blame.json'], rootPath);
+    gitExec(['commit', '--amend', '--no-edit'], rootPath);
+    const finalHash = gitExec(['rev-parse', 'HEAD'], rootPath);
+
+    // Update vcs.json with snapshot hash
+    vcs.branches[currentBranch] = {
+      ...(vcs.branches[currentBranch] ?? {}),
+      roomCode: roomCodeForBranch(rootPath, currentBranch),
+      snapshotHash: finalHash,
+    };
+    writeVcsJson(rootPath, vcs);
+    gitExec(['add', '.graphite/vcs.json'], rootPath);
+    gitExec(['commit', '--amend', '--no-edit'], rootPath);
+    const absoluteFinalHash = gitExec(['rev-parse', 'HEAD'], rootPath);
+
+    // Rename snapshot file to final hash
+    const absoluteFinalPath = snapshotPath(rootPath, absoluteFinalHash);
+    try { fs.renameSync(finalPath, absoluteFinalPath); } catch (_) {}
+
+    vcs.branches[currentBranch].snapshotHash = absoluteFinalHash;
+    writeVcsJson(rootPath, vcs);
+
+    return { ok: true, gitHash: absoluteFinalHash };
+  } catch (e) {
+    console.error('[VCS] commit error', e);
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('vcs:create-branch', async (_e, rootPath, name, updateB64) => {
+  try {
+    // Create git branch from current HEAD
+    gitExec(['checkout', '-b', name], rootPath);
+    const roomCode = roomCodeForBranch(rootPath, name);
+    const vcs = readVcsJson(rootPath);
+    vcs.branches[name] = { roomCode };
+    writeVcsJson(rootPath, vcs);
+    return { ok: true, roomCode };
+  } catch (e) {
+    console.error('[VCS] create-branch error', e);
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('vcs:checkout', async (_e, rootPath, branchName) => {
+  try {
+    gitExec(['checkout', branchName], rootPath);
+    const roomCode = roomCodeForBranch(rootPath, branchName);
+    const vcs = readVcsJson(rootPath);
+    const branchMeta = vcs.branches[branchName] ?? {};
+    let snapshotUpdate = null;
+    if (branchMeta.snapshotHash) {
+      const sp = snapshotPath(rootPath, branchMeta.snapshotHash);
+      if (fs.existsSync(sp)) snapshotUpdate = fs.readFileSync(sp).toString('base64');
+    }
+    return { ok: true, roomCode, snapshotUpdate };
+  } catch (e) {
+    console.error('[VCS] checkout error', e);
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('vcs:diff', async (_e, rootPath, fromHash, toUpdateB64) => {
+  try {
+    const toUpdate  = decodeUpdate(toUpdateB64);
+    const curNodes  = decodeNodes(toUpdate);
+    let baseNodes   = [];
+    if (fromHash) {
+      const sp = snapshotPath(rootPath, fromHash);
+      if (fs.existsSync(sp)) baseNodes = decodeNodes(fs.readFileSync(sp));
+    } else {
+      // Use last committed snapshot for current branch
+      const vcs = readVcsJson(rootPath);
+      const branch = gitExecSafe(['rev-parse', '--abbrev-ref', 'HEAD'], rootPath);
+      const meta   = vcs.branches[branch] ?? {};
+      if (meta.snapshotHash) {
+        const sp = snapshotPath(rootPath, meta.snapshotHash);
+        if (fs.existsSync(sp)) baseNodes = decodeNodes(fs.readFileSync(sp));
+      }
+    }
+    return { baseNodes, currentNodes: curNodes };
+  } catch (e) {
+    console.error('[VCS] diff error', e);
+    return { baseNodes: [], currentNodes: [] };
+  }
+});
+
+ipcMain.handle('vcs:load-blame', (_e, rootPath) => {
+  try { return readBlameJson(rootPath); } catch (_) { return {}; }
+});
+
+ipcMain.handle('vcs:git-log', (_e, rootPath, n) => {
+  try {
+    const hasGit = fs.existsSync(path.join(rootPath, '.git'));
+    if (!hasGit) return [];
+    const raw = gitExecSafe(
+      ['log', `--max-count=${n ?? 10}`, '--format=%H\t%h\t%an\t%ct\t%s'],
+      rootPath
+    ) ?? '';
+    return raw.split('\n').filter(Boolean).map(line => {
+      const [hash, shortHash, author, ts, ...msgParts] = line.split('\t');
+      return { hash, shortHash, author, timestamp: parseInt(ts, 10) * 1000, message: msgParts.join('\t') };
+    });
+  } catch (_) { return []; }
+});
+
+ipcMain.handle('vcs:git-branches', (_e, rootPath) => {
+  try {
+    const branches = (gitExecSafe(['branch', '--format=%(refname:short)'], rootPath) ?? '')
+      .split('\n').map(s => s.trim()).filter(Boolean);
+    const current  = gitExecSafe(['rev-parse', '--abbrev-ref', 'HEAD'], rootPath);
+    return { branches, current };
+  } catch (_) { return { branches: [], current: null }; }
+});
+
 // --- App lifecycle ---
 
 function registerAppProtocol(ses) {
