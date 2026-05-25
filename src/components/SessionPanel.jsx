@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getRoomCode, initRoom, setLocalUser, onRoomChange } from '../crdt/doc.js';
+import { getRoomCode, initRoom, setLocalUser, onRoomChange, onWebrtcStatus, getWebrtcStatus } from '../crdt/doc.js';
 import { usePeers } from '../crdt/usePeers.js';
 
 function initials(name) {
@@ -12,6 +12,12 @@ export default function SessionPanel({ open, onClose, rootPath }) {
   const [joinInput, setJoinInput] = useState('');
   const [localName, setLocalName] = useState('me');
   const [copied, setCopied] = useState(false);
+  const [webrtcStatus, setWebrtcStatus] = useState(() => getWebrtcStatus());
+
+  useEffect(() => {
+    setWebrtcStatus(getWebrtcStatus());
+    return onWebrtcStatus(setWebrtcStatus);
+  }, []);
 
   useEffect(() => {
     const unsub = onRoomChange(code => setRoomCode(code ?? ''));
@@ -180,6 +186,20 @@ export default function SessionPanel({ open, onClose, rootPath }) {
                   Server
                 </div>
               </div>
+              {roomCode && (
+                <div className="session-webrtc-status">
+                  <span
+                    className={`session-webrtc-dot ${webrtcStatus.connected ? 'is-connected' : 'is-connecting'}`}
+                  />
+                  <span className="session-hint" style={{ margin: 0 }}>
+                    {webrtcStatus.synced
+                      ? 'synced with peers'
+                      : webrtcStatus.connected
+                        ? 'signaling connected — waiting for peers'
+                        : 'connecting to signaling server…'}
+                  </span>
+                </div>
+              )}
               <p className="session-hint">
                 Peers connect directly via WebRTC. Signaling server only used for the initial handshake.
               </p>

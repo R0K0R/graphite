@@ -1276,6 +1276,35 @@ body {
   letter-spacing: 0.01em;
 }
 
+.session-webrtc-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.session-webrtc-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.session-webrtc-dot.is-connected {
+  background: var(--accent);
+  box-shadow: 0 0 4px var(--accent);
+}
+
+.session-webrtc-dot.is-connecting {
+  background: var(--amber);
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
 /* ── Node hover/focus states ─────────────────────────────── */
 
 .react-flow__node > * {
