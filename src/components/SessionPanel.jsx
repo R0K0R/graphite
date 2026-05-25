@@ -1,19 +1,18 @@
 import { useState, useEffect } from 'react';
-import { getRoomCode, initRoom, setLocalUser, getPeers, getAwareness, onRoomChange } from '../crdt/doc.js';
+import { getRoomCode, initRoom, setLocalUser, onRoomChange } from '../crdt/doc.js';
 import { usePeers } from '../crdt/usePeers.js';
 
 function initials(name) {
   return name.slice(0, 2).toUpperCase();
 }
 
-export default function SessionPanel({ open, onClose, rootPath, onRoomJoined }) {
+export default function SessionPanel({ open, onClose, rootPath }) {
   const peers = usePeers();
   const [roomCode, setRoomCode] = useState(() => getRoomCode() ?? '');
   const [joinInput, setJoinInput] = useState('');
   const [localName, setLocalName] = useState('me');
   const [copied, setCopied] = useState(false);
 
-  // Keep room code in sync with doc state
   useEffect(() => {
     const unsub = onRoomChange(code => setRoomCode(code ?? ''));
     setRoomCode(getRoomCode() ?? '');
@@ -24,6 +23,7 @@ export default function SessionPanel({ open, onClose, rootPath, onRoomJoined }) 
 
   const remotePeers = peers.filter(p => !p.isLocal);
   const localPeer   = peers.find(p => p.isLocal);
+  const isLive      = peers.length > 1;
 
   function handleCopy() {
     if (!roomCode) return;
@@ -36,10 +36,12 @@ export default function SessionPanel({ open, onClose, rootPath, onRoomJoined }) 
   function handleJoin(e) {
     e.preventDefault();
     const code = joinInput.trim();
-    if (!code || !rootPath) return;
-    initRoom(rootPath, code);
-    onRoomJoined?.(code);
+    if (!code) return;
+    // rootPath can be null — joining doesn't require a local folder.
+    // The host's nodes sync over CRDT; file content arrives via Y.Text.
+    initRoom(rootPath ?? '', code);
     setJoinInput('');
+    onClose();
   }
 
   function handleNameChange(e) {
@@ -48,13 +50,10 @@ export default function SessionPanel({ open, onClose, rootPath, onRoomJoined }) 
     setLocalUser(name || 'me');
   }
 
-  const isLive = peers.length > 1;
-
   return (
     <div className="session-overlay" onClick={onClose}>
       <div className="session-panel" onClick={e => e.stopPropagation()}>
 
-        {/* Header */}
         <div className="session-header">
           <div className="session-title">
             <div className={`session-title-live${isLive ? ' is-live' : ''}`} />
@@ -65,100 +64,106 @@ export default function SessionPanel({ open, onClose, rootPath, onRoomJoined }) 
 
         <div className="session-body">
 
-          {!rootPath ? (
-            <p className="session-hint" style={{ padding: '8px 0' }}>
-              Open a folder to start a session. Your canvas will be shared with anyone who joins the same room.
-            </p>
-          ) : (
-            <>
-              {/* Active room */}
-              <div className="session-section">
-                <div className="session-section-label">
-                  active room
-                  {remotePeers.length > 0 && (
-                    <span className="session-section-badge">{remotePeers.length} peer{remotePeers.length !== 1 ? 's' : ''}</span>
+          {/* Join a room — always visible */}
+          <div className="session-section">
+            <div className="session-section-label">join a room</div>
+            <div className="session-section-content">
+              <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <input
+                  className="session-input"
+                  value={joinInput}
+                  onChange={e => setJoinInput(e.target.value)}
+                  placeholder="enter room code  e.g. amber-crane-forge-tide"
+                  autoFocus
+                />
+                <button type="submit" className="session-btn session-btn--primary" disabled={!joinInput.trim()}>
+                  → join room
+                </button>
+              </form>
+              <p className="session-hint" style={{ marginTop: 6 }}>
+                You don't need a local folder to join — the host's canvas syncs to you directly.
+              </p>
+            </div>
+          </div>
+
+          {/* Active room — only shown when a room is open */}
+          {roomCode && (
+            <div className="session-section">
+              <div className="session-section-label">
+                active room
+                {remotePeers.length > 0 && (
+                  <span className="session-section-badge">{remotePeers.length} peer{remotePeers.length !== 1 ? 's' : ''}</span>
+                )}
+              </div>
+              <div className="session-section-content">
+                <div className="session-room-code">
+                  <div className="session-room-code-text">{roomCode}</div>
+                  <button className={`session-copy-btn${copied ? ' copied' : ''}`} onClick={handleCopy}>
+                    {copied ? 'copied' : 'copy'}
+                  </button>
+                </div>
+                <p className="session-hint">Share this code for others to join your canvas.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Hosting hint when no folder is open */}
+          {!rootPath && !roomCode && (
+            <div className="session-section">
+              <div className="session-section-label">hosting</div>
+              <div className="session-section-content">
+                <p className="session-hint">
+                  Open a folder to start hosting — your canvas will get a room code to share.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Identity */}
+          {roomCode && (
+            <div className="session-section">
+              <div className="session-section-label">your identity</div>
+              <div className="session-section-content">
+                <div className="session-name-row">
+                  <span className="session-name-label">name</span>
+                  <input
+                    className="session-input-sm"
+                    value={localName}
+                    onChange={handleNameChange}
+                    placeholder="display name"
+                    maxLength={24}
+                  />
+                  {localPeer && (
+                    <div className="session-peer-avatar" style={{ background: localPeer.color, flexShrink: 0 }}>
+                      {initials(localName)}
+                    </div>
                   )}
                 </div>
-                <div className="session-section-content">
-                  <div className="session-room-code">
-                    <div className="session-room-code-text">{roomCode || '—'}</div>
-                    <button className={`session-copy-btn${copied ? ' copied' : ''}`} onClick={handleCopy}>
-                      {copied ? 'copied' : 'copy'}
-                    </button>
-                  </div>
-                  <p className="session-hint">Share this code with collaborators to join your canvas in real time.</p>
-                </div>
               </div>
+            </div>
+          )}
 
-              {/* Your identity */}
-              <div className="session-section">
-                <div className="session-section-label">your identity</div>
-                <div className="session-section-content">
-                  <div className="session-name-row">
-                    <span className="session-name-label">name</span>
-                    <input
-                      className="session-input-sm"
-                      value={localName}
-                      onChange={handleNameChange}
-                      placeholder="display name"
-                      maxLength={24}
-                    />
-                    {localPeer && (
-                      <div
-                        className="session-peer-avatar"
-                        style={{ background: localPeer.color, flexShrink: 0 }}
-                      >
-                        {initials(localName)}
+          {/* Peers */}
+          {peers.length > 0 && (
+            <div className="session-section">
+              <div className="session-section-label">
+                peers
+                <span className="session-section-badge">{peers.length} connected</span>
+              </div>
+              <div className="session-section-content">
+                <div className="session-peer-list">
+                  {peers.map(peer => (
+                    <div key={peer.id} className="session-peer-item">
+                      <div className="session-peer-avatar" style={{ background: peer.color }}>
+                        {initials(peer.name)}
                       </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Peers */}
-              {peers.length > 0 && (
-                <div className="session-section">
-                  <div className="session-section-label">
-                    peers
-                    <span className="session-section-badge">{peers.length} connected</span>
-                  </div>
-                  <div className="session-section-content">
-                    <div className="session-peer-list">
-                      {peers.map(peer => (
-                        <div key={peer.id} className="session-peer-item">
-                          <div
-                            className="session-peer-avatar"
-                            style={{ background: peer.color }}
-                          >
-                            {initials(peer.name)}
-                          </div>
-                          <span className="session-peer-name">{peer.name}</span>
-                          {peer.isLocal && <span className="session-peer-badge local">you</span>}
-                        </div>
-                      ))}
+                      <span className="session-peer-name">{peer.name}</span>
+                      {peer.isLocal && <span className="session-peer-badge local">you</span>}
                     </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Join different room */}
-              <div className="session-section">
-                <div className="session-section-label">join a room</div>
-                <div className="session-section-content">
-                  <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <input
-                      className="session-input"
-                      value={joinInput}
-                      onChange={e => setJoinInput(e.target.value)}
-                      placeholder="enter room code"
-                    />
-                    <button type="submit" className="session-btn session-btn--primary" disabled={!joinInput.trim()}>
-                      → join room
-                    </button>
-                  </form>
+                  ))}
                 </div>
               </div>
-            </>
+            </div>
           )}
 
           {/* Transport */}
@@ -170,13 +175,13 @@ export default function SessionPanel({ open, onClose, rootPath, onRoomJoined }) 
                   <div className="session-transport-dot" />
                   P2P / WebRTC
                 </div>
-                <div className="session-transport-opt disabled" title="Central relay server — coming soon">
+                <div className="session-transport-opt disabled">
                   <div className="session-transport-dot" />
                   Server
                 </div>
               </div>
               <p className="session-hint">
-                P2P connects peers directly via WebRTC. A central relay server with persistence and access control is planned.
+                Peers connect directly via WebRTC. Signaling server only used for the initial handshake.
               </p>
             </div>
           </div>

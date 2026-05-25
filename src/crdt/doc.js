@@ -1,6 +1,7 @@
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
-import { WebsocketProvider } from 'y-websocket';
+import { WebrtcProvider } from 'y-webrtc';
+import { generateRoomCode } from '../utils/wordlist.js';
 
 let _doc = null;
 let _providers = [];
@@ -48,21 +49,32 @@ export function getPeers() {
 }
 
 export function initRoom(rootPath, customCode) {
-  destroyProviders();
+  // Tear down without notifying — avoids a spurious onRoomChange(null) that causes
+  // monacoBinding's attach() to create a null-awareness MonacoBinding, leaking a
+  // y-monaco cursor listener that its destroy() never removes.
+  _providers.forEach(p => { try { p.destroy(); } catch (_) {} });
+  _providers = [];
+  _awareness = null;
+  _doc = null;
+  _roomCode = null;
+
   _doc = new Y.Doc();
-  _roomCode = customCode ?? ('graphite-' + rootPath.replace(/[^a-zA-Z0-9]/g, '-'));
+  _roomCode = customCode ?? generateRoomCode();
+
   const persist = new IndexeddbPersistence(_roomCode, _doc);
-  const ws = new WebsocketProvider('ws://localhost:1234', _roomCode, _doc);
-  _awareness = ws.awareness;
+  const webrtc = new WebrtcProvider(_roomCode, _doc, {
+    signaling: ['wss://y-webrtc-eu.fly.dev'],
+  });
+  _awareness = webrtc.awareness;
   _awareness.setLocalStateField('name', _localName);
   _awareness.setLocalStateField('color', _localColor);
-  _providers = [persist, ws];
+  _providers = [persist, webrtc];
 
-  ws.on('status', ({ status }) => console.log('[CRDT] ws status:', status));
-  ws.on('synced', (synced) => console.log('[CRDT] synced:', synced));
+  webrtc.on('status', ({ status }) => console.log('[CRDT] webrtc status:', status));
+  webrtc.on('synced', (synced) => console.log('[CRDT] synced:', synced));
 
   notifyRoomChange();
-  return { persist, ws };
+  return { persist, webrtc };
 }
 
 export function destroyProviders() {

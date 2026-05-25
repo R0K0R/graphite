@@ -1,6 +1,10 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, protocol, net, session } = require('electron');
 const fs = require('fs');
 const path = require('path');
+
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'app', privileges: { secure: true, standard: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
+]);
 const { spawn, execFileSync } = require('child_process');
 
 const distIndex = path.join(__dirname, 'dist', 'index.html');
@@ -19,11 +23,7 @@ function loadWindow(win) {
     win.webContents.openDevTools({ mode: 'detach' });
     return;
   }
-  if (fs.existsSync(distIndex)) {
-    win.loadFile(distIndex);
-    return;
-  }
-  win.loadURL('http://localhost:5173');
+  win.loadURL('app://graphite/');
 }
 
 function createWindow() {
@@ -37,6 +37,7 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.cjs'),
+      partition: 'persist:graphite',
     },
   });
   mainWin = win;
@@ -244,7 +245,45 @@ ipcMain.handle('lsp:stop', (_e, key) => {
 
 // --- App lifecycle ---
 
+function registerAppProtocol(ses) {
+  ses.protocol.handle('app', async (request) => {
+    let urlPath = request.url.slice('app://graphite/'.length);
+    urlPath = urlPath.split('?')[0].split('#')[0];
+    if (!urlPath) urlPath = 'index.html';
+    const filePath = path.join(__dirname, 'dist', ...urlPath.split('/'));
+    try {
+      const data = await fs.promises.readFile(filePath);
+      const ext = path.extname(filePath).slice(1).toLowerCase();
+      const mime = {
+        html: 'text/html', js: 'application/javascript', mjs: 'application/javascript',
+        css: 'text/css', json: 'application/json', svg: 'image/svg+xml',
+        png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+        ico: 'image/x-icon', woff: 'font/woff', woff2: 'font/woff2', ttf: 'font/ttf',
+      };
+      return new Response(data, { headers: { 'Content-Type': mime[ext] || 'application/octet-stream' } });
+    } catch (_) {
+      return new Response('Not Found', { status: 404 });
+    }
+  });
+}
+
+function clearStaleLocks() {
+  const idbDir = path.join(app.getPath('userData'), 'Partitions', 'graphite', 'IndexedDB');
+  try {
+    for (const entry of fs.readdirSync(idbDir)) {
+      const lockFile = path.join(idbDir, entry, 'LOCK');
+      if (fs.existsSync(lockFile)) {
+        fs.unlinkSync(lockFile);
+        console.log('[main] cleared stale LevelDB lock:', lockFile);
+      }
+    }
+  } catch (_) {}
+}
+
 app.whenReady().then(() => {
+  clearStaleLocks();
+  registerAppProtocol(session.fromPartition('persist:graphite'));
+
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
