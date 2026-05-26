@@ -18,14 +18,16 @@ export default function Node({ selected, baseClass = 'file-node', accentColor, c
     ...(fillParent ? { width: '100%', height: '100%' } : {}),
   };
   return (
-    <div
-      className={[baseClass, selected && `${baseClass}--selected`, className].filter(Boolean).join(' ')}
-      style={Object.keys(style).length ? style : undefined}
-    >
-      <Handle type="target" position={Position.Left}  style={{ opacity: 0, pointerEvents: 'none' }} />
-      <Handle type="source" position={Position.Right} style={{ opacity: 0, pointerEvents: 'none' }} />
-      {children}
-    </div>
+    <>
+      <Handle type="target" position={Position.Left}  style={{ opacity: 0, pointerEvents: 'none', width: 1, height: 1, minWidth: 0, minHeight: 0 }} />
+      <Handle type="source" position={Position.Right} style={{ opacity: 0, pointerEvents: 'none', width: 1, height: 1, minWidth: 0, minHeight: 0 }} />
+      <div
+        className={[baseClass, selected && `${baseClass}--selected`, className].filter(Boolean).join(' ')}
+        style={Object.keys(style).length ? style : undefined}
+      >
+        {children}
+      </div>
+    </>
   );
 }
 

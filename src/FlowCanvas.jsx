@@ -990,6 +990,7 @@ export default function FlowCanvas() {
       />
 
       <div className="ide-canvas" data-anim={vcs.canvasAnim ?? undefined}>
+        {depEdges.length > 0 && console.log('[RF] depEdges:', depEdges.length, 'fileNodes:', nodesWithCallbacks.filter(n=>n.type==='file').map(n=>n.id))}
         <ReactFlow
           nodes={nodesWithCallbacks}
           edges={[...diffEdges, ...depEdges]}
