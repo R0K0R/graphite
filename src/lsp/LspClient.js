@@ -4,6 +4,10 @@
 const pending      = new Map();   // id → { resolve, reject }
 const diagHandlers = new Map();   // uri → Set<fn>
 const openDocs     = new Map();   // uri → { key, version }
+const shadows      = new Map();   // uri → shadowContent
+
+export function setShadow(uri, content) { shadows.set(uri, content); }
+export function clearShadow(uri) { shadows.delete(uri); }
 const initialized  = new Set();   // keys with completed handshake
 const starting     = new Map();   // key → Promise (dedup concurrent starts)
 
@@ -110,7 +114,7 @@ export function changeDocument(uri, text) {
   doc.version++;
   notify(doc.key, 'textDocument/didChange', {
     textDocument: { uri, version: doc.version },
-    contentChanges: [{ text }],
+    contentChanges: [{ text: shadows.get(uri) ?? text }],
   });
 }
 

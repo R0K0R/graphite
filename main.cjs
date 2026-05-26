@@ -91,6 +91,20 @@ ipcMain.handle('file:read-binary', (_e, filePath) =>
   fs.promises.readFile(filePath).then(buf => buf.toString('base64'))
 );
 
+ipcMain.handle('file:create', async (_e, filePath) => {
+  await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.promises.writeFile(filePath, '', { flag: 'wx' }); // fail if exists
+});
+
+ipcMain.handle('file:move', async (_e, srcPath, destPath) => {
+  await fs.promises.mkdir(path.dirname(destPath), { recursive: true });
+  await fs.promises.rename(srcPath, destPath);
+});
+
+ipcMain.handle('dir:create', async (_e, dirPath) => {
+  await fs.promises.mkdir(dirPath, { recursive: true });
+});
+
 // --- IPC: directory tree scanner ---
 
 const IGNORED = new Set([
@@ -321,7 +335,14 @@ ipcMain.handle('lsp:stop', (_e, key) => {
 const { createHash } = require('crypto');
 
 function gitExec(args, cwd) {
-  return execFileSync('git', args, { cwd, stdio: ['ignore', 'pipe', 'ignore'], encoding: 'utf8' }).trim();
+  try {
+    return execFileSync('git', args, { cwd, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' }).trim();
+  } catch (e) {
+    // Attach stderr to the error message so callers get actionable output
+    const stderr = e.stderr?.toString?.()?.trim();
+    if (stderr) e.message = `${e.message}\n${stderr}`;
+    throw e;
+  }
 }
 
 function gitExecSafe(args, cwd) {
@@ -567,8 +588,30 @@ ipcMain.handle('vcs:create-branch', async (_e, rootPath, name, updateB64) => {
 });
 
 ipcMain.handle('vcs:checkout', async (_e, rootPath, branchName) => {
+  let stashed = false;
   try {
+    // If a merge is in progress, abort it before switching branches.
+    // This happens when merge-preview left a MERGE_HEAD and the user navigates away.
+    if (fs.existsSync(path.join(rootPath, '.git', 'MERGE_HEAD'))) {
+      gitExecSafe(['merge', '--abort'], rootPath);
+    }
+
+    // If the working tree still has tracked changes, stash them so checkout doesn't fail.
+    // Only stash when there are no unmerged entries — stash cannot handle those.
+    const statusOut = gitExecSafe(['status', '--porcelain'], rootPath) ?? '';
+    const hasUnmerged = statusOut.split('\n').some(l => l.startsWith('UU') || l.startsWith('AA') || l.startsWith('DD'));
+    if (statusOut.trim() && !hasUnmerged) {
+      gitExec(['stash', '--include-untracked', '-m', 'graphite-auto-stash'], rootPath);
+      stashed = true;
+    }
+
     gitExec(['checkout', branchName], rootPath);
+
+    if (stashed) {
+      // Restore stashed changes on the new branch (best-effort)
+      gitExecSafe(['stash', 'pop'], rootPath);
+    }
+
     const roomCode = roomCodeForBranch(rootPath, branchName);
     const vcs = readVcsJson(rootPath);
     const branchMeta = vcs.branches[branchName] ?? {};
@@ -579,6 +622,8 @@ ipcMain.handle('vcs:checkout', async (_e, rootPath, branchName) => {
     }
     return { ok: true, roomCode, snapshotUpdate };
   } catch (e) {
+    // If we stashed but checkout failed, pop the stash back
+    if (stashed) gitExecSafe(['stash', 'pop'], rootPath);
     console.error('[VCS] checkout error', e);
     return { ok: false, error: e.message };
   }
@@ -674,6 +719,13 @@ function buildBaseNodesFromGit(rootPath, commitHash, curNodes) {
   return base;
 }
 
+ipcMain.handle('vcs:file-at-commit', (_e, rootPath, filePath, commitHash) => {
+  try {
+    const rel = path.relative(rootPath, filePath);
+    return gitExecSafe(['show', `${commitHash}:${rel}`], rootPath) ?? null;
+  } catch (_) { return null; }
+});
+
 ipcMain.handle('vcs:load-blame', (_e, rootPath) => {
   try { return readBlameJson(rootPath); } catch (_) { return {}; }
 });
@@ -691,6 +743,131 @@ ipcMain.handle('vcs:git-log', (_e, rootPath, n) => {
       return { hash, shortHash, author, timestamp: parseInt(ts, 10) * 1000, message: msgParts.join('\t') };
     });
   } catch (_) { return []; }
+});
+
+ipcMain.handle('vcs:git-blame-file', (_e, rootPath, filePath) => {
+  try {
+    const hasGit = fs.existsSync(path.join(rootPath, '.git'));
+    if (!hasGit) return null;
+    const rel = path.relative(rootPath, filePath);
+    const raw = gitExecSafe(['blame', '--porcelain', rel], rootPath);
+    if (!raw) return null;
+    // Parse porcelain format into BlameLineInfo[]
+    const lines = [];
+    let cur = null;
+    for (const line of raw.split('\n')) {
+      if (/^[0-9a-f]{40} /.test(line)) {
+        const parts = line.split(' ');
+        const finalLine = parseInt(parts[2], 10);
+        cur = { line: finalLine, hash: parts[0], author: '', authorTime: 0, summary: '' };
+      } else if (line.startsWith('author ') && cur) {
+        cur.author = line.slice(7);
+      } else if (line.startsWith('author-time ') && cur) {
+        cur.authorTime = parseInt(line.slice(12), 10);
+      } else if (line.startsWith('summary ') && cur) {
+        cur.summary = line.slice(8);
+      } else if (line.startsWith('\t') && cur) {
+        lines[cur.line - 1] = cur;
+        cur = null;
+      }
+    }
+    return lines;
+  } catch (_) { return null; }
+});
+
+ipcMain.handle('vcs:merge-preview', async (_e, rootPath, srcBranch) => {
+  try {
+    const hasGit = fs.existsSync(path.join(rootPath, '.git'));
+    if (!hasGit) return { ok: false, error: 'no git' };
+
+    // Find common ancestor
+    const ancestorHash = gitExecSafe(['merge-base', 'HEAD', srcBranch], rootPath)?.trim() ?? null;
+
+    // Load base snapshot
+    let baseNodes = [];
+    if (ancestorHash) {
+      const sp = snapshotPath(rootPath, ancestorHash);
+      if (fs.existsSync(sp)) {
+        baseNodes = decodeNodes(fs.readFileSync(sp));
+      }
+    }
+
+    // Load their snapshot
+    let theirNodes = [];
+    const vcs = readVcsJson(rootPath);
+    const theirMeta = vcs.branches?.[srcBranch];
+    if (theirMeta?.snapshotHash) {
+      const sp = snapshotPath(rootPath, theirMeta.snapshotHash);
+      if (fs.existsSync(sp)) theirNodes = decodeNodes(fs.readFileSync(sp));
+    }
+
+    // Run real git merge (no-commit so we can inspect result)
+    let fileConflicts = [];
+    try {
+      gitExec(['merge', '--no-commit', '--no-ff', srcBranch], rootPath);
+    } catch (mergeErr) {
+      // Extract all conflicted files
+      const status = gitExecSafe(['diff', '--name-only', '--diff-filter=U'], rootPath) ?? '';
+      fileConflicts = status.split('\n').map(s => s.trim()).filter(Boolean);
+    }
+
+    // .graphite/ is managed entirely by Graphite — always resolve its conflicts to "ours"
+    // so that checkout, stash, and commit never get blocked by vcs.json / blame.json conflicts.
+    const graphiteConflicts = fileConflicts.filter(f => f.startsWith('.graphite/'));
+    if (graphiteConflicts.length) {
+      gitExecSafe(['checkout', '--ours', '.graphite/'], rootPath);
+      gitExecSafe(['add', '.graphite/'], rootPath);
+      fileConflicts = fileConflicts.filter(f => !f.startsWith('.graphite/'));
+    }
+
+    return { ok: true, baseNodes, theirNodes, fileConflicts, isTwoWay: baseNodes.length === 0 };
+  } catch (e) {
+    console.error('[VCS] merge-preview error', e);
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('vcs:merge-finalize', async (_e, rootPath, resolvedUpdateB64) => {
+  try {
+    const updateBuf = decodeUpdate(resolvedUpdateB64);
+
+    gitExec(['add', '.graphite/'], rootPath);
+
+    // Use --no-edit if a merge is in progress (MERGE_HEAD exists), otherwise plain commit
+    const hasMergeHead = fs.existsSync(path.join(rootPath, '.git', 'MERGE_HEAD'));
+    if (hasMergeHead) {
+      gitExec(['commit', '--no-edit'], rootPath);
+    } else {
+      const srcBranch = gitExecSafe(['rev-parse', '--abbrev-ref', 'MERGE_HEAD'], rootPath) ?? 'branch';
+      gitExec(['commit', '-m', `Merge ${srcBranch}`, '--allow-empty'], rootPath);
+    }
+    const finalHash = gitExecSafe(['rev-parse', 'HEAD'], rootPath)?.trim();
+
+    // Write snapshot under the real merge commit hash
+    if (finalHash) {
+      const sp = snapshotPath(rootPath, finalHash);
+      fs.mkdirSync(path.dirname(sp), { recursive: true });
+      fs.writeFileSync(sp, updateBuf);
+      // Amend to include the snapshot file
+      gitExec(['add', '.graphite/'], rootPath);
+      gitExec(['commit', '--amend', '--no-edit'], rootPath);
+    }
+
+    const realHash = gitExecSafe(['rev-parse', 'HEAD'], rootPath)?.trim();
+    return { ok: true, gitHash: realHash ?? finalHash };
+  } catch (e) {
+    console.error('[VCS] merge-finalize error', e);
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('vcs:merge-abort', (_e, rootPath) => {
+  try {
+    gitExecSafe(['merge', '--abort'], rootPath);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
 });
 
 ipcMain.handle('vcs:git-branches', (_e, rootPath) => {
@@ -812,7 +989,8 @@ const PROVIDERS = {
   ollama:    () => require('./lib/agent/providers/ollama.js'),
 };
 
-ipcMain.on('agent:run', async (_e, { prompt, context, agentConfig }) => {
+ipcMain.on('agent:run', async (_e, { prompt, context }) => {
+  const agentConfig = context?.agentConfig ?? {};
   if (_agentAbort) _agentAbort.abort();
   _agentAbort = new AbortController();
   const signal = _agentAbort.signal;
@@ -856,6 +1034,29 @@ ipcMain.handle('agent:list-models', async (_e, agentConfig) => {
     gemini:    ['gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'],
   };
   return LISTS[cfg.provider] ?? [];
+});
+
+ipcMain.handle('agent:repair', async (_e, { rootPath, lang, code }) => {
+  let cfg = {};
+  try { cfg = JSON.parse(await fs.promises.readFile(path.join(rootPath, '.graphite', 'config.json'), 'utf8')); } catch {}
+  const agentConfig = cfg.agent ?? {};
+  let provider;
+  try { provider = PROVIDERS[agentConfig.provider ?? 'anthropic']?.(); } catch { return null; }
+  if (!provider) return null;
+  let result = '';
+  const prompt = `Fix the syntax errors in this ${lang} code. These are transient errors from real-time collaborative editing — another user's in-progress keystrokes created an intermediate invalid state. Preserve all developers' intent exactly. Return ONLY the fixed code with no explanation or markdown fences.\n\n${code}`;
+  try {
+    await provider.run({
+      prompt,
+      context: { agentConfig, rootPath, filePaths: [] },
+      tools: [],
+      agentConfig,
+      onText: t => { result += t; },
+      onToolCall: async () => null,
+      signal: new AbortController().signal,
+    });
+    return result.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim() || null;
+  } catch { return null; }
 });
 
 // --- App lifecycle ---

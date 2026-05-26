@@ -1,6 +1,31 @@
 import { getCompletion, getHover } from './LspClient.js';
+import { getBlameForLine } from '../vcs/blameCache.js';
 
 const registered = new Set();
+let blameProviderRegistered = false;
+
+function timeAgo(ts) {
+  if (!ts) return '';
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60)    return `${s}s ago`;
+  if (s < 3600)  return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
+
+export function initBlameProvider(monaco) {
+  if (blameProviderRegistered) return;
+  blameProviderRegistered = true;
+  monaco.languages.registerHoverProvider({ scheme: 'file' }, {
+    provideHover(model, position) {
+      const info = getBlameForLine(model.uri.toString(), position.lineNumber);
+      if (!info) return null;
+      const ago = timeAgo(info.authorTime * 1000);
+      const value = `**${info.author}** · \`${info.hash.slice(0, 7)}\` · ${info.summary} · ${ago}`;
+      return { contents: [{ value }] };
+    },
+  });
+}
 
 // LSP CompletionItemKind → Monaco CompletionItemKind
 const COMPLETION_KIND = {

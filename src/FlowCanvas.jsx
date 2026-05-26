@@ -12,18 +12,21 @@ import { useYNodes } from './crdt/useYNodes.js';
 import { initRoom, destroyProviders, getDoc, getYText, getAwareness, getYNodes } from './crdt/doc.js';
 import { dispatch as agentDispatch } from './agent/agentBridge.js';
 import AgentPanel from './components/AgentPanel.jsx';
+import UnifiedDiff from './components/UnifiedDiff.jsx';
 import { generateRoomCode } from './utils/wordlist.js';
 
 import ChaperonNode from './components/nodes/ScriptNode.jsx';
 import RegionNode from './components/nodes/RegionNode.jsx';
 import FileNode from './components/nodes/FileNode.jsx';
 import DiffGhostNode from './components/nodes/DiffGhostNode.jsx';
+import MergeGhostNode from './components/nodes/MergeGhostNode.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import StatusBar from './components/StatusBar.jsx';
 import PrefsPopup from './components/PrefsPopup.jsx';
 import SessionPanel from './components/SessionPanel.jsx';
 import BranchBar from './components/BranchBar.jsx';
 import DiffPanel from './components/DiffPanel.jsx';
+import MergePanel from './components/MergePanel.jsx';
 import { usePeers } from './crdt/usePeers.js';
 import { useVcs } from './vcs/useVcs.js';
 import { CATEGORIES } from './data/modules.js';
@@ -39,6 +42,7 @@ const NODE_TYPES = {
   region: RegionNode,
   file: FileNode,
   'diff-ghost': DiffGhostNode,
+  'merge-ghost': MergeGhostNode,
 };
 
 export default function FlowCanvas() {
@@ -49,10 +53,14 @@ export default function FlowCanvas() {
   const [showSession, setShowSession]       = useState(false);
   const [showAgent, setShowAgent]           = useState(false);
   const [agentScopedFile, setAgentScopedFile] = useState(null);
+  const [contentDiff, setContentDiff]       = useState(null); // { filePath, oldText, newText }
+  const [namePrompt, setNamePrompt]         = useState(null); // { kind: 'file'|'region', resolve }
+  const [namePromptValue, setNamePromptValue] = useState('');
   const peers = usePeers();
   const [hoveredNodeId, setHoveredNodeId]   = useState(null);
   const [focusedNodeId, setFocusedNodeId]   = useState(null);
   const [draggingNodeId, setDraggingNodeId] = useState(null);
+  const [ctrlDragOver, setCtrlDragOver]     = useState(null); // regionId the Ctrl-dragged node hovers over
   const [editMode, setEditMode]             = useState(false);
   const [accessStack, setAccessStack]       = useState([]); // nodeIds, most recently accessed last → highest z-index
 
@@ -426,20 +434,33 @@ export default function FlowCanvas() {
     setNodes(nds => [...nds, mkScriptNode(id, { x: 200, y: 200 })]);
   }, [setNodes]);
 
-  const addRegionNode = useCallback(() => {
-    const id = `region_${Date.now()}`;
-    const count = nodes.filter(n => n.type === 'region').length + 1;
-    setNodes(nds => [...nds, mkRegion(id, `Region ${count}`, { x: 200, y: 200 })]);
-  }, [nodes, setNodes]);
+  // Prompt the user for a name then create the node + file/dir on disk
+  function promptName(kind) {
+    return new Promise(resolve => {
+      setNamePromptValue('');
+      setNamePrompt({ kind, resolve });
+    });
+  }
 
-  const addFileNode = useCallback(() => {
+  const addRegionNode = useCallback(async () => {
+    const name = await promptName('region');
+    if (!name) return;
+    const id = `region_${Date.now()}`;
+    const dirPath = rootPath ? `${rootPath}/${name}` : null;
+    if (dirPath && window.electronAPI) await window.electronAPI.createDir(dirPath).catch(() => {});
+    setNodes(nds => [...nds, mkRegion(id, name, { x: 200, y: 200 }, dirPath)]);
+  }, [rootPath, setNodes]);
+
+  const addFileNode = useCallback(async () => {
+    const name = await promptName('file');
+    if (!name) return;
     const id = `file_${Date.now()}`;
-    setNodes(nds => [...nds, mkFileNode(id, { x: 200, y: 200 })]);
-  }, [setNodes]);
+    const filePath = rootPath ? `${rootPath}/${name}` : null;
+    if (filePath && window.electronAPI) await window.electronAPI.createFile(filePath).catch(() => {});
+    setNodes(nds => [...nds, mkFileNode(id, { x: 200, y: 200 }, filePath ? { filePath } : {})]);
+  }, [rootPath, setNodes]);
 
   const handleNodesChange = useCallback((changes) => {
-    // Don't let ReactFlow's measurement of the expanded node overwrite its real
-    // stored dimensions in Yjs — that would make the node stay wide after shrink.
     const expandedId = expandedNodeIdRef.current;
     const shrinkingId = shrinkingNodeIdRef.current;
     const filtered = changes.filter(c =>
@@ -449,15 +470,48 @@ export default function FlowCanvas() {
       ))
     );
 
+    // Feature 3: when a region moves, apply the same delta to all its children
+    const extraChanges = [];
+    const nds = nodesRef.current;
+    for (const c of filtered) {
+      if (c.type !== 'position' || !c.position) continue;
+      const node = nds.find(n => n.id === c.id);
+      if (node?.type !== 'region') continue;
+      const dx = c.position.x - node.position.x;
+      const dy = c.position.y - node.position.y;
+      if (dx === 0 && dy === 0) continue;
+      // Collect all descendants recursively
+      const toMove = [];
+      const stack = [...(node.data?.children ?? [])];
+      const visited = new Set();
+      while (stack.length) {
+        const cid = stack.pop();
+        if (visited.has(cid)) continue;
+        visited.add(cid);
+        const child = nds.find(n => n.id === cid);
+        if (!child) continue;
+        toMove.push(child);
+        if (child.type === 'region') stack.push(...(child.data?.children ?? []));
+      }
+      for (const child of toMove) {
+        extraChanges.push({
+          type: 'position',
+          id: child.id,
+          position: { x: child.position.x + dx, y: child.position.y + dy },
+          dragging: c.dragging,
+        });
+      }
+    }
+
     filtered.forEach(c => {
       if (c.type === 'remove') {
-        const node = nodesRef.current.find(n => n.id === c.id);
+        const node = nds.find(n => n.id === c.id);
         if (node?.type === 'file' && node.data.filePath && window.electronAPI) {
           window.electronAPI.unwatchFile(node.data.filePath);
         }
       }
     });
-    onNodesChange(filtered);
+    onNodesChange([...filtered, ...extraChanges]);
 
     clearTimeout(metaTimer.current);
     metaTimer.current = setTimeout(() => {
@@ -484,7 +538,7 @@ export default function FlowCanvas() {
             };
           }).filter(Boolean),
         };
-        window.electronAPI?.writeMetadata(rootPath, region.data.dirPath, metadata);
+        if (rootPath && region.data.dirPath) window.electronAPI?.writeMetadata(rootPath, region.data.dirPath, metadata);
       });
     }, 800);
   }, [onNodesChange]);
@@ -558,15 +612,15 @@ export default function FlowCanvas() {
       ...node,
       position,
       style,
-      draggable: !isRegion,
+      draggable: true,
       className: isMagnified ? (focusedNodeId ? 'node-state-focused' : 'node-state-hovered') : '',
       zIndex: isRegion ? 0 : 10 + (accessStack.indexOf(node.id) + 1),
       data: {
         ...node.data,
         ...(node.type === 'chaperonin' ? { onChangeParam } : {}),
-        ...(isRegion                   ? { onToggleCollapse: toggleRegionCollapse, onLinkDir } : {}),
+        ...(isRegion                   ? { onToggleCollapse: toggleRegionCollapse, onLinkDir, isCtrlDragTarget: ctrlDragOver === node.id } : {}),
         ...(node.type === 'file'       ? {
-          onContentChange, onFilePicked, rootPath, onEditorFocus, onEditorBlur,
+          onContentChange, onFilePicked, rootPath, hasGit: vcs.hasGit, onEditorFocus, onEditorBlur,
           expanded: isExpanded,
           peerColors: peers.filter(p => !p.isLocal && p.focusedNode === node.id).map(p => p.color),
           blameInfo: vcs.blameMap[node.id] ?? null,
@@ -636,6 +690,59 @@ export default function FlowCanvas() {
     }
   }
 
+  // Merge overlay ghost injection
+  const { mergeMode } = vcs;
+  if (mergeMode) {
+    const { conflicts, theirAdded, resolutions } = mergeMode;
+    const onAcceptMergeNode = vcs.acceptMergeNode;
+
+    for (const [id, { theirs }] of conflicts) {
+      if (resolutions.has(id)) continue;
+      nodesWithCallbacks.push({
+        id: 'merge:' + id,
+        type: 'merge-ghost',
+        position: theirs.position ?? { x: 0, y: 0 },
+        style: {
+          width: theirs.width ?? 280,
+          height: theirs.height ?? 160,
+          zIndex: 20,
+        },
+        draggable: false,
+        selectable: false,
+        data: {
+          mergeType: 'conflict',
+          nodeId: id,
+          nodeType: theirs.type,
+          label: theirs.data?.filePath ?? theirs.data?.label ?? id,
+          onAcceptMergeNode,
+        },
+      });
+    }
+
+    for (const theirNode of theirAdded) {
+      if (resolutions.has(theirNode.id)) continue;
+      nodesWithCallbacks.push({
+        id: 'merge:' + theirNode.id,
+        type: 'merge-ghost',
+        position: theirNode.position ?? { x: 0, y: 0 },
+        style: {
+          width: theirNode.width ?? 280,
+          height: theirNode.height ?? 160,
+          zIndex: 20,
+        },
+        draggable: false,
+        selectable: false,
+        data: {
+          mergeType: 'added',
+          nodeId: theirNode.id,
+          nodeType: theirNode.type,
+          label: theirNode.data?.filePath ?? theirNode.data?.label ?? theirNode.id,
+          onAcceptMergeNode,
+        },
+      });
+    }
+  }
+
   return (
     <PrefsContext.Provider value={{ theme, regionAlpha, hoverScale, dimScale, hoverDelay, focusZoom }}>
     <div className="ide-shell">
@@ -654,7 +761,6 @@ export default function FlowCanvas() {
         <div className="titlebar-sep" />
 
         <button className="titlebar-btn" onClick={addFileNode}>file</button>
-        <button className="titlebar-btn" onClick={addScriptNode}>script</button>
         <button className="titlebar-btn" onClick={addRegionNode}>region</button>
 
         <div className="titlebar-sep" />
@@ -718,10 +824,12 @@ export default function FlowCanvas() {
         currentBranch={vcs.currentBranch}
         isDirty={vcs.isDirty}
         gitLog={vcs.gitLog}
+        mergeMode={vcs.mergeMode}
         onCommit={vcs.commit}
         onCreateBranch={vcs.createBranch}
         onCheckout={vcs.checkout}
         onShowDiff={vcs.showDiff}
+        onStartMerge={vcs.startMerge}
       />
 
       <div className="ide-canvas" data-anim={vcs.canvasAnim ?? undefined}>
@@ -748,8 +856,88 @@ export default function FlowCanvas() {
               markAccessed(node.id);
             }, hoverDelay);
           }}
-          onNodeDragStart={(_, node) => { setDraggingNodeId(node.id); markAccessed(node.id); }}
-          onNodeDragStop={() => setDraggingNodeId(null)}
+          onNodeClick={async (_, node) => {
+            if (!vcs.diffMode || !rootPath || !window.electronAPI) return;
+            const d = vcs.diffMode.diffById.get(node.id);
+            if (d?.type !== 'modified') return;
+            const filePath = node.data?.filePath;
+            if (!filePath) return;
+            const oldText = await window.electronAPI.vcsFileAtCommit(rootPath, filePath, vcs.diffMode.fromHash);
+            const newText = getYText(filePath).toString();
+            setContentDiff({ filePath, oldText: oldText ?? '', newText });
+          }}
+          onNodeDragStart={(event, node) => {
+            setDraggingNodeId(node.id);
+            markAccessed(node.id);
+            // Ctrl+drag: immediately detach the node from its current region
+            if (event.ctrlKey && node.type === 'file') {
+              const parentId = childParentMap.get(node.id);
+              if (parentId) {
+                setNodes(nds => nds.map(n =>
+                  n.id === parentId
+                    ? { ...n, data: { ...n.data, children: n.data.children.filter(c => c !== node.id) } }
+                    : n
+                ));
+              }
+            }
+          }}
+          onNodeDrag={(event, node) => {
+            if (!event.ctrlKey || node.type !== 'file') {
+              if (ctrlDragOver) setCtrlDragOver(null);
+              return;
+            }
+            const cx = node.position.x + (node.width ?? 280) / 2;
+            const cy = node.position.y + (node.height ?? 160) / 2;
+            let hit = null;
+            for (const [rid, b] of regionBoundsRef.current) {
+              if (!b) continue;
+              if (cx >= b.position.x && cx <= b.position.x + b.width &&
+                  cy >= b.position.y && cy <= b.position.y + b.height) {
+                hit = rid;
+                break;
+              }
+            }
+            if (hit !== ctrlDragOver) setCtrlDragOver(hit);
+          }}
+          onNodeDragStop={(event, node) => {
+            setDraggingNodeId(null);
+            if (!event.ctrlKey || node.type !== 'file' || !ctrlDragOver) {
+              setCtrlDragOver(null);
+              return;
+            }
+            const destRegion = nodesRef.current.find(n => n.id === ctrlDragOver);
+            setCtrlDragOver(null);
+            if (!destRegion) return;
+            // Attach node to dest region and move file if region has a dirPath
+            const srcPath = node.data?.filePath;
+            const doMove = !!(srcPath && destRegion.data?.dirPath);
+            const destPath = doMove ? `${destRegion.data.dirPath}/${srcPath.split('/').pop()}` : null;
+            const applyAttach = () => {
+              // Migrate Y.Text content from old path to new path before the node
+              // filePath changes, so Monaco binds to a populated Y.Text not an empty one.
+              if (doMove && srcPath !== destPath) {
+                const oldYText = getYText(srcPath);
+                const newYText = getYText(destPath);
+                const content = oldYText.toString();
+                getDoc().transact(() => {
+                  newYText.delete(0, newYText.length);
+                  newYText.insert(0, content);
+                });
+              }
+              setNodes(nds => nds.map(n => {
+                if (n.id === destRegion.id)
+                  return { ...n, data: { ...n.data, children: [...new Set([...(n.data.children ?? []), node.id])] } };
+                if (doMove && n.id === node.id)
+                  return { ...n, data: { ...n.data, filePath: destPath } };
+                return n;
+              }));
+            };
+            if (doMove && srcPath !== destPath) {
+              window.electronAPI?.moveFile(srcPath, destPath).then(applyAttach).catch(err => console.error('[move file]', err));
+            } else {
+              applyAttach();
+            }
+          }}
           onNodeMouseLeave={() => { clearTimeout(hoverTimer.current); setHoveredNodeId(null); }}
         >
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1a2235" />
@@ -758,6 +946,11 @@ export default function FlowCanvas() {
             diffMode={vcs.diffMode}
             onExit={vcs.exitDiff}
             onOpacityChange={vcs.setDiffOpacity}
+          />
+          <MergePanel
+            mergeMode={vcs.mergeMode}
+            onFinalize={() => vcs.finalizeMerge()}
+            onAbort={vcs.abortMerge}
           />
           <MiniMap
             nodeColor={n => {
@@ -779,6 +972,58 @@ export default function FlowCanvas() {
         rootPath={rootPath}
         scopedFilePath={agentScopedFile}
       />
+
+      {contentDiff && (
+        <div className="content-diff-overlay" onClick={() => setContentDiff(null)}>
+          <div className="content-diff-panel" onClick={e => e.stopPropagation()}>
+            <div className="content-diff-header">
+              <span className="content-diff-title">{contentDiff.filePath.split('/').pop()}</span>
+              <span className="content-diff-subtitle">{vcs.diffMode?.fromHash?.slice(0,7)} → now</span>
+              <button className="session-close" onClick={() => setContentDiff(null)}>×</button>
+            </div>
+            <div className="content-diff-body">
+              <UnifiedDiff oldText={contentDiff.oldText} newText={contentDiff.newText} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {namePrompt && (
+        <div className="content-diff-overlay" onClick={() => { namePrompt.resolve(null); setNamePrompt(null); }}>
+          <div className="name-prompt-panel" onClick={e => e.stopPropagation()}>
+            <div className="name-prompt-title">
+              {namePrompt.kind === 'file' ? 'New file' : 'New region'}
+            </div>
+            <input
+              className="name-prompt-input"
+              placeholder={namePrompt.kind === 'file' ? 'filename.js' : 'directory-name'}
+              value={namePromptValue}
+              onChange={e => setNamePromptValue(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && namePromptValue.trim()) {
+                  namePrompt.resolve(namePromptValue.trim());
+                  setNamePrompt(null);
+                } else if (e.key === 'Escape') {
+                  namePrompt.resolve(null);
+                  setNamePrompt(null);
+                }
+              }}
+              autoFocus
+            />
+            <div className="name-prompt-actions">
+              <button className="session-btn session-btn--primary"
+                disabled={!namePromptValue.trim()}
+                onClick={() => { namePrompt.resolve(namePromptValue.trim()); setNamePrompt(null); }}>
+                create
+              </button>
+              <button className="session-btn"
+                onClick={() => { namePrompt.resolve(null); setNamePrompt(null); }}>
+                cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <SessionPanel
         open={showSession}

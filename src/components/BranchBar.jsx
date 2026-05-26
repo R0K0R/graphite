@@ -10,8 +10,8 @@ function timeAgo(ts) {
 }
 
 export default function BranchBar({
-  hasGit, branches, currentBranch, isDirty, gitLog,
-  onCommit, onCreateBranch, onCheckout, onShowDiff,
+  hasGit, branches, currentBranch, isDirty, gitLog, mergeMode,
+  onCommit, onCreateBranch, onCheckout, onShowDiff, onStartMerge,
 }) {
   const [showDropdown, setShowDropdown]     = useState(false);
   const [showCommitInput, setShowCommitInput] = useState(false);
@@ -73,10 +73,23 @@ export default function BranchBar({
             <div
               key={b}
               className={`branch-dropdown-item${b === currentBranch ? ' active' : ''}`}
-              onClick={() => { onCheckout(b); setShowDropdown(false); }}
             >
-              <div className="branch-dot" style={{ opacity: b === currentBranch ? 1 : 0.4 }} />
-              {b}
+              <span
+                style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+                onClick={() => { onCheckout(b); setShowDropdown(false); }}
+              >
+                <div className="branch-dot" style={{ opacity: b === currentBranch ? 1 : 0.4 }} />
+                {b}
+              </span>
+              {b !== currentBranch && !mergeMode && (
+                <button
+                  className="branch-merge-btn"
+                  title={`Merge ${b} into ${currentBranch}`}
+                  onClick={e => { e.stopPropagation(); onStartMerge?.(b); setShowDropdown(false); }}
+                >
+                  ↓ merge
+                </button>
+              )}
             </div>
           ))}
           {showNewBranch ? (

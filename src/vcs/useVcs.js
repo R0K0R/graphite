@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import * as Y from 'yjs';
 import { roomCodeForBranch, readVcsJson, setBranchMeta } from './branchStore.js';
 import { computeNodeDiff } from './computeNodeDiff.js';
+import { computeMerge } from './mergeUtils.js';
 import { captureUpdate, getYNodes, getDoc, initRoom } from '../crdt/doc.js';
 
 // Converts a base64 string (from IPC) to Uint8Array
@@ -23,6 +24,7 @@ export function useVcs(rootPath) {
   const [canvasAnim, setCanvasAnim]       = useState(null);
   const [blameMap, setBlameMap]           = useState({});
   const [pendingTreeRefresh, setPendingTreeRefresh] = useState(false);
+  const [mergeMode, setMergeMode]         = useState(null);
   const baseSnapshotRef = useRef(null); // Uint8Array of last committed snapshot
 
   // Track Yjs changes to detect dirty state
@@ -151,6 +153,67 @@ export function useVcs(rootPath) {
     setDiffMode(prev => prev ? { ...prev, baseOpacity: v } : null);
   }, []);
 
+  const startMerge = useCallback(async (sourceBranch) => {
+    if (!rootPath || !window.electronAPI) return;
+    const ourNodes = Array.from(getYNodes().values());
+    const res = await window.electronAPI.vcsMergePreview(rootPath, sourceBranch);
+    if (!res?.ok) { console.error('[VCS] merge-preview failed', res?.error); return; }
+    const { baseNodes, theirNodes, fileConflicts, isTwoWay } = res;
+    const { conflicts, theirAdded, theirRemoved } = computeMerge(baseNodes, ourNodes, theirNodes);
+    setMergeMode({
+      sourceBranch,
+      conflicts,
+      theirAdded,
+      theirRemoved,
+      fileConflicts: fileConflicts ?? [],
+      resolutions: new Map(),
+      isTwoWay: isTwoWay ?? false,
+    });
+  }, [rootPath]);
+
+  const acceptMergeNode = useCallback((nodeId, side) => {
+    setMergeMode(prev => {
+      if (!prev) return null;
+      // Apply the resolution to Yjs immediately
+      const yNodes = getYNodes();
+      if (side === 'theirs') {
+        const conflict = prev.conflicts.get(nodeId);
+        const addedNode = prev.theirAdded.find(n => n.id === nodeId);
+        const theirNode = conflict?.theirs ?? addedNode;
+        if (theirNode) {
+          // Snapshot nodes are already stripped of callbacks by captureUpdate
+          yNodes.set(nodeId, theirNode);
+        }
+      }
+      // 'ours' and 'dismiss' → keep current Yjs state (no write needed)
+      const resolutions = new Map(prev.resolutions);
+      resolutions.set(nodeId, side);
+      return { ...prev, resolutions };
+    });
+  }, []);
+
+  const finalizeMerge = useCallback(async (getNodesSnapshot) => {
+    if (!rootPath || !window.electronAPI || !mergeMode) return;
+    const update = captureUpdate();
+    const b64 = btoa(String.fromCharCode(...update));
+    const res = await window.electronAPI.vcsMergeFinalize(rootPath, b64);
+    if (res?.ok) {
+      baseSnapshotRef.current = update;
+      setIsDirty(false);
+      setMergeMode(null);
+      await refreshLog(rootPath);
+      const blame = await window.electronAPI.vcsLoadBlame(rootPath);
+      if (blame) setBlameMap(blame);
+    }
+    return res;
+  }, [rootPath, mergeMode, refreshLog]);
+
+  const abortMerge = useCallback(async () => {
+    if (!rootPath || !window.electronAPI) return;
+    await window.electronAPI.vcsMergeAbort(rootPath);
+    setMergeMode(null);
+  }, [rootPath]);
+
   // Listen for git branch changes triggered externally (e.g. user runs `git checkout` in terminal)
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -163,9 +226,9 @@ export function useVcs(rootPath) {
 
   return {
     hasGit, branches, currentBranch, isDirty, gitLog, blameMap,
-    diffMode, canvasAnim, pendingTreeRefresh,
+    diffMode, canvasAnim, pendingTreeRefresh, mergeMode,
     init, commit, createBranch, checkout, showDiff, exitDiff, setDiffOpacity,
-    clearPendingTreeRefresh,
+    clearPendingTreeRefresh, startMerge, acceptMergeNode, finalizeMerge, abortMerge,
   };
 }
 

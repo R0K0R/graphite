@@ -9,12 +9,11 @@ export function mkScriptNode(id, position) {
   };
 }
 
-export function mkRegion(id, label, position) {
+export function mkRegion(id, label, position, dirPath = null) {
   return {
     id, type: 'region', position,
-    draggable: false,
     style: { width: 300, height: 200 },
-    data: { label, dirPath: null, children: [] },
+    data: { label, dirPath, children: [] },
   };
 }
 

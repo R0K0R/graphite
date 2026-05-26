@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { onAgentEvent, getDraft } from '../../agent/agentBridge.js';
 import { acceptDraft, rejectDraft } from '../../agent/applyDraft.js';
+import UnifiedDiff from '../UnifiedDiff.jsx';
 import Editor from '@monaco-editor/react';
 import { usePrefs } from '../../ThemeContext.js';
 import * as lspClient from '../../lsp/LspClient.js';
-import { registerProviders, applyDiagnostics } from '../../lsp/monacoProviders.js';
+import { startWatchdog } from '../../lsp/watchdog.js';
+import { registerProviders, applyDiagnostics, initBlameProvider } from '../../lsp/monacoProviders.js';
+import { setBlame, clearBlame } from '../../vcs/blameCache.js';
 import { bindMonaco } from '../../crdt/monacoBinding.js';
 import { getYText, onRoomChange } from '../../crdt/doc.js';
 import Node, { PeerDots, BlameDot } from './Node.jsx';
@@ -41,8 +44,10 @@ export function basename(filePath) {
 }
 
 export default function CodeNode({ id, data, selected }) {
-  const { filePath, onFilePicked, expanded, rootPath, onEditorFocus, onEditorBlur, peerColors, blameInfo, onAskAgent } = data;
-  const [hasPendingDraft, setHasPendingDraft] = useState(() => filePath ? !!getDraft(filePath) : false);
+  const { filePath, onFilePicked, expanded, rootPath, hasGit, onEditorFocus, onEditorBlur, peerColors, blameInfo, onAskAgent } = data;
+  const [pendingDraft, setPendingDraft] = useState(() => filePath ? getDraft(filePath) : null);
+  const [lspShadowStatus, setLspShadowStatus] = useState('clean');
+  const hasPendingDraft = !!pendingDraft;
   const writeTimer     = useRef(null);
   const lspChangeTimer = useRef(null);
   const editorRef      = useRef(null);
@@ -66,10 +71,20 @@ export default function CodeNode({ id, data, selected }) {
     return onAgentEvent(event => {
       if ((event.type === 'file-draft' && event.path === filePath) ||
           (event.type === 'draft-cleared' && event.path === filePath)) {
-        setHasPendingDraft(!!getDraft(filePath));
+        setPendingDraft(getDraft(filePath));
       }
     });
   }, [filePath]);
+
+  // Fetch git blame for this file and populate the shared blame cache
+  useEffect(() => {
+    if (!filePath || !rootPath || !hasGit || !window.electronAPI?.vcsGitBlameFile) return;
+    const uri = 'file://' + filePath;
+    window.electronAPI.vcsGitBlameFile(rootPath, filePath).then(lines => {
+      if (lines) setBlame(uri, lines);
+    });
+    return () => clearBlame(uri);
+  }, [filePath, rootPath, hasGit]);
 
   useEffect(() => {
     if (!expanded && editorRef.current) {
@@ -118,18 +133,23 @@ export default function CodeNode({ id, data, selected }) {
       activeYText.observe(onYChange);
     });
 
-    // LSP setup
+    // LSP + blame hover setup
     registerProviders(monaco, lang);
+    initBlameProvider(monaco);
     const workspaceRoot = rootPath ?? filePath.slice(0, filePath.lastIndexOf('/'));
     const key = await lspClient.startServer(workspaceRoot, lang);
     if (key) {
       const uri = 'file://' + filePath;
       lspUriRef.current = uri;
       lspClient.openDocument(key, uri, lang, editor.getValue());
+      const watchdog = startWatchdog(uri, editor, monaco, lang, workspaceRoot, setLspShadowStatus);
       editor.onDidChangeModelContent(() => {
         clearTimeout(lspChangeTimer.current);
         lspChangeTimer.current = setTimeout(() => {
-          if (lspUriRef.current) lspClient.changeDocument(lspUriRef.current, editor.getValue());
+          if (lspUriRef.current) {
+            lspClient.changeDocument(lspUriRef.current, editor.getValue());
+            watchdog.tick();
+          }
         }, 200);
       });
       const unsubDiag = lspClient.onDiagnostics(uri, diags => {
@@ -137,6 +157,7 @@ export default function CodeNode({ id, data, selected }) {
         if (model) applyDiagnostics(monaco, model, diags);
       });
       unsubDiagRef.current = () => {
+        watchdog.teardown();
         unbind();
         activeYText.unobserve(onYChange);
         unsubDiskRoom();
@@ -158,6 +179,11 @@ export default function CodeNode({ id, data, selected }) {
         {filePath && <span className="file-node-lang">{lang}</span>}
         <PeerDots colors={peerColors} />
         <BlameDot blameInfo={blameInfo} />
+        {(lspShadowStatus === 'repairing' || lspShadowStatus === 'shadowed') && (
+          <span className="lsp-shadow-badge" title={lspShadowStatus === 'repairing' ? 'LSP repairing…' : 'LSP using shadow'}>
+            {lspShadowStatus === 'repairing' ? '◌' : '◈'}
+          </span>
+        )}
         {hasPendingDraft && (
           <span className="agent-draft-badge nodrag" title="Agent proposed changes">AI draft</span>
         )}
@@ -173,18 +199,26 @@ export default function CodeNode({ id, data, selected }) {
         )}
       </div>
       {hasPendingDraft && filePath && (
-        <div className="agent-draft-bar nodrag">
-          <span className="agent-draft-bar-label">◈ AI proposed changes</span>
-          <button className="session-btn session-btn--primary" style={{ padding: '2px 10px', fontSize: 10 }}
-            onClick={() => acceptDraft(filePath)}>accept</button>
-          <button className="session-btn" style={{ padding: '2px 10px', fontSize: 10 }}
-            onClick={() => rejectDraft(filePath)}>reject</button>
+        <div className="agent-draft-bar nodrag" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 0, padding: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px' }}>
+            <span className="agent-draft-bar-label">◈ AI proposed changes</span>
+            <button className="session-btn session-btn--primary" style={{ padding: '2px 10px', fontSize: 10 }}
+              onClick={() => { acceptDraft(filePath); setPendingDraft(null); }}>accept</button>
+            <button className="session-btn" style={{ padding: '2px 10px', fontSize: 10 }}
+              onClick={() => { rejectDraft(filePath); setPendingDraft(null); }}>reject</button>
+          </div>
+          {pendingDraft && (
+            <div className="agent-draft-diff">
+              <UnifiedDiff oldText={pendingDraft.oldContent} newText={pendingDraft.newContent} maxLines={80} />
+            </div>
+          )}
         </div>
       )}
       {filePath && <div className="file-node-path">{filePath}</div>}
       {filePath ? (
         <div className="file-code-container nodrag nowheel" style={expanded ? undefined : { height: 300 }} onFocus={() => onEditorFocus?.(id)} onBlur={onEditorBlur}>
           <Editor
+            key={filePath}
             height={expanded ? '100%' : '300px'}
             path={'file://' + filePath}
             language={lang}

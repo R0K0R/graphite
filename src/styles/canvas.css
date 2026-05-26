@@ -1885,3 +1885,131 @@ body {
   border-bottom: 1px solid var(--accent-dim); font-size: 11px;
 }
 .agent-draft-bar-label { flex: 1; color: var(--accent); font-size: 10px; }
+
+/* UnifiedDiff component */
+.unified-diff {
+  font-family: var(--font-mono); font-size: 11px; line-height: 1.5;
+  overflow-x: auto; background: var(--bg);
+}
+.udiff-line { display: flex; white-space: pre; }
+.udiff-line--insert { background: rgba(80, 200, 120, 0.12); color: #7ec897; }
+.udiff-line--delete { background: rgba(220, 80, 80, 0.12); color: #e07070; }
+.udiff-line--equal { color: var(--muted); }
+.udiff-line--separator { color: var(--accent-dim); font-style: italic; padding-left: 20px; }
+.udiff-line--clipped { color: var(--muted); font-style: italic; padding-left: 20px; }
+.udiff-gutter { width: 14px; flex-shrink: 0; opacity: 0.7; text-align: center; }
+.udiff-text { flex: 1; padding-left: 4px; }
+
+/* Content diff overlay (VCS node click) */
+.content-diff-overlay {
+  position: absolute; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center;
+}
+.content-diff-panel {
+  background: var(--bg-panel); border: 1px solid var(--border);
+  border-radius: 10px; width: 680px; max-height: 80vh;
+  display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.content-diff-header {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 10px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.content-diff-title { font-weight: 600; font-size: 13px; }
+.content-diff-subtitle { font-size: 10px; color: var(--muted); font-family: var(--font-mono); }
+.content-diff-close {
+  margin-left: auto; background: none; border: none; color: var(--muted);
+  font-size: 16px; cursor: pointer; padding: 0 4px; line-height: 1;
+}
+.content-diff-close:hover { color: var(--text); }
+.content-diff-body { overflow-y: auto; padding: 10px 14px; flex: 1; }
+
+/* Agent draft diff preview in CodeNode */
+.agent-draft-diff {
+  max-height: 180px; overflow-y: auto;
+  border-top: 1px solid var(--accent-dim); padding: 6px 0;
+}
+
+/* MergeGhostNode */
+.merge-ghost-node {
+  border: 1.5px solid var(--purple, #a78bfa);
+  border-radius: 8px;
+  background: rgba(167, 139, 250, 0.06);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+}
+.merge-ghost-label { font-size: 11px; font-weight: 600; word-break: break-all; }
+.merge-ghost-type  { font-size: 9px; opacity: 0.5; }
+.merge-ghost-badge {
+  display: inline-block; font-size: 9px; border: 1px solid;
+  border-radius: 4px; padding: 1px 6px; width: fit-content;
+}
+.merge-ghost-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.merge-ghost-btn {
+  font-size: 9px; padding: 2px 8px; border-radius: 4px; cursor: pointer;
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+}
+.merge-ghost-btn:hover { background: var(--surface3); }
+.merge-ghost-btn--accept { background: rgba(167, 139, 250, 0.18); border-color: var(--purple, #a78bfa); color: var(--purple, #a78bfa); }
+.merge-ghost-btn--accept:hover { background: rgba(167, 139, 250, 0.3); }
+
+/* MergePanel */
+.merge-panel {
+  background: var(--bg-panel); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px; min-width: 240px;
+  display: flex; flex-direction: column; gap: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.merge-panel-title { font-size: 11px; font-weight: 600; }
+.merge-panel-branch { color: var(--accent); font-family: var(--font-mono); }
+.merge-panel-notice {
+  font-size: 9px; color: var(--muted); background: var(--surface2);
+  border-radius: 4px; padding: 4px 6px; line-height: 1.4;
+}
+.merge-panel-stats { display: flex; flex-wrap: wrap; gap: 4px; }
+.merge-stat { font-size: 10px; padding: 2px 7px; border-radius: 10px; background: var(--surface2); }
+.merge-stat--conflict { background: rgba(167,139,250,0.15); color: var(--purple, #a78bfa); }
+.merge-stat--added    { background: rgba(52,211,153,0.12);  color: #34d399; }
+.merge-stat--removed  { background: rgba(248,113,113,0.12); color: #f87171; }
+.merge-file-conflicts { display: flex; flex-direction: column; gap: 3px; }
+.merge-file-conflicts-label { font-size: 9px; color: var(--muted); }
+.merge-file-conflict-item { font-size: 10px; font-family: var(--font-mono); color: var(--purple, #a78bfa); }
+.merge-panel-actions { display: flex; gap: 6px; margin-top: 2px; }
+
+/* Merge button in branch dropdown */
+.branch-merge-btn {
+  font-size: 9px; padding: 1px 7px; border-radius: 4px;
+  background: rgba(167,139,250,0.12); border: 1px solid rgba(167,139,250,0.4);
+  color: var(--purple, #a78bfa); cursor: pointer; white-space: nowrap;
+}
+.branch-merge-btn:hover { background: rgba(167,139,250,0.25); }
+
+/* Name prompt modal (new file / new region) */
+.name-prompt-panel {
+  background: var(--bg-panel); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px 20px; min-width: 280px;
+  display: flex; flex-direction: column; gap: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.name-prompt-title { font-size: 13px; font-weight: 600; }
+.name-prompt-input {
+  background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  border-radius: 6px; font-size: 13px; font-family: var(--font-mono);
+  padding: 7px 10px; outline: none; width: 100%; box-sizing: border-box;
+}
+.name-prompt-input:focus { border-color: var(--accent-dim); }
+.name-prompt-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* Region Ctrl+drag drop target */
+.region-node.region-drop-target {
+  border-style: dashed;
+  transition: border-color 0.1s, background 0.1s;
+}
+.region-drop-plus {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 48px; font-weight: 200; color: rgba(96,165,250,0.4);
+  pointer-events: none;
+}

@@ -5,10 +5,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readFile:       (p) => ipcRenderer.invoke('file:read', p),
   readFileBinary: (p) => ipcRenderer.invoke('file:read-binary', p),
   writeFile:      (p, c) => ipcRenderer.invoke('file:write', p, c),
+  createFile:     (p) => ipcRenderer.invoke('file:create', p),
+  moveFile:       (src, dest) => ipcRenderer.invoke('file:move', src, dest),
   watchFile:      (p) => ipcRenderer.invoke('file:watch', p),
   unwatchFile:    (p) => ipcRenderer.invoke('file:unwatch', p),
 
   openDirPicker:  () => ipcRenderer.invoke('dir:open-picker'),
+  createDir:      (p) => ipcRenderer.invoke('dir:create', p),
   readTree:       (d) => ipcRenderer.invoke('dir:read-tree', d),
   readMetadata:   (rootPath, dirPath) => ipcRenderer.invoke('dir:read-metadata', rootPath, dirPath),
   writeMetadata:  (rootPath, dirPath, m) => ipcRenderer.invoke('dir:write-metadata', rootPath, dirPath, m),
@@ -49,9 +52,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   vcsCreateBranch: (rootPath, name, update) => ipcRenderer.invoke('vcs:create-branch',rootPath, name, update),
   vcsCheckout:     (rootPath, branch)       => ipcRenderer.invoke('vcs:checkout',     rootPath, branch),
   vcsDiff:         (rootPath, hash, update) => ipcRenderer.invoke('vcs:diff',         rootPath, hash, update),
+  vcsFileAtCommit: (rootPath, filePath, hash) => ipcRenderer.invoke('vcs:file-at-commit', rootPath, filePath, hash),
   vcsLoadBlame:    (rootPath)               => ipcRenderer.invoke('vcs:load-blame',   rootPath),
   vcsGitLog:       (rootPath, n)            => ipcRenderer.invoke('vcs:git-log',      rootPath, n),
   vcsGitBranches:  (rootPath)               => ipcRenderer.invoke('vcs:git-branches', rootPath),
+  vcsGitBlameFile: (rootPath, filePath)     => ipcRenderer.invoke('vcs:git-blame-file', rootPath, filePath),
+  vcsMergePreview: (rootPath, srcBranch)    => ipcRenderer.invoke('vcs:merge-preview',  rootPath, srcBranch),
+  vcsMergeFinalize:(rootPath, updateB64)    => ipcRenderer.invoke('vcs:merge-finalize', rootPath, updateB64),
+  vcsMergeAbort:   (rootPath)               => ipcRenderer.invoke('vcs:merge-abort',    rootPath),
   onGitBranchChanged: (cb) => {
     const handler = (_e, branch) => cb(branch);
     ipcRenderer.on('vcs:git-branch-changed', handler);
@@ -62,6 +70,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   agentRun:        (payload) => ipcRenderer.send('agent:run', payload),
   agentStop:       ()        => ipcRenderer.invoke('agent:stop'),
   agentListModels: (cfg)     => ipcRenderer.invoke('agent:list-models', cfg),
+  agentRepair:     (payload) => ipcRenderer.invoke('agent:repair', payload),
   onAgentEvent: (cb) => {
     const handler = (_e, event) => cb(event);
     ipcRenderer.on('agent:event', handler);
