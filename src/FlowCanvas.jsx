@@ -69,6 +69,10 @@ export default function FlowCanvas() {
   const [accessStack, setAccessStack]       = useState([]); // nodeIds, most recently accessed last → highest z-index
   const [depTick, setDepTick]               = useState(0);
   const [dismissedPeers, setDismissedPeers] = useState(new Set());
+  const [ctrlHeld, setCtrlHeld]             = useState(false);
+  const [showLayouts, setShowLayouts]       = useState(false);
+  const [layoutProfiles, setLayoutProfiles] = useState([]);
+  const [layoutNameInput, setLayoutNameInput] = useState('');
 
   const {
     theme, setTheme,
@@ -220,9 +224,56 @@ export default function FlowCanvas() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  // Track Ctrl key for region drag gating
+  useEffect(() => {
+    const dn = e => { if (e.key === 'Control') setCtrlHeld(true);  };
+    const up = e => { if (e.key === 'Control') setCtrlHeld(false); };
+    window.addEventListener('keydown', dn);
+    window.addEventListener('keyup',   up);
+    return () => { window.removeEventListener('keydown', dn); window.removeEventListener('keyup', up); };
+  }, []);
+
   useEffect(() => { nodesRef.current = nodes; }, [nodes]);
 
   useEffect(() => () => destroyProviders(), []);
+
+  // Load layout profile list when rootPath changes
+  useEffect(() => {
+    if (!rootPath || !window.electronAPI?.layoutList) return;
+    window.electronAPI.layoutList(rootPath).then(setLayoutProfiles);
+  }, [rootPath]);
+
+  const saveLayout = async (name) => {
+    if (!rootPath || !name.trim()) return;
+    const data = {
+      name: name.trim(),
+      savedAt: new Date().toISOString(),
+      nodes: nodesRef.current.map(n => ({ id: n.id, x: n.position.x, y: n.position.y, ...(n.width ? { width: n.width } : {}), ...(n.height ? { height: n.height } : {}) })),
+    };
+    await window.electronAPI.layoutSave(rootPath, name.trim(), data);
+    const updated = await window.electronAPI.layoutList(rootPath);
+    setLayoutProfiles(updated);
+    setLayoutNameInput('');
+  };
+
+  const loadLayout = async (name) => {
+    if (!rootPath) return;
+    const data = await window.electronAPI.layoutLoad(rootPath, name);
+    if (!data?.nodes) return;
+    const posMap = new Map(data.nodes.map(n => [n.id, n]));
+    setNodes(nds => nds.map(n => {
+      const p = posMap.get(n.id);
+      if (!p) return n;
+      return { ...n, position: { x: p.x, y: p.y }, ...(p.width ? { width: p.width } : {}), ...(p.height ? { height: p.height } : {}) };
+    }));
+    setShowLayouts(false);
+  };
+
+  const deleteLayout = async (name) => {
+    if (!rootPath) return;
+    await window.electronAPI.layoutDelete(rootPath, name);
+    setLayoutProfiles(prev => prev.filter(p => p !== name));
+  };
 
   useEffect(() => onDepsChanged(() => setDepTick(t => t + 1)), []);
 
@@ -664,7 +715,7 @@ export default function FlowCanvas() {
       ...node,
       position,
       style,
-      draggable: true,
+      draggable: isRegion ? ctrlHeld : true,
       className: isMagnified ? (focusedNodeId ? 'node-state-focused' : 'node-state-hovered') : '',
       zIndex: isRegion ? 0 : 10 + (accessStack.indexOf(node.id) + 1),
       data: {
@@ -871,6 +922,48 @@ export default function FlowCanvas() {
           <div className={`sync-dot${peers.length > 1 ? ' is-live' : ''}`} />
           {peers.length > 1 ? `sync · ${peers.length - 1}` : 'sync'}
         </button>
+
+        {/* Layout profiles button */}
+        {rootPath && (
+          <div style={{ position: 'relative' }}>
+            <button
+              className={`titlebar-sync-btn${showLayouts ? ' is-active' : ''}`}
+              onClick={() => setShowLayouts(s => !s)}
+            >
+              layouts
+            </button>
+            {showLayouts && (
+              <div className="layout-panel">
+                <div className="layout-panel-title">Layout profiles</div>
+                {layoutProfiles.length === 0 && (
+                  <div className="layout-panel-empty">No saved layouts</div>
+                )}
+                {layoutProfiles.map(name => (
+                  <div key={name} className="layout-panel-row">
+                    <button className="layout-panel-load" onClick={() => loadLayout(name)}>{name}</button>
+                    <button className="layout-panel-delete" onClick={() => deleteLayout(name)}>×</button>
+                  </div>
+                ))}
+                <div className="layout-panel-save-row">
+                  <input
+                    className="layout-panel-input"
+                    placeholder="profile name…"
+                    value={layoutNameInput}
+                    onChange={e => setLayoutNameInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') saveLayout(layoutNameInput); }}
+                  />
+                  <button
+                    className="session-btn session-btn--primary"
+                    disabled={!layoutNameInput.trim()}
+                    onClick={() => saveLayout(layoutNameInput)}
+                  >
+                    save
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <Sidebar tree={fileTree} rootPath={rootPath} onFocusNode={focusNode} />

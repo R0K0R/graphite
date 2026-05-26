@@ -16,6 +16,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readMetadata:   (rootPath, dirPath) => ipcRenderer.invoke('dir:read-metadata', rootPath, dirPath),
   writeMetadata:  (rootPath, dirPath, m) => ipcRenderer.invoke('dir:write-metadata', rootPath, dirPath, m),
 
+  layoutList:   (rootPath)            => ipcRenderer.invoke('layout:list',   rootPath),
+  layoutSave:   (rootPath, name, data)=> ipcRenderer.invoke('layout:save',   rootPath, name, data),
+  layoutLoad:   (rootPath, name)      => ipcRenderer.invoke('layout:load',   rootPath, name),
+  layoutDelete: (rootPath, name)      => ipcRenderer.invoke('layout:delete', rootPath, name),
+
   graphiteInitRoom:  (rootPath)         => ipcRenderer.invoke('graphite:init-room',   rootPath),
   graphiteSaveRoom:  (rootPath, code)   => ipcRenderer.invoke('graphite:save-room',   rootPath, code),
   graphiteReadConfig: (rootPath)        => ipcRenderer.invoke('graphite:read-config', rootPath),

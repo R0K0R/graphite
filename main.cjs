@@ -250,6 +250,33 @@ ipcMain.handle('dir:write-metadata', async (_e, rootPath, dirPath, metadata) => 
   );
 });
 
+// --- IPC: Layout profiles (.graphite/layouts/<name>.json) ---
+
+ipcMain.handle('layout:list', async (_e, rootPath) => {
+  const dir = path.join(rootPath, '.graphite', 'layouts');
+  try {
+    const files = await fs.promises.readdir(dir);
+    return files.filter(f => f.endsWith('.json')).map(f => f.slice(0, -5));
+  } catch { return []; }
+});
+
+ipcMain.handle('layout:save', async (_e, rootPath, name, data) => {
+  const dir = path.join(rootPath, '.graphite', 'layouts');
+  await fs.promises.mkdir(dir, { recursive: true });
+  await fs.promises.writeFile(path.join(dir, name + '.json'), JSON.stringify(data, null, 2), 'utf8');
+});
+
+ipcMain.handle('layout:load', async (_e, rootPath, name) => {
+  try {
+    const raw = await fs.promises.readFile(path.join(rootPath, '.graphite', 'layouts', name + '.json'), 'utf8');
+    return JSON.parse(raw);
+  } catch { return null; }
+});
+
+ipcMain.handle('layout:delete', async (_e, rootPath, name) => {
+  try { await fs.promises.unlink(path.join(rootPath, '.graphite', 'layouts', name + '.json')); } catch {}
+});
+
 // --- IPC: LSP server management ---
 
 // Each language lists candidate binaries in preference order; first one found in PATH wins.

@@ -2103,3 +2103,33 @@ body {
 .dep-heat-legend:hover { opacity: 1; }
 .dep-heat-legend-item { font-family: var(--font-mono); color: #4a5568; }
 .dep-heat-legend-label { color: var(--muted); font-size: 9px; margin-left: 4px; }
+
+/* Layout profile panel */
+.layout-panel {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 200;
+  background: var(--bg-panel); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px; min-width: 200px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.layout-panel-title { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+.layout-panel-empty { font-size: 11px; color: var(--muted); font-style: italic; padding: 2px 0; }
+.layout-panel-row { display: flex; align-items: center; gap: 4px; }
+.layout-panel-load {
+  flex: 1; text-align: left; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--text); font-size: 11px; font-family: var(--font-mono);
+  padding: 3px 8px; cursor: pointer;
+}
+.layout-panel-load:hover { border-color: var(--accent); }
+.layout-panel-delete {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: 14px; padding: 0 4px; line-height: 1;
+}
+.layout-panel-delete:hover { color: #f87171; }
+.layout-panel-save-row { display: flex; gap: 4px; margin-top: 2px; border-top: 1px solid var(--border); padding-top: 8px; }
+.layout-panel-input {
+  flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  border-radius: 4px; font-size: 11px; font-family: var(--font-mono);
+  padding: 4px 7px; outline: none;
+}
+.layout-panel-input:focus { border-color: var(--accent-dim); }
