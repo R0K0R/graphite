@@ -280,11 +280,13 @@ export default function CodeNode({ id, data, selected }) {
               key={sym.name + sym.kind}
               className="symbol-chip nodrag"
               title={sym.detail || sym.name}
-              onClick={() => {
+              onClick={e => {
+                e.stopPropagation();
                 const loc = sym.selectionRange ?? sym.range;
                 if (!loc) return;
                 editorRef.current?.revealLineInCenter(loc.start.line + 1);
                 editorRef.current?.setPosition({ lineNumber: loc.start.line + 1, column: loc.start.character + 1 });
+                editorRef.current?.focus();
               }}
             >
               <span className="symbol-chip-kind">{KIND_LABEL[sym.kind] ?? 'sym'}</span>

@@ -654,7 +654,14 @@ export default function FlowCanvas() {
   // Dependency edges derived from depGraph (depTick triggers recompute on change)
   void depTick;
   const fileNodeMap = new Map();
-  nodes.forEach(n => { if (n.data?.filePath) fileNodeMap.set('file://' + n.data.filePath, n.id); });
+  nodes.forEach(n => {
+    if (!n.data?.filePath) return;
+    const uri = 'file://' + n.data.filePath;
+    fileNodeMap.set(uri, n.id);
+    // Extension-less imports (Python, TS without .ts, etc.) resolve without extension
+    const noExt = uri.replace(/\.[^/.]+$/, '');
+    if (noExt !== uri) fileNodeMap.set(noExt, n.id);
+  });
   const depEdges = [];
   getAllDeps().forEach((depSet, srcUri) => {
     const srcId = fileNodeMap.get(srcUri);
