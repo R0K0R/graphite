@@ -23,3 +23,11 @@ export function mkFileNode(id, position, extra = {}) {
     data: { filePath: null, content: '', externalChange: false, ...extra },
   };
 }
+
+export function mkSymbolCard(id, position, { symbolName, symbolKind, detail, filePath }) {
+  return {
+    id, type: 'symbol-card', position,
+    style: { width: 180 },
+    data: { symbolName, symbolKind, detail: detail ?? null, filePath, refCount: null },
+  };
+}

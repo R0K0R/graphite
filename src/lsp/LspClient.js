@@ -19,20 +19,14 @@ function ensureListener() {
   removeListener = window.electronAPI.onLspMessage((key, msg) => {
     if (msg.method === 'textDocument/publishDiagnostics') {
       const { uri, diagnostics } = msg.params;
-      console.log('[LSP] diagnostics', uri.split('/').pop(), `(${diagnostics.length})`);
       diagHandlers.get(uri)?.forEach(h => h(diagnostics));
-    } else if (msg.method) {
-      console.log('[LSP] ←', msg.method, msg.params);
     } else if (msg.id != null) {
       const p = pending.get(msg.id);
       if (p) { pending.delete(msg.id); msg.error ? p.reject(msg.error) : p.resolve(msg.result); }
     }
   });
 
-  // Forward LSP server stderr to DevTools console
-  window.electronAPI.onLspStderr?.((lang, line) => {
-    console.log(`[LSP:${lang}]`, line);
-  });
+  window.electronAPI.onLspStderr?.(() => {});
 }
 
 function request(key, method, params) {
@@ -59,13 +53,10 @@ export async function startServer(rootPath, languageId) {
   if (starting.has(key)) return starting.get(key);
 
   const promise = (async () => {
-    console.log('[LSP] spawning server:', languageId, 'root:', rootPath);
     const result = await window.electronAPI.lspStart(rootPath, languageId);
-    console.log('[LSP] spawn result:', result);
     if (!result.ok) { starting.delete(key); return null; }
 
     try {
-      console.log('[LSP] sending initialize for', key);
       const caps = await request(key, 'initialize', {
         processId: null,
         rootUri: 'file://' + rootPath,
@@ -83,7 +74,7 @@ export async function startServer(rootPath, languageId) {
         },
         workspaceFolders: null,
       });
-      console.log('[LSP] initialized:', key, 'server caps:', caps?.capabilities);
+      void caps;
       notify(key, 'initialized', {});
       initialized.add(key);
     } catch (e) {
@@ -101,7 +92,6 @@ export async function startServer(rootPath, languageId) {
 
 export function openDocument(key, uri, languageId, text) {
   if (!initialized.has(key) || openDocs.has(uri)) return;
-  console.log('[LSP] didOpen', uri, `(${text.length} chars)`);
   openDocs.set(uri, { key, version: 1 });
   notify(key, 'textDocument/didOpen', {
     textDocument: { uri, languageId, version: 1, text },
@@ -121,23 +111,20 @@ export function changeDocument(uri, text) {
 export function closeDocument(uri) {
   const doc = openDocs.get(uri);
   if (!doc) return;
-  console.log('[LSP] didClose', uri);
   notify(doc.key, 'textDocument/didClose', { textDocument: { uri } });
   openDocs.delete(uri);
 }
 
 export async function getCompletion(uri, position) {
   const doc = openDocs.get(uri);
-  if (!doc) { console.warn('[LSP] completion requested but doc not open:', uri); return null; }
+  if (!doc) return null;
   try {
-    const result = await request(doc.key, 'textDocument/completion', {
+    return await request(doc.key, 'textDocument/completion', {
       textDocument: { uri },
       position,
       context: { triggerKind: 1 },
     });
-    console.log('[LSP] completion', uri, position, '→', Array.isArray(result) ? result.length : result?.items?.length, 'items');
-    return result;
-  } catch (e) { console.error('[LSP] completion error:', e); return null; }
+  } catch { return null; }
 }
 
 export async function getHover(uri, position) {
@@ -148,6 +135,22 @@ export async function getHover(uri, position) {
       textDocument: { uri },
       position,
     });
+  } catch { return null; }
+}
+
+export async function getDocumentLinks(uri) {
+  const doc = openDocs.get(uri);
+  if (!doc) return null;
+  try {
+    return await request(doc.key, 'textDocument/documentLink', { textDocument: { uri } });
+  } catch { return null; }
+}
+
+export async function getDocumentSymbols(uri) {
+  const doc = openDocs.get(uri);
+  if (!doc) return null;
+  try {
+    return await request(doc.key, 'textDocument/documentSymbol', { textDocument: { uri } });
   } catch { return null; }
 }
 

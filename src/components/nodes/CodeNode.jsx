@@ -10,7 +10,22 @@ import { registerProviders, applyDiagnostics, initBlameProvider } from '../../ls
 import { setBlame, clearBlame } from '../../vcs/blameCache.js';
 import { bindMonaco } from '../../crdt/monacoBinding.js';
 import { getYText, onRoomChange } from '../../crdt/doc.js';
+import { parseDeps, setDeps, clearDeps, getDeps, setRefCount } from '../../lsp/depGraph.js';
 import Node, { PeerDots, BlameDot } from './Node.jsx';
+
+const KIND_LABEL = { 5:'cls', 6:'mth', 9:'ctor', 10:'enum', 11:'iface', 12:'fn', 13:'var', 14:'const' };
+const TOP_KINDS  = new Set([5, 6, 9, 10, 11, 12, 13, 14]);
+
+function flattenSymbols(syms, out = []) {
+  for (const s of syms ?? []) { out.push(s); if (s.children) flattenSymbols(s.children, out); }
+  return out;
+}
+
+function countOccurrences(content, names) {
+  if (!names.length) return 0;
+  const re = new RegExp(`\\b(${names.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'g');
+  return (content.match(re) ?? []).length;
+}
 
 export const EXT_LANG = {
   py: 'python', js: 'javascript', jsx: 'javascript',
@@ -44,9 +59,13 @@ export function basename(filePath) {
 }
 
 export default function CodeNode({ id, data, selected }) {
-  const { filePath, onFilePicked, expanded, rootPath, hasGit, onEditorFocus, onEditorBlur, peerColors, blameInfo, onAskAgent } = data;
+  const { filePath, onFilePicked, expanded, rootPath, hasGit, onEditorFocus, onEditorBlur, peerColors, blameInfo, onAskAgent, onSymbolDetach } = data;
+  const { watchdogEnabled, watchdogModel } = usePrefs();
+  const getPrefs = useRef(() => ({ watchdogEnabled, watchdogModel }));
+  getPrefs.current = () => ({ watchdogEnabled, watchdogModel });
   const [pendingDraft, setPendingDraft] = useState(() => filePath ? getDraft(filePath) : null);
   const [lspShadowStatus, setLspShadowStatus] = useState('clean');
+  const [symbols, setSymbols] = useState([]);
   const hasPendingDraft = !!pendingDraft;
   const writeTimer     = useRef(null);
   const lspChangeTimer = useRef(null);
@@ -142,7 +161,39 @@ export default function CodeNode({ id, data, selected }) {
       const uri = 'file://' + filePath;
       lspUriRef.current = uri;
       lspClient.openDocument(key, uri, lang, editor.getValue());
-      const watchdog = startWatchdog(uri, editor, monaco, lang, workspaceRoot, setLspShadowStatus);
+
+      // Dependency graph — static parse immediately, LSP-refined async
+      const refreshDeps = () => {
+        const staticDeps = parseDeps(filePath, editor.getValue(), lang).map(p => 'file://' + p);
+        setDeps(uri, staticDeps);
+        lspClient.getDocumentLinks(uri).then(links => {
+          const resolved = (links ?? []).map(l => l.target).filter(t => t?.startsWith('file://'));
+          if (resolved.length) setDeps(uri, resolved);
+        });
+      };
+      refreshDeps();
+
+      const refreshSymbols = () => {
+        lspClient.getDocumentSymbols(uri).then(syms => {
+          if (!syms) return;
+          const flat = flattenSymbols(syms);
+          setSymbols(flat.filter(s => TOP_KINDS.has(s.kind)).slice(0, 10));
+          const srcContent = editor.getValue();
+          getDeps(uri).forEach(tgtUri => {
+            lspClient.getDocumentSymbols(tgtUri).then(tgtSyms => {
+              if (!tgtSyms) return;
+              const names = flattenSymbols(tgtSyms).map(s => s.name).filter(Boolean);
+              const count = countOccurrences(srcContent, names);
+              setRefCount(uri, tgtUri, count);
+            });
+          });
+        });
+      };
+      refreshSymbols();
+
+      const watchdog = startWatchdog(uri, editor, monaco, lang, workspaceRoot, setLspShadowStatus, getPrefs.current);
+      let depTimer = null;
+      let symTimer = null;
       editor.onDidChangeModelContent(() => {
         clearTimeout(lspChangeTimer.current);
         lspChangeTimer.current = setTimeout(() => {
@@ -151,13 +202,21 @@ export default function CodeNode({ id, data, selected }) {
             watchdog.tick();
           }
         }, 200);
+        clearTimeout(depTimer);
+        depTimer = setTimeout(refreshDeps, 2000);
+        clearTimeout(symTimer);
+        symTimer = setTimeout(refreshSymbols, 3000);
       });
       const unsubDiag = lspClient.onDiagnostics(uri, diags => {
         const model = editor.getModel();
         if (model) applyDiagnostics(monaco, model, diags);
+        watchdog.tick();
       });
       unsubDiagRef.current = () => {
         watchdog.teardown();
+        clearDeps('file://' + filePath);
+        clearTimeout(depTimer);
+        clearTimeout(symTimer);
         unbind();
         activeYText.unobserve(onYChange);
         unsubDiskRoom();
@@ -180,7 +239,7 @@ export default function CodeNode({ id, data, selected }) {
         <PeerDots colors={peerColors} />
         <BlameDot blameInfo={blameInfo} />
         {(lspShadowStatus === 'repairing' || lspShadowStatus === 'shadowed') && (
-          <span className="lsp-shadow-badge" title={lspShadowStatus === 'repairing' ? 'LSP repairing…' : 'LSP using shadow'}>
+          <span className="lsp-shadow-badge nodrag" title={lspShadowStatus === 'repairing' ? 'LSP repairing…' : 'LSP using shadow'}>
             {lspShadowStatus === 'repairing' ? '◌' : '◈'}
           </span>
         )}
@@ -212,6 +271,27 @@ export default function CodeNode({ id, data, selected }) {
               <UnifiedDiff oldText={pendingDraft.oldContent} newText={pendingDraft.newContent} maxLines={80} />
             </div>
           )}
+        </div>
+      )}
+      {symbols.length > 0 && (
+        <div className="symbol-chips nodrag">
+          {symbols.map(sym => (
+            <span
+              key={sym.name + sym.kind}
+              className="symbol-chip nodrag"
+              title={sym.detail || sym.name}
+              onClick={() => {
+                editorRef.current?.revealLineInCenter(sym.selectionRange.start.line + 1);
+                editorRef.current?.setPosition({ lineNumber: sym.selectionRange.start.line + 1, column: sym.selectionRange.start.character + 1 });
+              }}
+            >
+              <span className="symbol-chip-kind">{KIND_LABEL[sym.kind] ?? 'sym'}</span>
+              {sym.name}
+              {onSymbolDetach && (
+                <button className="symbol-chip-pin nodrag" title="Pin to canvas" onClick={e => { e.stopPropagation(); onSymbolDetach(sym); }}>↗</button>
+              )}
+            </span>
+          ))}
         </div>
       )}
       {filePath && <div className="file-node-path">{filePath}</div>}

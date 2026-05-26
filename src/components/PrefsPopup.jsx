@@ -26,6 +26,8 @@ export default function PrefsPopup({
     dimScale, onDimScale,
     hoverDelay, onHoverDelay,
     focusZoom, onFocusZoom,
+    watchdogEnabled, onWatchdogEnabled,
+    watchdogModel, onWatchdogModel,
 }) {
     if (!open) return null;
 
@@ -90,6 +92,29 @@ export default function PrefsPopup({
                     <Slider label="dim scale" value={dimScale} min={0.4} max={1.0} step={0.05} onChange={onDimScale} fmt={v => `${Math.round(v * 100)}%`} />
                     <Slider label="hover delay" value={hoverDelay} min={0} max={800} step={50} onChange={v => onHoverDelay(Math.round(v))} fmt={v => `${v}ms`} />
                     <Slider label="focus zoom (⌥F)" value={focusZoom} min={50} max={150} step={5} onChange={onFocusZoom} fmt={v => `${v}%`} />
+
+                    {/* LSP Watchdog */}
+                    <div className="prefs-section">
+                        <div className="prefs-row">
+                            <span className="prefs-section-label" style={{ marginBottom: 0 }}>LSP watchdog</span>
+                            <button
+                                className={`prefs-toggle${watchdogEnabled ? ' prefs-toggle--on' : ''}`}
+                                onClick={() => onWatchdogEnabled(!watchdogEnabled)}
+                            >
+                                {watchdogEnabled ? 'on' : 'off'}
+                            </button>
+                        </div>
+                        {watchdogEnabled && (
+                            <input
+                                className="prefs-model-input"
+                                type="text"
+                                placeholder="model override (blank = agent default)"
+                                value={watchdogModel}
+                                onChange={e => onWatchdogModel(e.target.value)}
+                                spellCheck={false}
+                            />
+                        )}
+                    </div>
 
                 </div>{/* prefs-body */}
             </div>

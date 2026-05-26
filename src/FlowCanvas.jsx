@@ -20,6 +20,7 @@ import RegionNode from './components/nodes/RegionNode.jsx';
 import FileNode from './components/nodes/FileNode.jsx';
 import DiffGhostNode from './components/nodes/DiffGhostNode.jsx';
 import MergeGhostNode from './components/nodes/MergeGhostNode.jsx';
+import SymbolCard from './components/nodes/SymbolCard.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import StatusBar from './components/StatusBar.jsx';
 import PrefsPopup from './components/PrefsPopup.jsx';
@@ -28,12 +29,14 @@ import BranchBar from './components/BranchBar.jsx';
 import DiffPanel from './components/DiffPanel.jsx';
 import MergePanel from './components/MergePanel.jsx';
 import { usePeers } from './crdt/usePeers.js';
+import { getAllDeps, onDepsChanged, clearAllDeps, getRefCount } from './lsp/depGraph.js';
+import PeerCursorWindow from './components/PeerCursorWindow.jsx';
 import { useVcs } from './vcs/useVcs.js';
 import { CATEGORIES } from './data/modules.js';
 import { computeAllRegionBounds } from './utils/regionBounds.js';
 import { useLiveRef, centerViewport } from './utils/viewport.js';
 import { buildNodesFromTree } from './utils/treeLayout.js';
-import { mkScriptNode, mkRegion, mkFileNode } from './utils/nodeFactories.js';
+import { mkScriptNode, mkRegion, mkFileNode, mkSymbolCard } from './utils/nodeFactories.js';
 import { usePrefsState } from './hooks/usePrefsState.js';
 import { T_FW, T_FH, FOCUS_FILL } from './utils/canvasConstants.js';
 
@@ -43,6 +46,7 @@ const NODE_TYPES = {
   file: FileNode,
   'diff-ghost': DiffGhostNode,
   'merge-ghost': MergeGhostNode,
+  'symbol-card': SymbolCard,
 };
 
 export default function FlowCanvas() {
@@ -63,6 +67,8 @@ export default function FlowCanvas() {
   const [ctrlDragOver, setCtrlDragOver]     = useState(null); // regionId the Ctrl-dragged node hovers over
   const [editMode, setEditMode]             = useState(false);
   const [accessStack, setAccessStack]       = useState([]); // nodeIds, most recently accessed last → highest z-index
+  const [depTick, setDepTick]               = useState(0);
+  const [dismissedPeers, setDismissedPeers] = useState(new Set());
 
   const {
     theme, setTheme,
@@ -71,6 +77,8 @@ export default function FlowCanvas() {
     dimScale, setDimScale,
     hoverDelay, setHoverDelay,
     focusZoom, setFocusZoom,
+    watchdogEnabled, setWatchdogEnabled,
+    watchdogModel, setWatchdogModel,
   } = usePrefsState();
 
   const vcs = useVcs(rootPath);
@@ -215,6 +223,8 @@ export default function FlowCanvas() {
   useEffect(() => { nodesRef.current = nodes; }, [nodes]);
 
   useEffect(() => () => destroyProviders(), []);
+
+  useEffect(() => onDepsChanged(() => setDepTick(t => t + 1)), []);
 
   // Broadcast which node the local user is viewing via awareness
   useEffect(() => {
@@ -414,6 +424,7 @@ export default function FlowCanvas() {
 
       const config = await window.electronAPI.graphiteReadConfig(dirPath);
       const { persist } = initRoom(dirPath, roomCode, config.signalingUrl ?? null);
+      clearAllDeps();
       vcs.init(dirPath);
 
       const tree = await window.electronAPI.readTree(dirPath);
@@ -589,6 +600,47 @@ export default function FlowCanvas() {
 
   const diffEdges = [];
 
+  // Dependency edges derived from depGraph (depTick triggers recompute on change)
+  void depTick;
+  const fileNodeMap = new Map();
+  nodes.forEach(n => { if (n.data?.filePath) fileNodeMap.set('file://' + n.data.filePath, n.id); });
+  const depEdges = [];
+  getAllDeps().forEach((depSet, srcUri) => {
+    const srcId = fileNodeMap.get(srcUri);
+    if (!srcId) return;
+    depSet.forEach(depUri => {
+      const tgtId = fileNodeMap.get(depUri);
+      if (!tgtId || tgtId === srcId) return;
+      const refCount  = getRefCount(srcUri, depUri);
+      const heatWidth   = Math.min(1 + refCount * 0.35, 5);
+      const heatOpacity = Math.min(0.3 + refCount * 0.07, 0.9);
+      const heatColor   = refCount > 10 ? '#f97316'
+                        : refCount > 5  ? '#fbbf24'
+                        : '#4a5568';
+      depEdges.push({
+        id: `dep:${srcId}:${tgtId}`,
+        source: srcId, target: tgtId,
+        type: 'default',
+        style: { stroke: heatColor, strokeWidth: heatWidth, strokeDasharray: '4 3', opacity: heatOpacity },
+        markerEnd: { type: MarkerType.Arrow, color: heatColor, width: 8, height: 8 },
+        label: refCount > 0 ? String(refCount) : undefined,
+        labelStyle: { fontSize: 9, fill: heatColor, fontFamily: 'var(--mono)' },
+        labelBgStyle: { fill: 'var(--bg)', fillOpacity: 0.8 },
+        animated: false, selectable: false, focusable: false,
+      });
+    });
+  });
+
+  // Peer cursor windows — peers editing files in my dependency graph
+  const localPeer = peers.find(p => p.isLocal);
+  const localUri  = localPeer?.filePath ? 'file://' + localPeer.filePath : null;
+  const localDeps = localUri ? getAllDeps().get(localUri) ?? new Set() : new Set();
+  const relevantPeers = peers.filter(p => {
+    if (p.isLocal || !p.filePath || dismissedPeers.has(p.id)) return false;
+    const peerUri = 'file://' + p.filePath;
+    return localDeps.has(peerUri) || (localUri && (getAllDeps().get(peerUri)?.has(localUri) ?? false));
+  });
+
   const nodesWithCallbacks = visibleNodes.map(node => {
     const isMagnified = magnifiedIds.has(node.id);
     const isRegion = node.type === 'region';
@@ -625,6 +677,11 @@ export default function FlowCanvas() {
           peerColors: peers.filter(p => !p.isLocal && p.focusedNode === node.id).map(p => p.color),
           blameInfo: vcs.blameMap[node.id] ?? null,
           onAskAgent: (filePath) => { setAgentScopedFile(filePath); setShowAgent(true); },
+          onSymbolDetach: (sym) => {
+            const newId = `sym-${sym.name}-${Date.now()}`;
+            const pos = { x: node.position.x + (node.width ?? 300) + 30, y: node.position.y };
+            setNodes(prev => [...prev, mkSymbolCard(newId, pos, { ...sym, symbolName: sym.name, symbolKind: sym.kind, filePath: node.data.filePath })]);
+          },
         } : {}),
       },
     };
@@ -744,7 +801,7 @@ export default function FlowCanvas() {
   }
 
   return (
-    <PrefsContext.Provider value={{ theme, regionAlpha, hoverScale, dimScale, hoverDelay, focusZoom }}>
+    <PrefsContext.Provider value={{ theme, regionAlpha, hoverScale, dimScale, hoverDelay, focusZoom, watchdogEnabled, watchdogModel }}>
     <div className="ide-shell">
       <div className="ide-titlebar">
         {/* Logo */}
@@ -835,7 +892,7 @@ export default function FlowCanvas() {
       <div className="ide-canvas" data-anim={vcs.canvasAnim ?? undefined}>
         <ReactFlow
           nodes={nodesWithCallbacks}
-          edges={diffEdges}
+          edges={[...diffEdges, ...depEdges]}
           onNodesChange={handleNodesChange}
           nodeTypes={NODE_TYPES}
           fitView
@@ -1031,6 +1088,23 @@ export default function FlowCanvas() {
         rootPath={rootPath}
       />
 
+      {depEdges.length > 0 && (
+        <div className="dep-heat-legend">
+          <span className="dep-heat-legend-item" style={{ opacity: 0.35 }}>──</span>
+          <span className="dep-heat-legend-item" style={{ color: '#fbbf24' }}>──</span>
+          <span className="dep-heat-legend-item" style={{ color: '#f97316' }}>──</span>
+          <span className="dep-heat-legend-label">import coupling</span>
+        </div>
+      )}
+
+      {relevantPeers.map(peer => (
+        <PeerCursorWindow
+          key={peer.id}
+          peer={peer}
+          onClose={() => setDismissedPeers(s => new Set([...s, peer.id]))}
+        />
+      ))}
+
       <PrefsPopup
         open={showPrefs}
         onClose={() => setShowPrefs(false)}
@@ -1040,6 +1114,8 @@ export default function FlowCanvas() {
         dimScale={dimScale}       onDimScale={setDimScale}
         hoverDelay={hoverDelay}   onHoverDelay={setHoverDelay}
         focusZoom={focusZoom}     onFocusZoom={setFocusZoom}
+        watchdogEnabled={watchdogEnabled} onWatchdogEnabled={setWatchdogEnabled}
+        watchdogModel={watchdogModel}     onWatchdogModel={setWatchdogModel}
       />
     </div>
     </PrefsContext.Provider>

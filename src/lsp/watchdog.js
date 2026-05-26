@@ -3,7 +3,7 @@ import { setShadow, clearShadow, changeDocument } from './LspClient.js';
 const states = new Map(); // uri → { timer, idleTimer, status }
 const IDLE_TIMEOUT_MS = 30_000;
 
-export function startWatchdog(uri, editor, monaco, lang, rootPath, onStatusChange) {
+export function startWatchdog(uri, editor, monaco, lang, rootPath, onStatusChange, getPrefs) {
   const set = (status) => {
     states.get(uri).status = status;
     onStatusChange?.(status);
@@ -42,6 +42,8 @@ export function startWatchdog(uri, editor, monaco, lang, rootPath, onStatusChang
       }
       return;
     }
+    const prefs = getPrefs?.();
+    if (!prefs?.watchdogEnabled) return;
     if (state.status === 'repairing') return;
     clearTimeout(state.timer);
     set('debouncing');
@@ -49,7 +51,8 @@ export function startWatchdog(uri, editor, monaco, lang, rootPath, onStatusChang
       if (!states.has(uri)) return;
       set('repairing');
       const code = editor.getValue();
-      const fixed = await window.electronAPI?.agentRepair({ rootPath, lang, code }).catch(() => null);
+      const model = getPrefs?.()?.watchdogModel || undefined;
+      const fixed = await window.electronAPI?.agentRepair({ rootPath, lang, code, model }).catch(() => null);
       if (!states.has(uri)) return;
       if (fixed && fixed !== code) {
         setShadow(uri, fixed);

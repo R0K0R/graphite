@@ -7,6 +7,7 @@ const CALLBACK_KEYS = new Set([
   'onChangeParam', 'onToggleCollapse', 'onLinkDir', 'peerColors',
   'diffState', 'blameInfo', 'mergeConflict', 'onAcceptMergeNode',
   'expanded', 'rootPath', 'hasGit', 'onAskAgent', 'isCtrlDragTarget',
+  'onSymbolDetach',
 ]);
 
 function stripCallbacks(node) {

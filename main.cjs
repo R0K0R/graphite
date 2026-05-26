@@ -1036,10 +1036,10 @@ ipcMain.handle('agent:list-models', async (_e, agentConfig) => {
   return LISTS[cfg.provider] ?? [];
 });
 
-ipcMain.handle('agent:repair', async (_e, { rootPath, lang, code }) => {
+ipcMain.handle('agent:repair', async (_e, { rootPath, lang, code, model }) => {
   let cfg = {};
   try { cfg = JSON.parse(await fs.promises.readFile(path.join(rootPath, '.graphite', 'config.json'), 'utf8')); } catch {}
-  const agentConfig = cfg.agent ?? {};
+  const agentConfig = { ...(cfg.agent ?? {}), ...(model ? { model } : {}) };
   let provider;
   try { provider = PROVIDERS[agentConfig.provider ?? 'anthropic']?.(); } catch { return null; }
   if (!provider) return null;

@@ -48,15 +48,22 @@ export function setLocalUser(name, color) {
   _awareness?.setLocalStateField('color', _localColor);
 }
 
+export function setLocalUserFile(filePath, cursorLine) {
+  _awareness?.setLocalStateField('filePath',   filePath   ?? null);
+  _awareness?.setLocalStateField('cursorLine', cursorLine ?? null);
+}
+
 export function getPeers() {
   if (!_awareness) return [];
   const states = _awareness.getStates();
   return Array.from(states.entries()).map(([id, state]) => ({
     id,
-    name:    state?.name  ?? `peer-${String(id).slice(-4)}`,
-    color:   state?.color ?? '#888888',
-    isLocal: id === _awareness.clientID,
+    name:        state?.name        ?? `peer-${String(id).slice(-4)}`,
+    color:       state?.color       ?? '#888888',
+    isLocal:     id === _awareness.clientID,
     focusedNode: state?.focusedNode ?? null,
+    filePath:    state?.filePath    ?? null,
+    cursorLine:  state?.cursorLine  ?? null,
   }));
 }
 

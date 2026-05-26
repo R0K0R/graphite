@@ -952,6 +952,22 @@ body {
   cursor: pointer;
   border: 2px solid var(--surface);
 }
+.prefs-toggle {
+  font-size: 10px; font-family: var(--mono); padding: 2px 8px;
+  border-radius: 10px; border: 1px solid var(--border); background: var(--surface);
+  color: var(--fg-muted); cursor: pointer; transition: all 0.15s;
+}
+.prefs-toggle--on {
+  border-color: var(--accent); color: var(--accent); background: var(--accent-glow);
+}
+.prefs-model-input {
+  margin-top: 6px; width: 100%; box-sizing: border-box;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+  color: var(--fg); font-family: var(--mono); font-size: 11px; padding: 4px 7px;
+  outline: none;
+}
+.prefs-model-input:focus { border-color: var(--accent); }
+.prefs-model-input::placeholder { color: var(--fg-muted); }
 
 .prefs-alpha-preview {
   height: 40px;
@@ -1868,6 +1884,36 @@ body {
 }
 
 /* Agent badge + bar on CodeNode */
+.lsp-shadow-badge {
+  font-size: 10px; color: #a78bfa; background: rgba(167,139,250,0.12);
+  border: 1px solid rgba(167,139,250,0.35); border-radius: 4px; padding: 1px 4px;
+  cursor: default;
+}
+.lsp-shadow-badge[title*="repairing"] {
+  animation: agent-pulse 1.2s ease-in-out infinite;
+}
+
+/* Peer cursor mini-window */
+.peer-cursor-window {
+  position: fixed; z-index: 200; width: 320px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.peer-cursor-header {
+  display: flex; align-items: center; gap: 6px; padding: 5px 8px;
+  background: var(--bg); border-bottom: 1px solid var(--border);
+  cursor: grab; user-select: none;
+}
+.peer-cursor-header:active { cursor: grabbing; }
+.peer-cursor-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.peer-cursor-name { font-size: 11px; font-weight: 600; color: var(--fg); }
+.peer-cursor-file { font-size: 10px; color: var(--fg-muted); font-family: var(--mono); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.peer-cursor-line-num { font-size: 10px; color: var(--fg-muted); font-family: var(--mono); }
+.peer-cursor-close { background: none; border: none; color: var(--fg-muted); cursor: pointer; padding: 0 2px; font-size: 14px; line-height: 1; }
+.peer-cursor-close:hover { color: var(--fg); }
+.peer-cursor-body { height: 180px; }
+.peer-cursor-line { background: rgba(255,255,255,0.06); }
+
 .agent-draft-badge {
   font-size: 9px; color: var(--accent); background: var(--accent-glow);
   border: 1px solid var(--accent-dim); border-radius: 4px; padding: 1px 5px;
@@ -2013,3 +2059,47 @@ body {
   font-size: 48px; font-weight: 200; color: rgba(96,165,250,0.4);
   pointer-events: none;
 }
+
+/* Symbol chips in file node header */
+.symbol-chips {
+  display: flex; flex-wrap: wrap; gap: 3px; padding: 0 4px 4px;
+  border-top: 1px solid var(--border); margin-top: 2px;
+}
+.symbol-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 9px; font-family: var(--font-mono); padding: 1px 5px;
+  border-radius: 3px; background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer; user-select: none;
+}
+.symbol-chip:hover { border-color: var(--accent); color: var(--text); }
+.symbol-chip-kind { font-size: 8px; opacity: 0.6; }
+.symbol-chip-pin {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  padding: 0; font-size: 9px; opacity: 0; transition: opacity 0.1s;
+}
+.symbol-chip:hover .symbol-chip-pin { opacity: 1; }
+
+/* Symbol card node */
+.symbol-card {
+  min-width: 160px; max-width: 220px;
+  background: var(--bg-panel); border: 1px solid; border-radius: 6px;
+  padding: 6px 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.symbol-card--selected { box-shadow: 0 0 0 2px var(--accent); }
+.symbol-card-header { display: flex; align-items: baseline; gap: 5px; }
+.symbol-card-kind { font-size: 8px; font-family: var(--font-mono); font-weight: 700; text-transform: uppercase; }
+.symbol-card-name { font-size: 11px; font-family: var(--font-mono); color: var(--text); font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.symbol-card-refs { font-size: 9px; color: var(--muted); font-family: var(--font-mono); }
+.symbol-card-detail { font-size: 9px; color: var(--muted); font-family: var(--font-mono); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.symbol-card-file { font-size: 9px; color: var(--muted); margin-top: 4px; opacity: 0.6; }
+
+/* Heat edge legend */
+.dep-heat-legend {
+  position: fixed; bottom: 36px; left: 12px; z-index: 10;
+  display: flex; align-items: center; gap: 4px;
+  background: var(--bg-panel); border: 1px solid var(--border);
+  border-radius: 6px; padding: 3px 8px; font-size: 10px; opacity: 0.7;
+}
+.dep-heat-legend:hover { opacity: 1; }
+.dep-heat-legend-item { font-family: var(--font-mono); color: #4a5568; }
+.dep-heat-legend-label { color: var(--muted); font-size: 9px; margin-left: 4px; }

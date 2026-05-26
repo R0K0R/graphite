@@ -75,3 +75,17 @@ Hover over any line in a code node to see who last modified that line, the commi
 ## LSP support
 
 Language servers are started automatically when a file is opened. Supported languages: Python (`basedpyright` or `pyright`), TypeScript/JavaScript (`typescript-language-server`), Rust (`rust-analyzer`), Go (`gopls`).
+
+## Canvas intelligence
+
+### Dependency edges
+When file nodes are open, dashed edges appear between files that import each other — detected instantly via static regex, refined by LSP `textDocument/documentLink`. Edge thickness and color encode coupling strength: thin gray = loose, thick orange = tightly coupled. The number shown on each edge is how many times exported symbols from the dependency appear in the importing file. A small legend appears bottom-left whenever dep edges are visible.
+
+### Symbol cards
+Open file nodes show a strip of chips below the header — one per top-level function, class, or interface detected by the language server (max 10). Click a chip to jump the Monaco editor to that symbol. Press ↗ to "pin" the symbol as a free-floating card on the canvas, useful for keeping an API surface visible while editing an implementation file. Pinned cards are real Yjs nodes — they persist across reloads and sync to peers.
+
+### Peer cursor window
+When a collaborator is editing a file that yours imports (or vice versa), a small floating read-only Monaco panel appears showing their current cursor position in real time. Drag the panel to reposition; × to dismiss until they switch files.
+
+### LSP watchdog
+During real-time collaborative editing, simultaneous keystrokes can temporarily break syntax. The watchdog detects LSP errors, calls the configured LLM to silently repair the content for the language server only (your editor still shows the real CRDT state), and restores normal completions within ~2 s. Toggle and model override are in Preferences (gear icon).
