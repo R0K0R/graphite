@@ -1,4 +1,5 @@
-import { Handle, Position } from 'reactflow';
+import { Handle, Position, useNodeId, useUpdateNodeInternals } from 'reactflow';
+import { useEffect } from 'react';
 
 // Base wrapper used by all node types.
 // accentColor sets the left-border accent; peerColors shows who's viewing.
@@ -13,6 +14,10 @@ function timeAgo(ts) {
 }
 
 export default function Node({ selected, baseClass = 'file-node', accentColor, className = '', fillParent = false, children }) {
+  const nodeId = useNodeId();
+  const updateNodeInternals = useUpdateNodeInternals();
+  useEffect(() => { if (nodeId) updateNodeInternals(nodeId); }, [nodeId]); // eslint-disable-line
+
   const style = {
     ...(accentColor ? { borderLeftColor: accentColor } : {}),
     ...(fillParent ? { width: '100%', height: '100%' } : {}),

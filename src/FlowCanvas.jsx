@@ -678,12 +678,8 @@ export default function FlowCanvas() {
         id: `dep:${srcId}:${tgtId}`,
         source: srcId, target: tgtId,
         type: 'default',
-        style: { stroke: heatColor, strokeWidth: heatWidth, strokeDasharray: '4 3', opacity: heatOpacity },
-        markerEnd: { type: MarkerType.Arrow, color: heatColor, width: 8, height: 8 },
-        label: refCount > 0 ? String(refCount) : undefined,
-        labelStyle: { fontSize: 9, fill: heatColor, fontFamily: 'var(--mono)' },
-        labelBgStyle: { fill: 'var(--bg)', fillOpacity: 0.8 },
-        animated: false, selectable: false, focusable: false,
+        style: { stroke: '#ff0000', strokeWidth: 6 },
+        animated: true,
       });
     });
   });
