@@ -42,11 +42,21 @@ export function parseDeps(filePath, content, lang) {
   const results = [];
   let m;
   while ((m = re.exec(content)) !== null) {
-    results.push(resolveRelative(dir, m[1]));
+    const imp = lang === 'python' ? pythonImportToRelPath(m[1]) : m[1];
+    results.push(resolveRelative(dir, imp));
   }
   const out = [...new Set(results)];
   console.log('[depGraph] parseDeps', filePath, lang, '→', out);
   return out;
+}
+
+// Python: `.logger` → `logger`, `..errors` → `../errors`, `.utils.db` → `utils/db`
+function pythonImportToRelPath(imp) {
+  let dots = 0;
+  while (dots < imp.length && imp[dots] === '.') dots++;
+  const prefix = '../'.repeat(Math.max(0, dots - 1));
+  const rest = imp.slice(dots).replace(/\./g, '/');
+  return prefix + rest;
 }
 
 function resolveRelative(dir, imp) {

@@ -655,7 +655,7 @@ export default function FlowCanvas() {
   void depTick;
   const fileNodeMap = new Map();
   nodes.forEach(n => {
-    if (!n.data?.filePath) return;
+    if (n.type !== 'file' || !n.data?.filePath) return;
     const uri = 'file://' + n.data.filePath;
     fileNodeMap.set(uri, n.id);
     const noExt = uri.replace(/\.[^/.]+$/, '');
