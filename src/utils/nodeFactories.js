@@ -18,9 +18,9 @@ export function mkRegion(id, label, position) {
   };
 }
 
-export function mkFileNode(id, position) {
+export function mkFileNode(id, position, extra = {}) {
   return {
     id, type: 'file', position,
-    data: { filePath: null, content: '', externalChange: false },
+    data: { filePath: null, content: '', externalChange: false, ...extra },
   };
 }

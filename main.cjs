@@ -702,6 +702,162 @@ ipcMain.handle('vcs:git-branches', (_e, rootPath) => {
   } catch (_) { return { branches: [], current: null }; }
 });
 
+// --- Agent ---
+
+const AGENT_TOOL_DEFS = [
+  {
+    name: 'read_file',
+    description: 'Read the full contents of a file from disk.',
+    input_schema: {
+      type: 'object',
+      properties: { path: { type: 'string', description: 'Absolute file path' } },
+      required: ['path'],
+    },
+  },
+  {
+    name: 'edit_file',
+    description: 'Replace an exact substring in a file with new content. The edit is proposed as a diff — the user must accept it before it lands in the editor.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        path: { type: 'string' },
+        old_str: { type: 'string', description: 'Exact string to find and replace (must exist verbatim in the file)' },
+        new_str: { type: 'string', description: 'Replacement string' },
+      },
+      required: ['path', 'old_str', 'new_str'],
+    },
+  },
+  {
+    name: 'create_node',
+    description: 'Create a new node on the canvas.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        type: { type: 'string', enum: ['file', 'chaperonin', 'region'], description: 'Node type' },
+        filePath: { type: 'string', description: 'For file nodes, the absolute path to open' },
+        x: { type: 'number' },
+        y: { type: 'number' },
+      },
+      required: ['type'],
+    },
+  },
+  {
+    name: 'delete_node',
+    description: 'Delete a node from the canvas by ID.',
+    input_schema: {
+      type: 'object',
+      properties: { id: { type: 'string' } },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'run_command',
+    description: 'Run a shell command in the project directory. Returns stdout+stderr (max 4000 chars).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        cmd: { type: 'string' },
+        cwd: { type: 'string', description: 'Working directory (defaults to project root)' },
+      },
+      required: ['cmd'],
+    },
+  },
+];
+
+async function agentExecuteTool(name, input, context) {
+  if (name === 'read_file') {
+    try {
+      return { ok: true, content: await fs.promises.readFile(input.path, 'utf8') };
+    } catch (e) { return { ok: false, error: e.message }; }
+  }
+
+  if (name === 'edit_file') {
+    try {
+      const content = await fs.promises.readFile(input.path, 'utf8');
+      if (!content.includes(input.old_str)) return { ok: false, error: 'old_str not found in file' };
+      return { ok: true, path: input.path, oldContent: content, newContent: content.replace(input.old_str, input.new_str) };
+    } catch (e) { return { ok: false, error: e.message }; }
+  }
+
+  if (name === 'create_node') {
+    return { ok: true, action: { type: 'create', nodeType: input.type, filePath: input.filePath ?? null, x: input.x ?? 200, y: input.y ?? 200 } };
+  }
+
+  if (name === 'delete_node') {
+    return { ok: true, action: { type: 'delete', id: input.id } };
+  }
+
+  if (name === 'run_command') {
+    return new Promise((resolve) => {
+      const cwd = input.cwd ?? context.rootPath ?? process.cwd();
+      const proc = spawn('sh', ['-c', input.cmd], { cwd, stdio: 'pipe' });
+      let out = '';
+      proc.stdout.on('data', d => { out += d; });
+      proc.stderr.on('data', d => { out += d; });
+      proc.on('close', code => resolve({ ok: true, output: out.slice(0, 4000), exitCode: code }));
+      proc.on('error', e => resolve({ ok: false, error: e.message }));
+      setTimeout(() => { proc.kill(); resolve({ ok: false, error: 'timeout after 30s' }); }, 30000);
+    });
+  }
+
+  return { ok: false, error: 'unknown tool: ' + name };
+}
+
+let _agentAbort = null;
+
+const PROVIDERS = {
+  anthropic: () => require('./lib/agent/providers/anthropic.js'),
+  openai:    () => require('./lib/agent/providers/openai.js'),
+  gemini:    () => require('./lib/agent/providers/gemini.js'),
+  ollama:    () => require('./lib/agent/providers/ollama.js'),
+};
+
+ipcMain.on('agent:run', async (_e, { prompt, context, agentConfig }) => {
+  if (_agentAbort) _agentAbort.abort();
+  _agentAbort = new AbortController();
+  const signal = _agentAbort.signal;
+
+  const send = (type, payload = {}) => mainWin?.webContents.send('agent:event', { type, ...payload });
+
+  const onToolCall = async (name, input) => {
+    send('tool-start', { name, input });
+    const result = await agentExecuteTool(name, input, context);
+    send('tool-result', { name, result });
+    if (name === 'edit_file' && result.ok) send('file-draft', result);
+    if ((name === 'create_node' || name === 'delete_node') && result.ok) send('canvas-action', result.action);
+    return result;
+  };
+
+  try {
+    const provider = PROVIDERS[agentConfig?.provider ?? 'anthropic']?.();
+    if (!provider) { send('error', { message: 'Unknown provider: ' + agentConfig?.provider }); return; }
+    await provider.run({ prompt, context, tools: AGENT_TOOL_DEFS, agentConfig: agentConfig ?? {}, onText: t => send('chunk', { text: t }), onToolCall, signal });
+    send('done');
+  } catch (e) {
+    if (e.name !== 'AbortError') send('error', { message: e.message });
+  }
+});
+
+ipcMain.handle('agent:stop', () => { _agentAbort?.abort(); _agentAbort = null; });
+
+ipcMain.handle('agent:list-models', async (_e, agentConfig) => {
+  const cfg = agentConfig ?? {};
+  if (cfg.provider === 'ollama') {
+    try {
+      const base = (cfg.ollamaBaseUrl || 'http://localhost:11434').replace(/\/$/, '');
+      const res = await fetch(`${base}/api/tags`);
+      const data = await res.json();
+      return (data.models ?? []).map(m => m.name);
+    } catch { return []; }
+  }
+  const LISTS = {
+    anthropic: ['claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
+    openai:    ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'o1-preview', 'o1-mini'],
+    gemini:    ['gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'],
+  };
+  return LISTS[cfg.provider] ?? [];
+});
+
 // --- App lifecycle ---
 
 function registerAppProtocol(ses) {

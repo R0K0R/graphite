@@ -10,6 +10,8 @@ import ReactFlow, {
 } from 'reactflow';
 import { useYNodes } from './crdt/useYNodes.js';
 import { initRoom, destroyProviders, getDoc, getYText, getAwareness, getYNodes } from './crdt/doc.js';
+import { dispatch as agentDispatch } from './agent/agentBridge.js';
+import AgentPanel from './components/AgentPanel.jsx';
 import { generateRoomCode } from './utils/wordlist.js';
 
 import ChaperonNode from './components/nodes/ScriptNode.jsx';
@@ -45,6 +47,8 @@ export default function FlowCanvas() {
   const [rootPath, setRootPath] = useState(null);
   const [showPrefs, setShowPrefs]           = useState(false);
   const [showSession, setShowSession]       = useState(false);
+  const [showAgent, setShowAgent]           = useState(false);
+  const [agentScopedFile, setAgentScopedFile] = useState(null);
   const peers = usePeers();
   const [hoveredNodeId, setHoveredNodeId]   = useState(null);
   const [focusedNodeId, setFocusedNodeId]   = useState(null);
@@ -210,6 +214,25 @@ export default function FlowCanvas() {
     if (!aw) return;
     aw.setLocalStateField('focusedNode', focusedNodeId ?? hoveredNodeId ?? null);
   }, [focusedNodeId, hoveredNodeId]);
+
+  // Agent IPC → agentBridge + canvas actions
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    return window.electronAPI.onAgentEvent(event => {
+      agentDispatch(event);
+      if (event.type === 'canvas-action') {
+        const { action } = event;
+        if (action.type === 'create') {
+          const id = `agent_${Date.now()}`;
+          const pos = { x: action.x ?? 200, y: action.y ?? 200 };
+          if (action.nodeType === 'file') setNodes(nds => [...nds, mkFileNode(id, pos, { filePath: action.filePath })]);
+          else if (action.nodeType === 'chaperonin') setNodes(nds => [...nds, mkScriptNode(id, pos)]);
+        } else if (action.type === 'delete') {
+          setNodes(nds => nds.filter(n => n.id !== action.id));
+        }
+      }
+    });
+  }, [setNodes]);
 
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -547,6 +570,7 @@ export default function FlowCanvas() {
           expanded: isExpanded,
           peerColors: peers.filter(p => !p.isLocal && p.focusedNode === node.id).map(p => p.color),
           blameInfo: vcs.blameMap[node.id] ?? null,
+          onAskAgent: (filePath) => { setAgentScopedFile(filePath); setShowAgent(true); },
         } : {}),
       },
     };
@@ -668,6 +692,14 @@ export default function FlowCanvas() {
           </div>
         )}
 
+        {/* Agent button */}
+        <button
+          className={`titlebar-sync-btn${showAgent ? ' is-active' : ''}`}
+          onClick={() => { setAgentScopedFile(null); setShowAgent(s => !s); }}
+        >
+          ✦ agent
+        </button>
+
         {/* Session button */}
         <button
           className={`titlebar-sync-btn${peers.length > 1 ? ' is-active' : ''}`}
@@ -740,6 +772,13 @@ export default function FlowCanvas() {
       </div>
 
       <StatusBar rootPath={rootPath} nodeCount={nodes.length} peers={peers} />
+
+      <AgentPanel
+        open={showAgent}
+        onClose={() => setShowAgent(false)}
+        rootPath={rootPath}
+        scopedFilePath={agentScopedFile}
+      />
 
       <SessionPanel
         open={showSession}

@@ -57,4 +57,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('vcs:git-branch-changed', handler);
     return () => ipcRenderer.removeListener('vcs:git-branch-changed', handler);
   },
+
+  // Agent
+  agentRun:        (payload) => ipcRenderer.send('agent:run', payload),
+  agentStop:       ()        => ipcRenderer.invoke('agent:stop'),
+  agentListModels: (cfg)     => ipcRenderer.invoke('agent:list-models', cfg),
+  onAgentEvent: (cb) => {
+    const handler = (_e, event) => cb(event);
+    ipcRenderer.on('agent:event', handler);
+    return () => ipcRenderer.removeListener('agent:event', handler);
+  },
 });

@@ -1,4 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { onAgentEvent, getDraft } from '../../agent/agentBridge.js';
+import { acceptDraft, rejectDraft } from '../../agent/applyDraft.js';
 import Editor from '@monaco-editor/react';
 import { usePrefs } from '../../ThemeContext.js';
 import * as lspClient from '../../lsp/LspClient.js';
@@ -39,7 +41,8 @@ export function basename(filePath) {
 }
 
 export default function CodeNode({ id, data, selected }) {
-  const { filePath, onFilePicked, expanded, rootPath, onEditorFocus, onEditorBlur, peerColors, blameInfo } = data;
+  const { filePath, onFilePicked, expanded, rootPath, onEditorFocus, onEditorBlur, peerColors, blameInfo, onAskAgent } = data;
+  const [hasPendingDraft, setHasPendingDraft] = useState(() => filePath ? !!getDraft(filePath) : false);
   const writeTimer     = useRef(null);
   const lspChangeTimer = useRef(null);
   const editorRef      = useRef(null);
@@ -57,6 +60,16 @@ export default function CodeNode({ id, data, selected }) {
     window.electronAPI.watchFile(filePath);
     return () => window.electronAPI.unwatchFile(filePath);
   }, [filePath]); // eslint-disable-line
+
+  useEffect(() => {
+    if (!filePath) return;
+    return onAgentEvent(event => {
+      if ((event.type === 'file-draft' && event.path === filePath) ||
+          (event.type === 'draft-cleared' && event.path === filePath)) {
+        setHasPendingDraft(!!getDraft(filePath));
+      }
+    });
+  }, [filePath]);
 
   useEffect(() => {
     if (!expanded && editorRef.current) {
@@ -145,12 +158,29 @@ export default function CodeNode({ id, data, selected }) {
         {filePath && <span className="file-node-lang">{lang}</span>}
         <PeerDots colors={peerColors} />
         <BlameDot blameInfo={blameInfo} />
+        {hasPendingDraft && (
+          <span className="agent-draft-badge nodrag" title="Agent proposed changes">AI draft</span>
+        )}
+        {filePath && (
+          <button className="toolbar-btn nodrag agent-ask-btn" title="Ask AI about this file" onClick={() => onAskAgent?.(filePath)}>
+            ✦
+          </button>
+        )}
         {!filePath && (
           <button className="toolbar-btn nodrag" style={{ padding: '2px 8px', fontSize: 10, borderRadius: 4 }} onClick={() => onFilePicked?.(id)}>
             open file
           </button>
         )}
       </div>
+      {hasPendingDraft && filePath && (
+        <div className="agent-draft-bar nodrag">
+          <span className="agent-draft-bar-label">◈ AI proposed changes</span>
+          <button className="session-btn session-btn--primary" style={{ padding: '2px 10px', fontSize: 10 }}
+            onClick={() => acceptDraft(filePath)}>accept</button>
+          <button className="session-btn" style={{ padding: '2px 10px', fontSize: 10 }}
+            onClick={() => rejectDraft(filePath)}>reject</button>
+        </div>
+      )}
       {filePath && <div className="file-node-path">{filePath}</div>}
       {filePath ? (
         <div className="file-code-container nodrag nowheel" style={expanded ? undefined : { height: 300 }} onFocus={() => onEditorFocus?.(id)} onBlur={onEditorBlur}>
