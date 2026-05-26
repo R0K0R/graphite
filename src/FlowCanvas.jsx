@@ -668,7 +668,7 @@ export default function FlowCanvas() {
     depSet.forEach(depUri => {
       const tgtId = fileNodeMap.get(depUri);
       if (!tgtId || tgtId === srcId) return;
-      const refCount  = getRefCount(srcUri, depUri);
+      const refCount    = getRefCount(srcUri, depUri);
       const heatWidth   = Math.min(1 + refCount * 0.35, 5);
       const heatOpacity = Math.min(0.3 + refCount * 0.07, 0.9);
       const heatColor   = refCount > 10 ? '#f97316'
@@ -678,8 +678,12 @@ export default function FlowCanvas() {
         id: `dep:${srcId}:${tgtId}`,
         source: srcId, target: tgtId,
         type: 'default',
-        style: { stroke: '#ff0000', strokeWidth: 6 },
-        animated: true,
+        style: { stroke: heatColor, strokeWidth: heatWidth, strokeDasharray: '4 3', opacity: heatOpacity },
+        markerEnd: { type: MarkerType.Arrow, color: heatColor, width: 8, height: 8 },
+        label: refCount > 0 ? String(refCount) : undefined,
+        labelStyle: { fontSize: 9, fill: heatColor, fontFamily: 'var(--mono)' },
+        labelBgStyle: { fill: 'var(--bg)', fillOpacity: 0.8 },
+        animated: false, selectable: false, focusable: false,
       });
     });
   });
@@ -986,7 +990,6 @@ export default function FlowCanvas() {
       />
 
       <div className="ide-canvas" data-anim={vcs.canvasAnim ?? undefined}>
-        {depEdges.length > 0 && console.log('[RF] depEdges:', depEdges.length, 'fileNodes:', nodesWithCallbacks.filter(n=>n.type==='file').map(n=>n.id))}
         <ReactFlow
           nodes={nodesWithCallbacks}
           edges={[...diffEdges, ...depEdges]}
