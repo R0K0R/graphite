@@ -658,10 +658,10 @@ export default function FlowCanvas() {
     if (!n.data?.filePath) return;
     const uri = 'file://' + n.data.filePath;
     fileNodeMap.set(uri, n.id);
-    // Extension-less imports (Python, TS without .ts, etc.) resolve without extension
     const noExt = uri.replace(/\.[^/.]+$/, '');
     if (noExt !== uri) fileNodeMap.set(noExt, n.id);
   });
+  console.log('[FlowCanvas] fileNodeMap', [...fileNodeMap.keys()], 'allDeps', [...getAllDeps().entries()].map(([k,v])=>[k,[...v]]));
   const depEdges = [];
   getAllDeps().forEach((depSet, srcUri) => {
     const srcId = fileNodeMap.get(srcUri);

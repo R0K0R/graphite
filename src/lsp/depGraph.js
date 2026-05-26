@@ -36,7 +36,7 @@ const IMPORT_RE = {
 
 export function parseDeps(filePath, content, lang) {
   const re = IMPORT_RE[lang];
-  if (!re) return [];
+  if (!re) { console.log('[depGraph] no regex for lang', lang); return []; }
   re.lastIndex = 0;
   const dir = filePath.slice(0, filePath.lastIndexOf('/'));
   const results = [];
@@ -44,7 +44,9 @@ export function parseDeps(filePath, content, lang) {
   while ((m = re.exec(content)) !== null) {
     results.push(resolveRelative(dir, m[1]));
   }
-  return [...new Set(results)];
+  const out = [...new Set(results)];
+  console.log('[depGraph] parseDeps', filePath, lang, '→', out);
+  return out;
 }
 
 function resolveRelative(dir, imp) {
