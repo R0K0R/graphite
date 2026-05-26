@@ -9,6 +9,9 @@ make install      # npm install
 make dev          # hot-reload: Vite dev server + Electron (concurrently)
 make electron     # production build then open Electron window
 make build        # Vite build only (outputs to dist/)
+make ws-server    # start y-websocket sync server on ws://localhost:1234
+make electron-a   # open a second Electron instance with --user-data-dir=/tmp/graphite-a
+make electron-b   # open a third instance (graphite-b) — for testing multi-user CRDT sync
 ```
 
 On NixOS, the npm `electron` package is a generic Linux build and may fail. Use the system-provided binary instead:
@@ -56,6 +59,20 @@ This is a desktop app (Electron + React + ReactFlow) for a node-based canvas whe
 - `editMode` — set when a Monaco editor is focused; suppresses ReactFlow's delete and pan/zoom keybindings so the editor can use them.
 - Collapse — region children are filtered out of `visibleNodes` entirely; `isHiddenByCollapse` walks the `childParentMap` chain.
 - Two-phase file-tree layout — phase 1 places nodes with estimated sizes; phase 2 re-runs `buildNodesFromTree` once ReactFlow has measured actual dimensions.
+
+**VCS layer (`src/vcs/`):**
+- `useVcs.js` — React hook consumed by `FlowCanvas`. Surfaces `hasGit`, `branches`, `currentBranch`, `isDirty`, `gitLog`, `diffMode`, `canvasAnim`, `blameMap`. Bridges the canvas-state diff against the committed Yjs snapshot stored in each git commit object via IPC calls (`vcs:init`, `vcs:commit`, `vcs:checkout`, `vcs:diff`, `vcs:load-blame`, `vcs:git-log`). Listens for external `git checkout` events from the main process and switches rooms automatically.
+- `branchStore.js` — derives deterministic Yjs room codes from `sha1(rootPath + ':' + branchName)` and reads/writes `.graphite/vcs.json` for branch metadata. Room codes are stable so switching branches and back restores the exact IndexedDB database.
+- `computeNodeDiff.js` — pure function; compares two node arrays and returns a `Map<id, {type, node, prevPosition?}>` used by `DiffPanel` and `DiffGhostNode`.
+- `useUndoBuffer.js` — undo/redo wrapper around the Yjs doc.
+
+**VCS commit storage:** Each commit stores a base64-encoded `Y.encodeStateAsUpdate` blob as a git note (`refs/notes/graphite-snapshot`) on top of a regular git commit. `vcs:checkout` reads this blob, applies it to the newly initialised Yjs room, and seeds the IndexedDB state.
+
+**Diff visualization:** When `diffMode` is set, `FlowCanvas` passes `diffState` into each node's `data` and renders semi-transparent `DiffGhostNode` overlays (via `src/components/nodes/DiffGhostNode.jsx`) at the positions nodes occupied in the base snapshot. `DiffPanel` (top-right ReactFlow panel) shows counts and an opacity slider.
+
+**`canvasAnim` state machine:** `'lift'` → checkout in progress (nodes animate up) → `'reveal'` → room switched (nodes settle) → `null`. Driven by `useVcs` with 180 ms / 330 ms timeouts; `FlowCanvas` applies CSS classes based on this value.
+
+**`.graphite/` directory:** Created at the root of each opened workspace. Contains `vcs.json` (branch → roomCode mapping) and is git-ignored automatically by the VCS init handler.
 
 **Adding a new node type:**
 1. Create `src/components/nodes/YourNode.jsx`.

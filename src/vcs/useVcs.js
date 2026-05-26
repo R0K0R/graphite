@@ -13,15 +13,16 @@ function b64toU8(b64) {
 }
 
 export function useVcs(rootPath) {
-  const [branches, setBranches]         = useState([]);
+  const [branches, setBranches]           = useState([]);
   const [currentBranch, setCurrentBranch] = useState(null);
-  const [hasGit, setHasGit]             = useState(false);
-  const [isDirty, setIsDirty]           = useState(false);
-  const [gitLog, setGitLog]             = useState([]);
-  const [diffMode, setDiffMode]         = useState(null);
+  const [hasGit, setHasGit]               = useState(false);
+  const [isDirty, setIsDirty]             = useState(false);
+  const [gitLog, setGitLog]               = useState([]);
+  const [diffMode, setDiffMode]           = useState(null);
   // { fromBranch, fromHash, diffById: Map, baseOpacity: number, counts: {added,removed,moved,modified} }
-  const [canvasAnim, setCanvasAnim]     = useState(null);
-  const [blameMap, setBlameMap]         = useState({});
+  const [canvasAnim, setCanvasAnim]       = useState(null);
+  const [blameMap, setBlameMap]           = useState({});
+  const [pendingTreeRefresh, setPendingTreeRefresh] = useState(false);
   const baseSnapshotRef = useRef(null); // Uint8Array of last committed snapshot
 
   // Track Yjs changes to detect dirty state
@@ -108,10 +109,13 @@ export function useVcs(rootPath) {
           Y.applyUpdate(getDoc(), seed);
           baseSnapshotRef.current = seed;
         } else {
+          // No snapshot for this branch — signal FlowCanvas to rebuild from file tree
           baseSnapshotRef.current = null;
+          setPendingTreeRefresh(true);
         }
         setCurrentBranch(branchName);
         setIsDirty(false);
+        await refreshLog(rootPath);
         setCanvasAnim('reveal');
         setTimeout(() => setCanvasAnim(null), 330);
       }, 180);
@@ -119,20 +123,20 @@ export function useVcs(rootPath) {
       setCanvasAnim(null);
     }
     return res;
-  }, [rootPath, currentBranch]);
+  }, [rootPath, currentBranch, refreshLog]);
 
-  const showDiff = useCallback(async (fromHash) => {
+  const showDiff = useCallback(async (fromHash, fromMessage) => {
     if (!rootPath || !window.electronAPI) return;
     const update = captureUpdate();
     const b64 = btoa(String.fromCharCode(...update));
     const res = await window.electronAPI.vcsDiff(rootPath, fromHash ?? null, b64);
     if (!res) return;
-    // res.baseNodes + res.currentNodes
     const diffById = computeNodeDiff(res.baseNodes ?? [], res.currentNodes ?? []);
     const counts = { added: 0, removed: 0, moved: 0, modified: 0 };
     for (const d of diffById.values()) counts[d.type] = (counts[d.type] ?? 0) + 1;
     setDiffMode({
       fromHash: fromHash ?? 'last',
+      fromMessage: fromMessage ?? null,
       diffById,
       baseOpacity: 0.5,
       counts,
@@ -140,6 +144,8 @@ export function useVcs(rootPath) {
   }, [rootPath]);
 
   const exitDiff = useCallback(() => setDiffMode(null), []);
+
+  const clearPendingTreeRefresh = useCallback(() => setPendingTreeRefresh(false), []);
 
   const setDiffOpacity = useCallback((v) => {
     setDiffMode(prev => prev ? { ...prev, baseOpacity: v } : null);
@@ -157,8 +163,9 @@ export function useVcs(rootPath) {
 
   return {
     hasGit, branches, currentBranch, isDirty, gitLog, blameMap,
-    diffMode, canvasAnim,
+    diffMode, canvasAnim, pendingTreeRefresh,
     init, commit, createBranch, checkout, showDiff, exitDiff, setDiffOpacity,
+    clearPendingTreeRefresh,
   };
 }
 

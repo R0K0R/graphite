@@ -36,3 +36,12 @@ export function generateRoomCode() {
   const pick = () => WORDLIST[Math.floor(Math.random() * WORDLIST.length)];
   return `${pick()}-${pick()}-${pick()}-${pick()}`;
 }
+
+// Deterministic 4-word code from a path string (djb2 hash, no async needed).
+export function roomCodeForPath(path) {
+  let h = 5381;
+  for (let i = 0; i < path.length; i++) h = ((h << 5) + h + path.charCodeAt(i)) >>> 0;
+  const n = WORDLIST.length;
+  const w = (seed) => { const s = (seed * 1664525 + 1013904223) >>> 0; return WORDLIST[s % n]; };
+  return `${w(h)}-${w(h^0xdeadbeef)}-${w(h^0xcafe1234)}-${w(h^0xf00dbabe)}`;
+}

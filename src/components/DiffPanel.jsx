@@ -3,8 +3,10 @@ import { Panel } from 'reactflow';
 export default function DiffPanel({ diffMode, onExit, onOpacityChange }) {
   if (!diffMode) return null;
 
-  const { counts, baseOpacity, fromHash } = diffMode;
-  const label = fromHash === 'last' ? 'last commit' : (fromHash?.slice(0, 7) ?? '?');
+  const { counts, baseOpacity, fromHash, fromMessage } = diffMode;
+  const label = fromMessage
+    ? <>{fromHash?.slice(0, 7)} <span style={{ color: 'var(--text)', fontWeight: 'normal' }}>{fromMessage}</span></>
+    : (fromHash === 'last' ? 'last commit' : (fromHash?.slice(0, 7) ?? '?'));
 
   return (
     <Panel position="top-right" className="diff-panel">
@@ -21,7 +23,7 @@ export default function DiffPanel({ diffMode, onExit, onOpacityChange }) {
         )}
       </div>
       <div className="diff-panel-opacity">
-        <span className="diff-panel-opacity-label">base opacity</span>
+        <span className="diff-panel-opacity-label">diff intensity</span>
         <input
           type="range"
           min={0}

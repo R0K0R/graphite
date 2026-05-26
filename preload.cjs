@@ -10,8 +10,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   openDirPicker:  () => ipcRenderer.invoke('dir:open-picker'),
   readTree:       (d) => ipcRenderer.invoke('dir:read-tree', d),
-  readMetadata:   (d) => ipcRenderer.invoke('dir:read-metadata', d),
-  writeMetadata:  (d, m) => ipcRenderer.invoke('dir:write-metadata', d, m),
+  readMetadata:   (rootPath, dirPath) => ipcRenderer.invoke('dir:read-metadata', rootPath, dirPath),
+  writeMetadata:  (rootPath, dirPath, m) => ipcRenderer.invoke('dir:write-metadata', rootPath, dirPath, m),
+
+  graphiteInitRoom: (rootPath) => ipcRenderer.invoke('graphite:init-room', rootPath),
+  graphiteSaveRoom: (rootPath, code) => ipcRenderer.invoke('graphite:save-room', rootPath, code),
 
   onFileChanged: (cb) => {
     const handler = (_e, payload) => cb(payload);

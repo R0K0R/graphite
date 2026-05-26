@@ -1,7 +1,7 @@
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
-import { WebrtcProvider } from 'y-webrtc';
-import { generateRoomCode } from '../utils/wordlist.js';
+import { WebsocketProvider } from 'y-websocket';
+import { roomCodeForPath } from '../utils/wordlist.js';
 
 let _doc = null;
 let _providers = [];
@@ -10,10 +10,6 @@ let _roomCode = null;
 let _localName = 'me';
 let _localColor = '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0');
 
-// WebRTC connection state exposed to the UI
-let _webrtcConnected = false;
-let _webrtcSynced    = false;
-
 const _roomListeners   = new Set();
 const _statusListeners = new Set();
 
@@ -21,8 +17,7 @@ function notifyRoomChange() {
   _roomListeners.forEach(cb => { try { cb(_roomCode); } catch (_) {} });
 }
 
-function notifyStatus() {
-  const s = { connected: _webrtcConnected, synced: _webrtcSynced };
+function notifyStatus(s) {
   _statusListeners.forEach(cb => { try { cb(s); } catch (_) {} });
 }
 
@@ -36,9 +31,7 @@ export function onWebrtcStatus(cb) {
   return () => _statusListeners.delete(cb);
 }
 
-export function getWebrtcStatus() {
-  return { connected: _webrtcConnected, synced: _webrtcSynced };
-}
+export function getWebrtcStatus() { return { connected: false, synced: false }; }
 
 export function getDoc() {
   if (!_doc) _doc = new Y.Doc();
@@ -67,71 +60,37 @@ export function getPeers() {
   }));
 }
 
-// Tear down providers in the correct order:
-// disconnect() must come before destroy() so y-webrtc removes the SignalingConn
-// from its module-level signalingConns map. Without this, the next WebrtcProvider
-// reuses the already-open WebSocket — the 'connect' handler never fires again,
-// the new room's subscribe/announce messages are never sent, and peers can't find
-// each other (the silent join failure).
-function tearDownProviders() {
-  _providers.forEach(p => {
-    try { p.disconnect?.(); } catch (_) {}
-    try { p.destroy();      } catch (_) {}
-  });
-  _providers = [];
-}
-
 export function initRoom(rootPath, customCode) {
-  // Tear down without notifying — avoids a spurious onRoomChange(null) that causes
-  // monacoBinding's attach() to create a null-awareness MonacoBinding, leaking a
-  // y-monaco cursor listener that its destroy() never removes.
-  tearDownProviders();
-  _awareness = null;
-  _doc = null;
-  _roomCode = null;
-  _webrtcConnected = false;
-  _webrtcSynced    = false;
-
+  destroyProviders();
   _doc = new Y.Doc();
-  _roomCode = customCode ?? generateRoomCode();
-
+  _roomCode = customCode ?? roomCodeForPath(rootPath);
   const persist = new IndexeddbPersistence(_roomCode, _doc);
-  const webrtc = new WebrtcProvider(_roomCode, _doc, {
-    signaling: ['wss://y-webrtc-eu.fly.dev'],
-  });
-  _awareness = webrtc.awareness;
+  const ws = new WebsocketProvider('ws://localhost:1234', _roomCode, _doc);
+  _awareness = ws.awareness;
   _awareness.setLocalStateField('name', _localName);
   _awareness.setLocalStateField('color', _localColor);
-  _providers = [persist, webrtc];
+  _providers = [persist, ws];
 
-  // y-webrtc v10 emits { connected: boolean }, not { status: string }
-  webrtc.on('status', ({ connected }) => {
-    _webrtcConnected = connected;
-    console.log('[CRDT] webrtc connected:', connected);
-    notifyStatus();
+  ws.on('status', ({ status }) => {
+    console.log('[CRDT] ws status:', status);
+    notifyStatus({ connected: status === 'connected', synced: false });
   });
-  webrtc.on('synced', ({ synced }) => {
-    _webrtcSynced = synced;
+  ws.on('sync', (synced) => {
     console.log('[CRDT] synced:', synced);
-    notifyStatus();
-  });
-  webrtc.on('peers', ({ webrtcPeers, bcPeers }) => {
-    console.log('[CRDT] peers — webrtc:', webrtcPeers.length, 'bc:', bcPeers.length);
+    notifyStatus({ connected: true, synced });
   });
 
   notifyRoomChange();
-  return { persist, webrtc };
+  return { persist, ws };
 }
 
 export function destroyProviders() {
-  tearDownProviders();
+  _providers.forEach(p => { try { p.destroy(); } catch (_) {} });
+  _providers = [];
   _awareness = null;
   _doc = null;
   _roomCode = null;
-  _webrtcConnected = false;
-  _webrtcSynced    = false;
   notifyRoomChange();
-  notifyStatus();
 }
 
 export const getYNodes = () => getDoc().getMap('nodes');

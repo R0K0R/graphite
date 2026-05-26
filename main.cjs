@@ -145,23 +145,49 @@ ipcMain.handle('dir:open-picker', async () => {
   return canceled ? null : filePaths[0];
 });
 
-ipcMain.handle('dir:read-metadata', async (_e, dirPath) => {
+// --- IPC: .graphite/ root store ---
+
+ipcMain.handle('graphite:init-room', async (_e, rootPath) => {
+  const dir = path.join(rootPath, '.graphite');
+  await fs.promises.mkdir(dir, { recursive: true });
+  const roomFile = path.join(dir, 'room');
   try {
-    const raw = await fs.promises.readFile(path.join(dirPath, '.graphite.json'), 'utf8');
-    return JSON.parse(raw);
-  } catch (e) {
-    if (e.code === 'ENOENT') return null;
-    throw e;
+    return (await fs.promises.readFile(roomFile, 'utf8')).trim();
+  } catch {
+    return null; // renderer generates the code and calls graphite:save-room
   }
 });
 
-ipcMain.handle('dir:write-metadata', (_e, dirPath, metadata) =>
-  fs.promises.writeFile(
-    path.join(dirPath, '.graphite.json'),
-    JSON.stringify(metadata, null, 2),
+ipcMain.handle('graphite:save-room', async (_e, rootPath, roomCode) => {
+  const dir = path.join(rootPath, '.graphite');
+  await fs.promises.mkdir(dir, { recursive: true });
+  await fs.promises.writeFile(path.join(dir, 'room'), roomCode, 'utf8');
+});
+
+// Region metadata stored centrally at <root>/.graphite/regions.json
+async function readRegions(rootPath) {
+  try {
+    const raw = await fs.promises.readFile(path.join(rootPath, '.graphite', 'regions.json'), 'utf8');
+    return JSON.parse(raw);
+  } catch { return {}; }
+}
+
+ipcMain.handle('dir:read-metadata', async (_e, rootPath, dirPath) => {
+  const regions = await readRegions(rootPath);
+  return regions[dirPath] ?? null;
+});
+
+ipcMain.handle('dir:write-metadata', async (_e, rootPath, dirPath, metadata) => {
+  const dir = path.join(rootPath, '.graphite');
+  await fs.promises.mkdir(dir, { recursive: true });
+  const regions = await readRegions(rootPath);
+  regions[dirPath] = metadata;
+  await fs.promises.writeFile(
+    path.join(dir, 'regions.json'),
+    JSON.stringify(regions, null, 2),
     'utf8'
-  )
-);
+  );
+});
 
 // --- IPC: LSP server management ---
 
@@ -516,17 +542,32 @@ ipcMain.handle('vcs:diff', async (_e, rootPath, fromHash, toUpdateB64) => {
     const toUpdate  = decodeUpdate(toUpdateB64);
     const curNodes  = decodeNodes(toUpdate);
     let baseNodes   = [];
+    let resolvedHash = fromHash;
+
     if (fromHash) {
       const sp = snapshotPath(rootPath, fromHash);
-      if (fs.existsSync(sp)) baseNodes = decodeNodes(fs.readFileSync(sp));
+      if (fs.existsSync(sp)) {
+        baseNodes = decodeNodes(fs.readFileSync(sp));
+      } else {
+        // No snapshot for this commit — synthesize base from git tree at that commit.
+        // Nodes whose files existed at fromHash = base nodes; added files = not in base.
+        // Modified files get a marker so computeNodeDiff sees them as 'modified'.
+        baseNodes = buildBaseNodesFromGit(rootPath, fromHash, curNodes);
+      }
     } else {
       // Use last committed snapshot for current branch
-      const vcs = readVcsJson(rootPath);
-      const branch = gitExecSafe(['rev-parse', '--abbrev-ref', 'HEAD'], rootPath);
-      const meta   = vcs.branches[branch] ?? {};
+      const vcsData = readVcsJson(rootPath);
+      const branch  = gitExecSafe(['rev-parse', '--abbrev-ref', 'HEAD'], rootPath);
+      const meta    = vcsData.branches[branch] ?? {};
       if (meta.snapshotHash) {
         const sp = snapshotPath(rootPath, meta.snapshotHash);
-        if (fs.existsSync(sp)) baseNodes = decodeNodes(fs.readFileSync(sp));
+        if (fs.existsSync(sp)) {
+          baseNodes = decodeNodes(fs.readFileSync(sp));
+          resolvedHash = meta.snapshotHash;
+        } else {
+          baseNodes = buildBaseNodesFromGit(rootPath, meta.snapshotHash, curNodes);
+          resolvedHash = meta.snapshotHash;
+        }
       }
     }
     return { baseNodes, currentNodes: curNodes };
@@ -535,6 +576,56 @@ ipcMain.handle('vcs:diff', async (_e, rootPath, fromHash, toUpdateB64) => {
     return { baseNodes: [], currentNodes: [] };
   }
 });
+
+// Build synthetic base nodes from the git tree at a given commit, for use when no
+// canvas snapshot exists. Nodes whose files were added since that commit are omitted
+// (they'll appear as 'added'). Nodes whose files were modified carry a marker so
+// computeNodeDiff can detect them as 'modified'. Deleted files get stub nodes so
+// they appear as 'removed' ghosts.
+function buildBaseNodesFromGit(rootPath, commitHash, curNodes) {
+  // Files changed between commitHash and HEAD (relative paths)
+  const addedRaw    = gitExecSafe(['diff', '--name-only', '--diff-filter=A', commitHash, 'HEAD'], rootPath) ?? '';
+  const deletedRaw  = gitExecSafe(['diff', '--name-only', '--diff-filter=D', commitHash, 'HEAD'], rootPath) ?? '';
+  const modifiedRaw = gitExecSafe(['diff', '--name-only', '--diff-filter=M', commitHash, 'HEAD'], rootPath) ?? '';
+
+  const toAbs = rel => path.resolve(rootPath, rel);
+  const addedAbs    = new Set(addedRaw.split('\n').filter(Boolean).map(toAbs));
+  const deletedAbs  = new Set(deletedRaw.split('\n').filter(Boolean).map(toAbs));
+  const modifiedAbs = new Set(modifiedRaw.split('\n').filter(Boolean).map(toAbs));
+
+  const curByPath = new Map(
+    curNodes.filter(n => n.data?.filePath).map(n => [n.data.filePath, n])
+  );
+
+  const base = [];
+
+  // Current nodes that existed at commitHash
+  for (const [filePath, node] of curByPath) {
+    if (addedAbs.has(filePath)) continue; // Added since commitHash → 'added' in diff
+    if (modifiedAbs.has(filePath)) {
+      // Modified: inject a marker so dataEqual returns false → 'modified'
+      base.push({ ...node, data: { ...node.data, __gitModified: commitHash } });
+    } else {
+      base.push(node); // Unchanged: same id/data/position → no diff entry
+    }
+  }
+
+  // Files deleted since commitHash: create stub base nodes so they appear as 'removed'
+  let stubX = -500, stubY = 0;
+  for (const filePath of deletedAbs) {
+    const relPath = path.relative(rootPath, filePath);
+    base.push({
+      id: 'git-del:' + relPath,
+      type: 'file',
+      position: { x: stubX, y: stubY },
+      width: 280, height: 80,
+      data: { filePath, label: path.basename(filePath) },
+    });
+    stubY += 100;
+  }
+
+  return base;
+}
 
 ipcMain.handle('vcs:load-blame', (_e, rootPath) => {
   try { return readBlameJson(rootPath); } catch (_) { return {}; }

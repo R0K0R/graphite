@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 function timeAgo(ts) {
   if (!ts) return '';
@@ -13,14 +13,28 @@ export default function BranchBar({
   hasGit, branches, currentBranch, isDirty, gitLog,
   onCommit, onCreateBranch, onCheckout, onShowDiff,
 }) {
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [showDropdown, setShowDropdown]     = useState(false);
   const [showCommitInput, setShowCommitInput] = useState(false);
-  const [showNewBranch, setShowNewBranch] = useState(false);
-  const [commitMsg, setCommitMsg] = useState('');
-  const [newBranchName, setNewBranchName] = useState('');
-  const [hoveredCommit, setHoveredCommit] = useState(null);
-  const commitInputRef = useRef(null);
-  const newBranchRef  = useRef(null);
+  const [showNewBranch, setShowNewBranch]   = useState(false);
+  const [showDiffPicker, setShowDiffPicker] = useState(false);
+  const [commitMsg, setCommitMsg]           = useState('');
+  const [newBranchName, setNewBranchName]   = useState('');
+  const [hoveredCommit, setHoveredCommit]   = useState(null);
+  const commitInputRef  = useRef(null);
+  const newBranchRef    = useRef(null);
+  const diffPickerRef   = useRef(null);
+
+  // Close diff picker on click outside (branch dropdown uses its own stopPropagation)
+  useEffect(() => {
+    if (!showDiffPicker) return;
+    const onMouseDown = (e) => {
+      if (diffPickerRef.current && !diffPickerRef.current.contains(e.target)) {
+        setShowDiffPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    return () => document.removeEventListener('mousedown', onMouseDown);
+  }, [showDiffPicker]);
 
   if (!hasGit) return null;
 
@@ -115,14 +129,31 @@ export default function BranchBar({
       {/* Actions */}
       {!showCommitInput ? (
         <>
-          <button
-            className="branch-action-btn"
-            onClick={() => onShowDiff(gitLog[0]?.hash ?? null)}
-            disabled={!gitLog.length}
-            title="Diff current canvas vs. last commit"
-          >
-            diff
-          </button>
+          <div className="branch-diff-wrap" ref={diffPickerRef}>
+            <button
+              className={`branch-action-btn${showDiffPicker ? ' active' : ''}`}
+              onClick={() => setShowDiffPicker(s => !s)}
+              disabled={!gitLog.length}
+              title="Diff current canvas vs. a commit"
+            >
+              diff ▾
+            </button>
+            {showDiffPicker && (
+              <div className="diff-commit-picker">
+                {gitLog.map(c => (
+                  <div
+                    key={c.hash}
+                    className="diff-commit-item"
+                    onClick={() => { onShowDiff(c.hash, c.message); setShowDiffPicker(false); }}
+                  >
+                    <span className="diff-commit-hash">{c.shortHash}</span>
+                    <span className="diff-commit-msg">{c.message}</span>
+                    <span className="diff-commit-time">{timeAgo(c.timestamp)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             className={`branch-action-btn${isDirty ? ' primary' : ''}`}
             onClick={() => { setShowCommitInput(true); setTimeout(() => commitInputRef.current?.focus(), 50); }}

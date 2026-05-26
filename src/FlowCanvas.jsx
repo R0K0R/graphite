@@ -9,7 +9,8 @@ import ReactFlow, {
   MarkerType,
 } from 'reactflow';
 import { useYNodes } from './crdt/useYNodes.js';
-import { initRoom, destroyProviders, getDoc, getYText, getAwareness } from './crdt/doc.js';
+import { initRoom, destroyProviders, getDoc, getYText, getAwareness, getYNodes } from './crdt/doc.js';
+import { generateRoomCode } from './utils/wordlist.js';
 
 import ChaperonNode from './components/nodes/ScriptNode.jsx';
 import RegionNode from './components/nodes/RegionNode.jsx';
@@ -345,6 +346,26 @@ export default function FlowCanvas() {
     setNodes(buildNodesFromTree(tree, sizeMap));
   }, [nodes, setNodes]);
 
+  // After branch checkout with no snapshot, rebuild the canvas from the file tree on disk
+  useEffect(() => {
+    if (!vcs.pendingTreeRefresh || !rootPath || !window.electronAPI) return;
+    vcs.clearPendingTreeRefresh();
+    window.electronAPI.readTree(rootPath).then(tree => {
+      if (!tree) return;
+      setFileTree(tree);
+      treeRef.current = tree;
+      layoutPhaseRef.current = 1;
+      setNodes(buildNodesFromTree(tree));
+    });
+  }, [vcs.pendingTreeRefresh, rootPath, setNodes]);
+
+  const reorganizeLayout = useCallback(() => {
+    const tree = treeRef.current;
+    if (!tree) return;
+    layoutPhaseRef.current = 1;
+    setNodes(buildNodesFromTree(tree));
+  }, [setNodes]);
+
   const openRootFolder = useCallback(() => {
     if (!window.electronAPI) return;
     nodesRef.current.forEach(n => {
@@ -353,15 +374,26 @@ export default function FlowCanvas() {
     window.electronAPI.openDirPicker().then(async dirPath => {
       if (!dirPath) return;
       setRootPath(dirPath);
-      initRoom(dirPath);
+
+      let roomCode = await window.electronAPI.graphiteInitRoom(dirPath);
+      if (!roomCode) {
+        roomCode = generateRoomCode();
+        await window.electronAPI.graphiteSaveRoom(dirPath, roomCode);
+      }
+
+      const { persist } = initRoom(dirPath, roomCode);
       vcs.init(dirPath);
-      window.electronAPI.readTree(dirPath).then(tree => {
-        if (!tree) return;
-        setFileTree(tree);
-        treeRef.current = tree;
+
+      const tree = await window.electronAPI.readTree(dirPath);
+      if (!tree) return;
+      setFileTree(tree);
+      treeRef.current = tree;
+
+      await persist.whenSynced;
+      if (getYNodes().size === 0) {
         layoutPhaseRef.current = 1;
-        setNodes(buildNodesFromTree(tree)); // phase 1: estimated sizes
-      });
+        setNodes(buildNodesFromTree(tree));
+      }
     });
   }, [setNodes]);
 
@@ -428,7 +460,7 @@ export default function FlowCanvas() {
             };
           }).filter(Boolean),
         };
-        window.electronAPI?.writeMetadata(region.data.dirPath, metadata);
+        window.electronAPI?.writeMetadata(rootPath, region.data.dirPath, metadata);
       });
     }, 800);
   }, [onNodesChange]);
@@ -524,10 +556,12 @@ export default function FlowCanvas() {
   if (diffMode) {
     const { diffById, baseOpacity } = diffMode;
 
-    // Dim unchanged current nodes
+    // Dim unchanged current nodes — opacity driven by slider so it always responds
+    const unchangedOpacity = Math.max(0.15, 1 - baseOpacity * 0.85);
     for (const n of nodesWithCallbacks) {
       if (!diffById.has(n.id)) {
         n.className = ((n.className ?? '') + ' diff-unchanged').trim();
+        n.style = { ...(n.style ?? {}), opacity: unchangedOpacity };
       } else {
         const d = diffById.get(n.id);
         if (d.type === 'added')    n.className = ((n.className ?? '') + ' diff-added').trim();
@@ -590,6 +624,7 @@ export default function FlowCanvas() {
         <div className="titlebar-sep" />
 
         <button className="titlebar-btn" onClick={openRootFolder}>open</button>
+        {fileTree && <button className="titlebar-btn" onClick={reorganizeLayout} title="Re-run auto layout">reorganize</button>}
 
         <div className="titlebar-sep" />
 
