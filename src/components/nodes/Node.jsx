@@ -1,3 +1,5 @@
+import { Handle, Position } from 'reactflow';
+
 // Base wrapper used by all node types.
 // accentColor sets the left-border accent; peerColors shows who's viewing.
 
@@ -20,6 +22,8 @@ export default function Node({ selected, baseClass = 'file-node', accentColor, c
       className={[baseClass, selected && `${baseClass}--selected`, className].filter(Boolean).join(' ')}
       style={Object.keys(style).length ? style : undefined}
     >
+      <Handle type="target" position={Position.Left}  style={{ opacity: 0, pointerEvents: 'none' }} />
+      <Handle type="source" position={Position.Right} style={{ opacity: 0, pointerEvents: 'none' }} />
       {children}
     </div>
   );

@@ -165,11 +165,9 @@ export default function CodeNode({ id, data, selected }) {
       // Dependency graph — static parse immediately, LSP-refined async
       const refreshDeps = () => {
         const staticDeps = parseDeps(filePath, editor.getValue(), lang).map(p => 'file://' + p);
-        console.log('[CodeNode] refreshDeps', uri, 'staticDeps:', staticDeps);
         setDeps(uri, staticDeps);
         lspClient.getDocumentLinks(uri).then(links => {
           const resolved = (links ?? []).map(l => l.target).filter(t => t?.startsWith('file://'));
-          console.log('[CodeNode] lsp documentLinks', uri, '→', resolved);
           if (resolved.length) setDeps(uri, resolved);
         });
       };
@@ -177,7 +175,6 @@ export default function CodeNode({ id, data, selected }) {
 
       const refreshSymbols = () => {
         lspClient.getDocumentSymbols(uri).then(syms => {
-          console.log('[CodeNode] documentSymbol', uri, syms);
           if (!syms) return;
           const flat = flattenSymbols(syms);
           setSymbols(flat.filter(s => TOP_KINDS.has(s.kind)).slice(0, 10));

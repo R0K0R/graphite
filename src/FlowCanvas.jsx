@@ -661,15 +661,12 @@ export default function FlowCanvas() {
     const noExt = uri.replace(/\.[^/.]+$/, '');
     if (noExt !== uri) fileNodeMap.set(noExt, n.id);
   });
-  console.log('[FlowCanvas] fileNodeMap', [...fileNodeMap.keys()], 'allDeps', [...getAllDeps().entries()].map(([k,v])=>[k,[...v]]));
   const depEdges = [];
   getAllDeps().forEach((depSet, srcUri) => {
     const srcId = fileNodeMap.get(srcUri);
-    console.log('[depEdge] srcUri', srcUri, '→ srcId', srcId);
     if (!srcId) return;
     depSet.forEach(depUri => {
       const tgtId = fileNodeMap.get(depUri);
-      console.log('[depEdge]   depUri', depUri, '→ tgtId', tgtId, 'same?', tgtId === srcId);
       if (!tgtId || tgtId === srcId) return;
       const refCount  = getRefCount(srcUri, depUri);
       const heatWidth   = Math.min(1 + refCount * 0.35, 5);
@@ -691,7 +688,6 @@ export default function FlowCanvas() {
     });
   });
 
-  console.log('[depEdge] total edges built:', depEdges.length, depEdges.map(e => e.id));
 
   // Peer cursor windows — peers editing files in my dependency graph
   const localPeer = peers.find(p => p.isLocal);
@@ -994,7 +990,6 @@ export default function FlowCanvas() {
       />
 
       <div className="ide-canvas" data-anim={vcs.canvasAnim ?? undefined}>
-        {depEdges.length > 0 && console.log('[RF] passing edges', depEdges.map(e=>({id:e.id,source:e.source,target:e.target})), 'nodes w/ file type:', nodesWithCallbacks.filter(n=>n.type==='file').map(n=>({id:n.id,parentNode:n.parentNode})))}
         <ReactFlow
           nodes={nodesWithCallbacks}
           edges={[...diffEdges, ...depEdges]}

@@ -36,7 +36,7 @@ const IMPORT_RE = {
 
 export function parseDeps(filePath, content, lang) {
   const re = IMPORT_RE[lang];
-  if (!re) { console.log('[depGraph] no regex for lang', lang); return []; }
+  if (!re) return [];
   re.lastIndex = 0;
   const dir = filePath.slice(0, filePath.lastIndexOf('/'));
   const results = [];
@@ -45,9 +45,7 @@ export function parseDeps(filePath, content, lang) {
     const imp = lang === 'python' ? pythonImportToRelPath(m[1]) : m[1];
     results.push(resolveRelative(dir, imp));
   }
-  const out = [...new Set(results)];
-  console.log('[depGraph] parseDeps', filePath, lang, '→', out);
-  return out;
+  return [...new Set(results)];
 }
 
 // Python: `.logger` → `logger`, `..errors` → `../errors`, `.utils.db` → `utils/db`
