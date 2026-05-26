@@ -13,8 +13,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readMetadata:   (rootPath, dirPath) => ipcRenderer.invoke('dir:read-metadata', rootPath, dirPath),
   writeMetadata:  (rootPath, dirPath, m) => ipcRenderer.invoke('dir:write-metadata', rootPath, dirPath, m),
 
-  graphiteInitRoom: (rootPath) => ipcRenderer.invoke('graphite:init-room', rootPath),
-  graphiteSaveRoom: (rootPath, code) => ipcRenderer.invoke('graphite:save-room', rootPath, code),
+  graphiteInitRoom:  (rootPath)         => ipcRenderer.invoke('graphite:init-room',   rootPath),
+  graphiteSaveRoom:  (rootPath, code)   => ipcRenderer.invoke('graphite:save-room',   rootPath, code),
+  graphiteReadConfig: (rootPath)        => ipcRenderer.invoke('graphite:read-config', rootPath),
+  graphiteWriteConfig: (rootPath, cfg)  => ipcRenderer.invoke('graphite:write-config', rootPath, cfg),
+
+  signalingStart:   ()  => ipcRenderer.invoke('signaling:start'),
+  signalingStop:    ()  => ipcRenderer.invoke('signaling:stop'),
+  signalingStatus:  ()  => ipcRenderer.invoke('signaling:status'),
+  signalingLocalIps: () => ipcRenderer.invoke('signaling:local-ips'),
 
   onFileChanged: (cb) => {
     const handler = (_e, payload) => cb(payload);

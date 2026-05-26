@@ -381,7 +381,8 @@ export default function FlowCanvas() {
         await window.electronAPI.graphiteSaveRoom(dirPath, roomCode);
       }
 
-      const { persist } = initRoom(dirPath, roomCode);
+      const config = await window.electronAPI.graphiteReadConfig(dirPath);
+      const { persist } = initRoom(dirPath, roomCode, config.signalingUrl ?? null);
       vcs.init(dirPath);
 
       const tree = await window.electronAPI.readTree(dirPath);

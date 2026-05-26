@@ -1,6 +1,6 @@
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
-import { WebsocketProvider } from 'y-websocket';
+import { WebrtcProvider } from 'y-webrtc';
 import { roomCodeForPath } from '../utils/wordlist.js';
 
 let _doc = null;
@@ -60,28 +60,30 @@ export function getPeers() {
   }));
 }
 
-export function initRoom(rootPath, customCode) {
+export function initRoom(rootPath, customCode, signalingUrl) {
   destroyProviders();
   _doc = new Y.Doc();
   _roomCode = customCode ?? roomCodeForPath(rootPath);
+
   const persist = new IndexeddbPersistence(_roomCode, _doc);
-  const ws = new WebsocketProvider('ws://localhost:1234', _roomCode, _doc);
-  _awareness = ws.awareness;
+  const signaling = signalingUrl ? [signalingUrl] : ['ws://localhost:4444'];
+  const webrtc = new WebrtcProvider(_roomCode, _doc, { signaling });
+  _awareness = webrtc.awareness;
   _awareness.setLocalStateField('name', _localName);
   _awareness.setLocalStateField('color', _localColor);
-  _providers = [persist, ws];
+  _providers = [persist, webrtc];
 
-  ws.on('status', ({ status }) => {
-    console.log('[CRDT] ws status:', status);
-    notifyStatus({ connected: status === 'connected', synced: false });
+  webrtc.on('status', ({ connected }) => {
+    console.log('[CRDT] webrtc connected:', connected);
+    notifyStatus({ connected, synced: false });
   });
-  ws.on('sync', (synced) => {
+  webrtc.on('synced', ({ synced }) => {
     console.log('[CRDT] synced:', synced);
     notifyStatus({ connected: true, synced });
   });
 
   notifyRoomChange();
-  return { persist, ws };
+  return { persist, webrtc };
 }
 
 export function destroyProviders() {

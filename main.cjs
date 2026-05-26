@@ -6,6 +6,7 @@ protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { secure: true, standard: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
 ]);
 const { spawn, execFileSync } = require('child_process');
+const os = require('os');
 
 const distIndex = path.join(__dirname, 'dist', 'index.html');
 
@@ -162,6 +163,52 @@ ipcMain.handle('graphite:save-room', async (_e, rootPath, roomCode) => {
   const dir = path.join(rootPath, '.graphite');
   await fs.promises.mkdir(dir, { recursive: true });
   await fs.promises.writeFile(path.join(dir, 'room'), roomCode, 'utf8');
+});
+
+ipcMain.handle('graphite:read-config', async (_e, rootPath) => {
+  try {
+    const raw = await fs.promises.readFile(path.join(rootPath, '.graphite', 'config.json'), 'utf8');
+    return JSON.parse(raw);
+  } catch { return {}; }
+});
+
+ipcMain.handle('graphite:write-config', async (_e, rootPath, config) => {
+  const dir = path.join(rootPath, '.graphite');
+  await fs.promises.mkdir(dir, { recursive: true });
+  await fs.promises.writeFile(path.join(dir, 'config.json'), JSON.stringify(config, null, 2), 'utf8');
+});
+
+// --- Signaling server (y-webrtc) ---
+
+let signalingProc = null;
+const SIGNALING_PORT = 4444;
+
+ipcMain.handle('signaling:start', () => {
+  if (signalingProc) return { already: true };
+  const serverScript = path.join(__dirname, 'node_modules', 'y-webrtc', 'bin', 'server.js');
+  signalingProc = spawn(process.execPath, [serverScript], {
+    env: { ...process.env, HOST: '0.0.0.0', PORT: String(SIGNALING_PORT) },
+    stdio: 'ignore',
+  });
+  signalingProc.on('exit', () => { signalingProc = null; });
+  return { port: SIGNALING_PORT };
+});
+
+ipcMain.handle('signaling:stop', () => {
+  signalingProc?.kill();
+  signalingProc = null;
+});
+
+ipcMain.handle('signaling:status', () => ({ running: !!signalingProc, port: SIGNALING_PORT }));
+
+ipcMain.handle('signaling:local-ips', () => {
+  const ips = [];
+  for (const iface of Object.values(os.networkInterfaces())) {
+    for (const addr of iface ?? []) {
+      if (addr.family === 'IPv4' && !addr.internal) ips.push(addr.address);
+    }
+  }
+  return ips;
 });
 
 // Region metadata stored centrally at <root>/.graphite/regions.json

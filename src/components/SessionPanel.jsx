@@ -2,17 +2,24 @@ import { useState, useEffect } from 'react';
 import { getRoomCode, initRoom, setLocalUser, onRoomChange, onWebrtcStatus, getWebrtcStatus } from '../crdt/doc.js';
 import { usePeers } from '../crdt/usePeers.js';
 
+const SIGNALING_PORT = 4444;
+
 function initials(name) {
   return name.slice(0, 2).toUpperCase();
 }
 
 export default function SessionPanel({ open, onClose, rootPath }) {
   const peers = usePeers();
-  const [roomCode, setRoomCode] = useState(() => getRoomCode() ?? '');
-  const [joinInput, setJoinInput] = useState('');
-  const [localName, setLocalName] = useState('me');
-  const [copied, setCopied] = useState(false);
+  const [roomCode, setRoomCode]         = useState(() => getRoomCode() ?? '');
+  const [joinInput, setJoinInput]       = useState('');
+  const [localName, setLocalName]       = useState('me');
+  const [copied, setCopied]             = useState(false);
   const [webrtcStatus, setWebrtcStatus] = useState(() => getWebrtcStatus());
+  const [tab, setTab]                   = useState('p2p'); // 'p2p' | 'server'
+  const [serverRunning, setServerRunning] = useState(false);
+  const [localIps, setLocalIps]         = useState([]);
+  const [signalingUrl, setSignalingUrl] = useState('');
+  const [urlSaved, setUrlSaved]         = useState(false);
 
   useEffect(() => {
     setWebrtcStatus(getWebrtcStatus());
@@ -24,6 +31,17 @@ export default function SessionPanel({ open, onClose, rootPath }) {
     setRoomCode(getRoomCode() ?? '');
     return unsub;
   }, []);
+
+  useEffect(() => {
+    if (!open || !window.electronAPI) return;
+    window.electronAPI.signalingStatus().then(s => setServerRunning(s.running));
+    window.electronAPI.signalingLocalIps().then(setLocalIps);
+    if (rootPath) {
+      window.electronAPI.graphiteReadConfig(rootPath).then(cfg => {
+        setSignalingUrl(cfg.signalingUrl ?? '');
+      });
+    }
+  }, [open, rootPath]);
 
   if (!open) return null;
 
@@ -43,9 +61,7 @@ export default function SessionPanel({ open, onClose, rootPath }) {
     e.preventDefault();
     const code = joinInput.trim();
     if (!code) return;
-    // rootPath can be null — joining doesn't require a local folder.
-    // The host's nodes sync over CRDT; file content arrives via Y.Text.
-    initRoom(rootPath ?? '', code);
+    initRoom(rootPath ?? '', code, signalingUrl || null);
     setJoinInput('');
     onClose();
   }
@@ -55,6 +71,29 @@ export default function SessionPanel({ open, onClose, rootPath }) {
     setLocalName(name);
     setLocalUser(name || 'me');
   }
+
+  async function handleToggleServer() {
+    if (!window.electronAPI) return;
+    if (serverRunning) {
+      await window.electronAPI.signalingStop();
+      setServerRunning(false);
+    } else {
+      await window.electronAPI.signalingStart();
+      setServerRunning(true);
+      const ips = await window.electronAPI.signalingLocalIps();
+      setLocalIps(ips);
+    }
+  }
+
+  async function handleSaveUrl() {
+    if (!rootPath || !window.electronAPI) return;
+    const cfg = await window.electronAPI.graphiteReadConfig(rootPath);
+    await window.electronAPI.graphiteWriteConfig(rootPath, { ...cfg, signalingUrl: signalingUrl.trim() || undefined });
+    setUrlSaved(true);
+    setTimeout(() => setUrlSaved(false), 1800);
+  }
+
+  const primaryIp = localIps[0] ?? '—';
 
   return (
     <div className="session-overlay" onClick={onClose}>
@@ -70,7 +109,7 @@ export default function SessionPanel({ open, onClose, rootPath }) {
 
         <div className="session-body">
 
-          {/* Join a room — always visible */}
+          {/* Join */}
           <div className="session-section">
             <div className="session-section-label">join a room</div>
             <div className="session-section-content">
@@ -92,7 +131,7 @@ export default function SessionPanel({ open, onClose, rootPath }) {
             </div>
           </div>
 
-          {/* Active room — only shown when a room is open */}
+          {/* Active room */}
           {roomCode && (
             <div className="session-section">
               <div className="session-section-label">
@@ -113,14 +152,11 @@ export default function SessionPanel({ open, onClose, rootPath }) {
             </div>
           )}
 
-          {/* Hosting hint when no folder is open */}
           {!rootPath && !roomCode && (
             <div className="session-section">
               <div className="session-section-label">hosting</div>
               <div className="session-section-content">
-                <p className="session-hint">
-                  Open a folder to start hosting — your canvas will get a room code to share.
-                </p>
+                <p className="session-hint">Open a folder to start hosting — your canvas will get a room code to share.</p>
               </div>
             </div>
           )}
@@ -172,37 +208,96 @@ export default function SessionPanel({ open, onClose, rootPath }) {
             </div>
           )}
 
-          {/* Transport */}
+          {/* Transport tabs */}
           <div className="session-section">
             <div className="session-section-label">transport</div>
             <div className="session-section-content">
               <div className="session-transport">
-                <div className="session-transport-opt active">
+                <div
+                  className={`session-transport-opt${tab === 'p2p' ? ' active' : ''}`}
+                  onClick={() => setTab('p2p')}
+                >
                   <div className="session-transport-dot" />
                   P2P / WebRTC
                 </div>
-                <div className="session-transport-opt disabled">
-                  <div className="session-transport-dot" />
+                <div
+                  className={`session-transport-opt${tab === 'server' ? ' active' : ''}`}
+                  onClick={() => setTab('server')}
+                >
+                  <div className={`session-transport-dot${serverRunning ? ' is-running' : ''}`} />
                   Server
                 </div>
               </div>
-              {roomCode && (
-                <div className="session-webrtc-status">
-                  <span
-                    className={`session-webrtc-dot ${webrtcStatus.connected ? 'is-connected' : 'is-connecting'}`}
-                  />
-                  <span className="session-hint" style={{ margin: 0 }}>
-                    {webrtcStatus.synced
-                      ? 'synced with peers'
-                      : webrtcStatus.connected
-                        ? 'signaling connected — waiting for peers'
-                        : 'connecting to signaling server…'}
-                  </span>
-                </div>
+
+              {tab === 'p2p' && (
+                <>
+                  {roomCode && (
+                    <div className="session-webrtc-status">
+                      <span className={`session-webrtc-dot ${webrtcStatus.connected ? 'is-connected' : 'is-connecting'}`} />
+                      <span className="session-hint" style={{ margin: 0 }}>
+                        {webrtcStatus.synced
+                          ? 'synced with peers'
+                          : webrtcStatus.connected
+                            ? 'signaling connected — waiting for peers'
+                            : 'connecting to signaling server…'}
+                      </span>
+                    </div>
+                  )}
+                  <p className="session-hint">
+                    Data flows peer-to-peer via WebRTC. The signaling server is only used to introduce peers — it never sees your canvas data.
+                  </p>
+                  {rootPath && (
+                    <div className="session-url-row">
+                      <input
+                        className="session-input-sm"
+                        style={{ flex: 1 }}
+                        value={signalingUrl}
+                        onChange={e => setSignalingUrl(e.target.value)}
+                        placeholder={`signaling URL  (default: ws://localhost:${SIGNALING_PORT})`}
+                      />
+                      <button className="session-btn" onClick={handleSaveUrl}>
+                        {urlSaved ? 'saved' : 'save'}
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
-              <p className="session-hint">
-                Peers connect directly via WebRTC. Signaling server only used for the initial handshake.
-              </p>
+
+              {tab === 'server' && (
+                <>
+                  <div className="session-server-block">
+                    <button
+                      className={`session-btn${serverRunning ? '' : ' session-btn--primary'}`}
+                      onClick={handleToggleServer}
+                    >
+                      {serverRunning ? 'stop signaling server' : 'start signaling server'}
+                    </button>
+                    {serverRunning && (
+                      <div className="session-server-info">
+                        <div className="session-server-addr">
+                          <span className="session-server-dot running" />
+                          {`ws://${primaryIp}:${SIGNALING_PORT}`}
+                          {localIps.length > 1 && (
+                            <span className="session-hint" style={{ margin: '2px 0 0' }}>
+                              also on: {localIps.slice(1).join(', ')}
+                            </span>
+                          )}
+                        </div>
+                        <p className="session-hint" style={{ marginTop: 6 }}>
+                          Share this URL with peers so they can enter it in the signaling URL field above.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="session-server-notice">
+                    <span className="session-notice-icon">⚠</span>
+                    <span>
+                      This server is only reachable on your <strong>local network</strong>.
+                      For internet access, forward port {SIGNALING_PORT} on your router to this machine.
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
