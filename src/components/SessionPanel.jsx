@@ -246,20 +246,18 @@ export default function SessionPanel({ open, onClose, rootPath }) {
                   <p className="session-hint">
                     Data flows peer-to-peer via WebRTC. The signaling server is only used to introduce peers — it never sees your canvas data.
                   </p>
-                  {rootPath && (
-                    <div className="session-url-row">
-                      <input
-                        className="session-input-sm"
-                        style={{ flex: 1 }}
-                        value={signalingUrl}
-                        onChange={e => setSignalingUrl(e.target.value)}
-                        placeholder={`signaling URL  (default: ws://localhost:${SIGNALING_PORT})`}
-                      />
-                      <button className="session-btn" onClick={handleSaveUrl}>
-                        {urlSaved ? 'saved' : 'save'}
-                      </button>
-                    </div>
-                  )}
+                  <div className="session-url-row">
+                    <input
+                      className="session-input-sm"
+                      style={{ flex: 1 }}
+                      value={signalingUrl}
+                      onChange={e => setSignalingUrl(e.target.value)}
+                      placeholder={`signaling URL  (default: ws://localhost:${SIGNALING_PORT})`}
+                    />
+                    <button className="session-btn" onClick={handleSaveUrl} disabled={!rootPath} title={!rootPath ? 'Open a folder first to persist this setting' : ''}>
+                      {urlSaved ? 'saved' : 'save'}
+                    </button>
+                  </div>
                 </>
               )}
 
