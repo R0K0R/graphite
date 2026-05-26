@@ -665,9 +665,11 @@ export default function FlowCanvas() {
   const depEdges = [];
   getAllDeps().forEach((depSet, srcUri) => {
     const srcId = fileNodeMap.get(srcUri);
+    console.log('[depEdge] srcUri', srcUri, '→ srcId', srcId);
     if (!srcId) return;
     depSet.forEach(depUri => {
       const tgtId = fileNodeMap.get(depUri);
+      console.log('[depEdge]   depUri', depUri, '→ tgtId', tgtId, 'same?', tgtId === srcId);
       if (!tgtId || tgtId === srcId) return;
       const refCount  = getRefCount(srcUri, depUri);
       const heatWidth   = Math.min(1 + refCount * 0.35, 5);
@@ -688,6 +690,8 @@ export default function FlowCanvas() {
       });
     });
   });
+
+  console.log('[depEdge] total edges built:', depEdges.length, depEdges.map(e => e.id));
 
   // Peer cursor windows — peers editing files in my dependency graph
   const localPeer = peers.find(p => p.isLocal);
