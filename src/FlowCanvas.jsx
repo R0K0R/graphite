@@ -679,7 +679,7 @@ export default function FlowCanvas() {
         source: srcId, target: tgtId,
         type: 'default',
         style: { stroke: heatColor, strokeWidth: heatWidth, strokeDasharray: '4 3', opacity: heatOpacity },
-        markerEnd: { type: MarkerType.Arrow, color: heatColor, width: 8, height: 8 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: heatColor, width: 12, height: 12 },
         label: refCount > 0 ? String(refCount) : undefined,
         labelStyle: { fontSize: 9, fill: heatColor, fontFamily: 'var(--mono)' },
         labelBgStyle: { fill: 'var(--bg)', fillOpacity: 0.8 },
