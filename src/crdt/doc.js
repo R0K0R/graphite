@@ -1,5 +1,6 @@
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
+import { WebsocketProvider } from 'y-websocket';
 import { WebrtcProvider } from 'y-webrtc';
 import { roomCodeForPath } from '../utils/wordlist.js';
 
@@ -12,12 +13,14 @@ let _localColor = '#' + Math.floor(Math.random() * 0xffffff).toString(16).padSta
 
 const _roomListeners   = new Set();
 const _statusListeners = new Set();
+let _currentStatus = { connected: false, synced: false };
 
 function notifyRoomChange() {
   _roomListeners.forEach(cb => { try { cb(_roomCode); } catch (_) {} });
 }
 
 function notifyStatus(s) {
+  _currentStatus = s;
   _statusListeners.forEach(cb => { try { cb(s); } catch (_) {} });
 }
 
@@ -31,7 +34,7 @@ export function onWebrtcStatus(cb) {
   return () => _statusListeners.delete(cb);
 }
 
-export function getWebrtcStatus() { return { connected: false, synced: false }; }
+export function getWebrtcStatus() { return _currentStatus; }
 
 export function getDoc() {
   if (!_doc) _doc = new Y.Doc();
@@ -73,24 +76,31 @@ export function initRoom(rootPath, customCode, signalingUrl) {
   _roomCode = customCode ?? roomCodeForPath(rootPath);
 
   const persist = new IndexeddbPersistence(_roomCode, _doc);
+
+  // WebSocket relay — always active; peers sync through the local relay server.
+  const ws = new WebsocketProvider('ws://localhost:1234', _roomCode, _doc);
+
+  // WebRTC P2P — shares awareness with WebSocket so cursor state merges across transports.
   const signaling = signalingUrl ? [signalingUrl] : ['ws://localhost:4444'];
-  const webrtc = new WebrtcProvider(_roomCode, _doc, { signaling });
-  _awareness = webrtc.awareness;
+  const webrtc = new WebrtcProvider(_roomCode, _doc, { signaling, awareness: ws.awareness });
+
+  _awareness = ws.awareness;
   _awareness.setLocalStateField('name', _localName);
   _awareness.setLocalStateField('color', _localColor);
-  _providers = [persist, webrtc];
+  _providers = [persist, ws, webrtc];
 
-  webrtc.on('status', ({ connected }) => {
-    console.log('[CRDT] webrtc connected:', connected);
-    notifyStatus({ connected, synced: false });
+  ws.on('status', ({ status }) => {
+    console.log('[CRDT] ws:', status);
+    notifyStatus({ connected: status === 'connected', synced: false });
   });
-  webrtc.on('synced', ({ synced }) => {
-    console.log('[CRDT] synced:', synced);
+  ws.on('sync', (synced) => {
+    console.log('[CRDT] ws synced:', synced);
     notifyStatus({ connected: true, synced });
   });
+  webrtc.on('status', ({ connected }) => console.log('[CRDT] webrtc:', connected ? 'connected' : 'disconnected'));
 
   notifyRoomChange();
-  return { persist, webrtc };
+  return { persist, ws, webrtc };
 }
 
 export function destroyProviders() {
@@ -99,6 +109,7 @@ export function destroyProviders() {
   _awareness = null;
   _doc = null;
   _roomCode = null;
+  _currentStatus = { connected: false, synced: false };
   notifyRoomChange();
 }
 
